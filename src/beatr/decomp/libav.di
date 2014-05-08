@@ -424,6 +424,13 @@ void av_frame_free(AVFrame** frame);
 void av_frame_unref(AVFrame* frame);
 
 void av_init_packet(AVPacket* pkt);
+unittest
+{
+	AVPacket pkt;
+	av_init_packet(&pkt);
+	assert(pkt.pos == -1L);
+//	assert(pkt.data !is null);
+}
 
 int av_read_frame(AVFormatContext* s, AVPacket* pkt);
 

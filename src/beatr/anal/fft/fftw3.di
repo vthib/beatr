@@ -43,6 +43,12 @@ mixin template Define_API(string p, R, T)
 
 	mixin(format(q{alias fftw_r2r_kind_do_not_use_me %s_r2r_kind;}, p));
 
+	/* X_execute */
+	pragma(mangle, format(q{%s_execute}, p))
+	mixin(format(q{
+void %s_execute(const %s_plan plan);
+}, p, p));
+
 	/* --- plan functions --- */
 
 	/* X_plan_dft */
@@ -291,29 +297,29 @@ void %s_execute_split_dft_c2r(%s_plan p, R *ri, R *ii, R *o);
 	/* X_plan_r2r */
 	pragma(mangle, format(q{%s_plan_r2r}, p))
 	mixin(format(q{
-%s_plan %s_plan_r2r(int rank, int *n, R *i, R *o, %s_r2r_kind *kind,
+%s_plan %s_plan_r2r(int rank, int *n, R *i, R *o, %s_r2r_kind kind,
 					uint flags);
 }, p, p, p));
 
 	/* X_plan_r2r_1d */
 	pragma(mangle, format(q{%s_plan_r2r_1d}, p))
 	mixin(format(q{
-%s_plan %s_plan_r2r_1d(int n, R *i, R *o, %s_r2r_kind *kind, uint flags);
+%s_plan %s_plan_r2r_1d(int n, R *i, R *o, %s_r2r_kind kind, uint flags);
 }, p, p, p));
 
 	/* X_plan_r2r_2d */
 	pragma(mangle, format(q{%s_plan_r2r_2d}, p))
 	mixin(format(q{
-%s_plan %s_plan_r2r_2d(int n0, int n1, R *i, R *o, %s_r2r_kind *kind0,
-					   %s_r2r_kind *kind1, uint flags);
+%s_plan %s_plan_r2r_2d(int n0, int n1, R *i, R *o, %s_r2r_kind kind0,
+					   %s_r2r_kind kind1, uint flags);
 }, p, p, p, p));
 
 	/* X_plan_r2r_3d */
 	pragma(mangle, format(q{%s_plan_r2r_3d}, p))
 	mixin(format(q{
 %s_plan %s_plan_r2r_3d(int n0, int n1, int n2, R *i, R *o,
-					   %s_r2r_kind *kind0, %s_r2r_kind *kind1,
-					   %s_r2r_kind *kind2, uint flags);
+					   %s_r2r_kind kind0, %s_r2r_kind kind1,
+					   %s_r2r_kind kind2, uint flags);
 }, p, p, p, p, p));
 
 	/* X_plan_many_r2r */

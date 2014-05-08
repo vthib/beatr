@@ -3,8 +3,10 @@ module main;
 import std.stdio;
 import std.string;
 import std.conv;
+import std.algorithm;
+import std.complex;
 
-//import beatr.anal.fft.fftw3;
+import beatr.anal.fft.fftw3;
 import beatr.decomp.libav;
 
 class LibAvException : Exception {
@@ -21,11 +23,6 @@ class LibAvException : Exception {
 void
 main()
 {
-/+	fftw_complex cpx;
-
-	writeln(fftw_plan_dft_1d(1, &cpx, &cpx, FFTW_FORWARD, FFTW_ESTIMATE));
-	writeln(fftw_cc);
-+/
 	AVFormatContext *s = null;
 
 	try {
@@ -119,6 +116,46 @@ main()
 
 		decoded.length = total;
 		writefln("length: %s", decoded.length);
+
+		enum transformSize = 32768; /* 2^15; */
+
+		double[] input = new double[transformSize];
+		cdouble[] output = new cdouble[transformSize];
+
+		auto plan = fftw_plan_dft_r2c_1d(transformSize, input.ptr, output.ptr,
+										 0);
+
+		immutable int step = 4;
+		uint idx = 0;
+		foreach (ref i; input) {
+			i = decoded[idx];
+			idx += step;
+		}
+
+		fftw_execute(plan);
+
+		double[] freqs = new double[12*10];
+		immutable double nextNote = std.math.pow(2., 1./12.);
+		freqs[0] = 16.352; /* C0 */
+		for(uint i = 1; i < freqs.length; i++)
+			freqs[i] = freqs[i-1] * nextNote;
+
+		immutable string[] notes = ["A", "Bb", "B", "C", "C#", "D", "Eb", "E",
+									"F", "F#", "G", "G#"];
+		int note = 3; /* C0 */
+		foreach(i, f; freqs) {
+			int k = cast(int) (f * transformSize / cctx.sample_rate);
+			writefln("%s%s\t%.3e\t%s\t%.3f\t%.3f", notes[note++ % 12], note / 12,
+					 f, k, output[k].re, output[k].im);
+		}
+
+		auto norm = output.map!(a => std.math.sqrt(a.re*a.re + a.im*a.im));
+
+		foreach(i, f; freqs) {
+			int k = cast(int) (f * transformSize / cctx.sample_rate);
+			writefln("%s\t%s", norm[k], std.math.sqrt(output[k].re*output[k].re +
+													  output[k].im*output[k].im));
+		}
 
 		if (frame !is null)
 			av_frame_free(&frame);
