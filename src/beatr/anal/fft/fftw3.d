@@ -1,7 +1,7 @@
 module fftw3;
 
 import std.stdio : FILE;
-import std.string : format;
+import std.string : format; // for the mixin
 
 extern(C):
 nothrow:
@@ -40,8 +40,20 @@ mixin template Define_API(string p, R, T)
 
 	mixin(format(q{alias fftw_iodim_do_not_use_me %s_iodim;}, p));
 	mixin(format(q{alias fftw_iodim64_do_not_use_me %s_iodim64;}, p));
-
 	mixin(format(q{alias fftw_r2r_kind_do_not_use_me %s_r2r_kind;}, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+			    %s_iodim i;
+		        %s_iodim64 i64;
+		        %s_r2r_kind r;
+			}, p, p, p));
+		    assert(i.sizeof == 3*int.sizeof);
+		    assert(i64.sizeof == 3*ptrdiff_t.sizeof);
+		    assert(r.sizeof == int.sizeof);
+			assert(false);
+        }
+	}
 
 	/* X_execute */
 	pragma(mangle, format(q{%s_execute}, p))
@@ -56,18 +68,46 @@ void %s_execute(const %s_plan plan);
 	mixin(format(q{
 %s_plan %s_plan_dft(int rank, int *n, T *i, T *o, int sign, uint flags);
 }, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				T i;
+				int[] n = [1];
+				%s_plan plan = %s_plan_dft(0, n.ptr, &i, &i, 1, 0);
+				%s_execute(plan);
+			}, p, p, p));
+		}
+	}
 
 	/* X_plan_dft_1d */
 	pragma(mangle, format(q{%s_plan_dft_1d}, p))
 	mixin(format(q{
 %s_plan %s_plan_dft_1d(int n, T *i, T *o, int sign, uint flags);
 }, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				T i;
+				%s_plan plan = %s_plan_dft_1d(1, &i, &i, 1, 0);
+				%s_execute(plan);
+			}, p, p, p));
+		}
+	}
 
 	/* X_plan_dft_2d */
 	pragma(mangle, format(q{%s_plan_dft_2d}, p))
 	mixin(format(q{
 %s_plan %s_plan_dft_2d(int n0, int n1, T *i, T *o, int sign, uint flags);
 }, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				T[] n = new T[2];
+				%s_plan plan = %s_plan_dft_2d(2, 1, n.ptr, n.ptr, 1, 0);
+				%s_execute(plan);
+			}, p, p, p));
+		}
+	}
 
 	/* X_plan_dft_3d */
 	pragma(mangle, format(q{%s_plan_dft_3d}, p))
@@ -75,6 +115,15 @@ void %s_execute(const %s_plan plan);
 %s_plan %s_plan_dft_3d(int n0, int n1, int n2, T *i, T *o, int sign,
 					   uint flags);
 }, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				T[] n = new T[3];
+				%s_plan plan = %s_plan_dft_3d(1, 3, 1, n.ptr, n.ptr, 1, 0);
+				%s_execute(plan);
+			}, p, p, p));
+		}
+	}
 
 	/* X_plan_many_dft */
 	pragma(mangle, format(q{%s_plan_many_dft}, p))
@@ -83,6 +132,17 @@ void %s_execute(const %s_plan plan);
 						 int istride, int idist, T *o, int *onembed,
 						 int ostride, int odist, int sign, uint flags);
 }, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				T i;
+				int[] n = [1, 1];
+				%s_plan plan = %s_plan_many_dft(2, n.ptr, 1, &i, n.ptr, 1, 0, &i,
+												n.ptr, 1, 0, 1, 0);
+				%s_execute(plan);
+			}, p, p, p));
+		}
+	}
 
 	/* --- guru functions --- */
 
