@@ -312,7 +312,6 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 		unittest {
 			mixin(format(q{
 				R i; T o;
-				int[] n = [1];
 				auto plan = %s_plan_dft_r2c_3d(1, 1, 1, &i, &o, 0);
 				%s_execute(plan);
 			}, p, p));
@@ -343,26 +342,63 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 	/* X_plan_dft_c2r */
 	pragma(mangle, format(q{%s_plan_dft_c2r}, p))
 	mixin(format(q{
-%s_plan %s_plan_dft(int rank, int *n, T *i, R *o, uint flags);
+%s_plan %s_plan_dft_c2r(int rank, int *n, T *i, R *o, uint flags);
 }, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				T i; R o;
+				int[] n = [1];
+				auto plan = %s_plan_dft_c2r(0, n.ptr, &i, &o, 0);
+				%s_execute(plan);
+			}, p, p));
+		}
+	}
 
 	/* X_plan_dft_c2r_1d */
 	pragma(mangle, format(q{%s_plan_dft_c2r_1d}, p))
 	mixin(format(q{
 %s_plan %s_plan_dft_c2r_1d(int n, T *i, R *o, uint flags);
 }, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				T i; R o;
+				auto plan = %s_plan_dft_c2r_1d(1, &i, &o, 0);
+				%s_execute(plan);
+			}, p, p));
+		}
+	}
 
 	/* X_plan_dft_c2r_2d */
 	pragma(mangle, format(q{%s_plan_dft_c2r_2d}, p))
 	mixin(format(q{
 %s_plan %s_plan_dft_c2r_2d(int n0, int n1, T *i, R *o, uint flags);
 }, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				T i; R o;
+				auto plan = %s_plan_dft_c2r_2d(1, 1, &i, &o, 0);
+				%s_execute(plan);
+			}, p, p));
+		}
+	}
 
 	/* X_plan_dft_c2r_3d */
 	pragma(mangle, format(q{%s_plan_dft_c2r_3d}, p))
 	mixin(format(q{
 %s_plan %s_plan_dft_c2r_3d(int n0, int n1, int n2, T *i, R *o, uint flags);
 }, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				T i; R o;
+				auto plan = %s_plan_dft_c2r_3d(1, 1, 1, &i, &o, 0);
+				%s_execute(plan);
+			}, p, p));
+		}
+	}
 
 	/* X_plan_many_dft_c2r */
 	pragma(mangle, format(q{%s_plan_many_dft_c2r}, p))
@@ -371,6 +407,17 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 							 int istride, int idist, R *o, int *onembed,
 							 int ostride, int odist, uint flags);
 }, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				T i; R o;
+				int[] n = [1, 1];
+				auto plan = %s_plan_many_dft_c2r(2, n.ptr, 1, &i, n.ptr, 1, 0,
+												 &o, n.ptr, 1, 0, 0);
+				%s_execute(plan);
+			}, p, p));
+		}
+	}
 
 	/* --- guru r2c functions --- */
 
@@ -380,6 +427,16 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 %s_plan %s_plan_guru_dft_r2c(int rank, %s_iodim *dims, int howmany_rank,
 							 %s_iodim *howmany_dims, R *i, T *o, uint flags);
 }, p, p, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				auto dim = %s_iodim(1, 1, 1);
+				R i; T o;
+				auto plan = %s_plan_guru_dft_r2c(1, &dim, 1, &dim, &i, &o, 0);
+				%s_execute(plan);
+			}, p, p, p));
+		}
+	}
 
 	/* X_plan_guru_split_dft_r2c */
 	pragma(mangle, format(q{%s_plan_guru_split_dft_r2c}, p))
@@ -388,6 +445,17 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 								   %s_iodim *howmany_dims, R *i, R *ro,
 								   R *io, uint flags);
 }, p, p, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				auto dim = %s_iodim(1, 1, 1);
+				R i, ro, io;
+				auto plan = %s_plan_guru_split_dft_r2c(1, &dim, 1, &dim, &i,
+													   &ro, &io, 0);
+				%s_execute(plan);
+			}, p, p, p));
+		}
+	}
 
 	/* X_plan_guru64_dft_r2c */
 	pragma(mangle, format(q{%s_plan_guru64_dft_r2c}, p))
@@ -396,6 +464,17 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 							   %s_iodim64 *howmany_dims, R *i, T *o,
 							   uint flags);
 }, p, p, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				auto dim = %s_iodim64(1, 1, 1);
+				R i; T o;
+				auto plan = %s_plan_guru64_dft_r2c(1, &dim, 1, &dim, &i, &o,
+												   0);
+				%s_execute(plan);
+			}, p, p, p));
+		}
+	}
 
 	/* X_plan_guru64_split_dft_r2c */
 	pragma(mangle, format(q{%s_plan_guru64_split_dft_r2c}, p))
@@ -404,6 +483,17 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 									 int howmany_rk, %s_iodim64 *howmany_dims,
 									 R *i, R *ro, R *io, uint flags);
 }, p, p, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				auto dim = %s_iodim64(1, 1, 1);
+				R i, ro, io;
+				auto plan = %s_plan_guru64_split_dft_r2c(1, &dim, 1, &dim, &i,
+													   &ro, &io, 0);
+				%s_execute(plan);
+			}, p, p, p));
+		}
+	}
 
 	/* --- guru c2r functions --- */
 
@@ -413,6 +503,16 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 %s_plan %s_plan_guru_dft_c2r(int rank, %s_iodim *dims, int howmany_rank,
 							 %s_iodim *howmany_dims, T *i, R *o, uint flags);
 }, p, p, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				auto dim = %s_iodim(1, 1, 1);
+				T i; R o;
+				auto plan = %s_plan_guru_dft_c2r(1, &dim, 1, &dim, &i, &o, 0);
+				%s_execute(plan);
+			}, p, p, p));
+		}
+	}
 
 	/* X_plan_guru_split_dft_c2r */
 	pragma(mangle, format(q{%s_plan_guru_split_dft_c2r}, p))
@@ -421,6 +521,17 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 								   %s_iodim *howmany_dims, R *ri, R *ii,
 								   R *o, uint flags);
 }, p, p, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				auto dim = %s_iodim(1, 1, 1);
+				R ri, ii, o;
+				auto plan = %s_plan_guru_split_dft_c2r(1, &dim, 1, &dim, &ri,
+													   &ii, &o, 0);
+				%s_execute(plan);
+			}, p, p, p));
+		}
+	}
 
 	/* X_plan_guru64_dft_c2r */
 	pragma(mangle, format(q{%s_plan_guru64_dft_c2r}, p))
@@ -429,6 +540,16 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 							   %s_iodim64 *howmany_dims, T *i, R *o,
 							   uint flags);
 }, p, p, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				auto dim = %s_iodim64(1, 1, 1);
+				T i; R o;
+				auto plan = %s_plan_guru64_dft_c2r(1, &dim, 1, &dim, &i, &o, 0);
+				%s_execute(plan);
+			}, p, p, p));
+		}
+	}
 
 	/* X_plan_guru64_split_dft_c2r */
 	pragma(mangle, format(q{%s_plan_guru64_split_dft_c2r}, p))
@@ -437,6 +558,17 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 									 int howmany_rk, %s_iodim64 *howmany_dims,
 									 R *ri, R *ii, R *o, uint flags);
 }, p, p, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				auto dim = %s_iodim64(1, 1, 1);
+				R ri, ii, o;
+				auto plan = %s_plan_guru64_split_dft_c2r(1, &dim, 1, &dim, &ri,
+														 &ii, &o, 0);
+				%s_execute(plan);
+			}, p, p, p));
+		}
+	}
 
 	/* --- execute r2c & c2r functions --- */
 
@@ -445,39 +577,96 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 	mixin(format(q{
 void %s_execute_dft_r2c(%s_plan p, R *i, T *o);
 }, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				R i; T o;
+				auto plan = %s_plan_dft_r2c_1d(1, &i, &o, 0);
+				%s_execute_dft_r2c(plan, &i, &o);
+			}, p, p));
+		}
+	}
 
 	/* X_execute_dft_c2r */
 	pragma(mangle, format(q{%s_execute_dft_c2r}, p))
 	mixin(format(q{
 void %s_execute_dft_c2r(%s_plan p, T *i, R *o);
 }, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				T i; R o;
+				auto plan = %s_plan_dft_c2r_1d(1, &i, &o, 0);
+				%s_execute_dft_c2r(plan, &i, &o);
+			}, p, p));
+		}
+	}
 
 	/* X_execute_split_dft_r2c */
 	pragma(mangle, format(q{%s_execute_split_dft_r2c}, p))
 	mixin(format(q{
 void %s_execute_split_dft_r2c(%s_plan p, R *i, R *ro, R *io);
 }, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				R i; T o;
+				auto plan = %s_plan_dft_r2c_1d(1, &i, &o, 0);
+				%s_execute_split_dft_r2c(plan, &i, &i, &i);
+			}, p, p));
+		}
+	}
 
 	/* X_execute_split_dft_c2r */
 	pragma(mangle, format(q{%s_execute_split_dft_c2r}, p))
 	mixin(format(q{
 void %s_execute_split_dft_c2r(%s_plan p, R *ri, R *ii, R *o);
 }, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				T i; R o;
+				auto plan = %s_plan_dft_c2r_1d(1, &i, &o, 0);
+				%s_execute_split_dft_c2r(plan, &o, &o, &o);
+			}, p, p));
+		}
+	}
 
 	/* --- plan r2r functions --- */
 
 	/* X_plan_r2r */
 	pragma(mangle, format(q{%s_plan_r2r}, p))
 	mixin(format(q{
-%s_plan %s_plan_r2r(int rank, int *n, R *i, R *o, %s_r2r_kind kind,
+%s_plan %s_plan_r2r(int rank, int *n, R *i, R *o, %s_r2r_kind *kind,
 					uint flags);
 }, p, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				R i, o;
+				int[] n = [1];
+				auto k = %s_r2r_kind.FFTW_DHT;
+				auto plan = %s_plan_r2r(0, n.ptr, &i, &o, &k, 0);
+				%s_execute(plan);
+			}, p, p, p));
+		}
+	}
 
 	/* X_plan_r2r_1d */
 	pragma(mangle, format(q{%s_plan_r2r_1d}, p))
 	mixin(format(q{
 %s_plan %s_plan_r2r_1d(int n, R *i, R *o, %s_r2r_kind kind, uint flags);
 }, p, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				R i, o;
+				auto plan = %s_plan_r2r_1d(1, &i, &o,
+										   %s_r2r_kind.FFTW_HC2R, 0);
+				%s_execute(plan);
+			}, p, p, p));
+		}
+	}
 
 	/* X_plan_r2r_2d */
 	pragma(mangle, format(q{%s_plan_r2r_2d}, p))
@@ -485,6 +674,16 @@ void %s_execute_split_dft_c2r(%s_plan p, R *ri, R *ii, R *o);
 %s_plan %s_plan_r2r_2d(int n0, int n1, R *i, R *o, %s_r2r_kind kind0,
 					   %s_r2r_kind kind1, uint flags);
 }, p, p, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				R i, o;
+				auto plan = %s_plan_r2r_2d(1, 1, &i, &o, %s_r2r_kind.FFTW_DHT,
+										   %s_r2r_kind.FFTW_DHT, 0);
+				%s_execute(plan);
+			}, p, p, p, p));
+		}
+	}
 
 	/* X_plan_r2r_3d */
 	pragma(mangle, format(q{%s_plan_r2r_3d}, p))
@@ -493,6 +692,19 @@ void %s_execute_split_dft_c2r(%s_plan p, R *ri, R *ii, R *o);
 					   %s_r2r_kind kind0, %s_r2r_kind kind1,
 					   %s_r2r_kind kind2, uint flags);
 }, p, p, p, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				R i, o;
+				auto plan = %s_plan_r2r_3d(1, 1, 1, &i, &o,
+										   %s_r2r_kind.FFTW_DHT,
+										   %s_r2r_kind.FFTW_DHT,
+										   %s_r2r_kind.FFTW_DHT,
+										   0);
+				%s_execute(plan);
+			}, p, p, p, p, p));
+		}
+	}
 
 	/* X_plan_many_r2r */
 	pragma(mangle, format(q{%s_plan_many_r2r}, p))
@@ -501,6 +713,18 @@ void %s_execute_split_dft_c2r(%s_plan p, R *ri, R *ii, R *o);
 						 int istride, int idist, R *o, int *onembed,
 						 int ostride, int odist, %s_r2r_kind *k, uint flags);
 }, p, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				R i;
+				int[] n = [1, 1];
+				auto k = %s_r2r_kind.FFTW_DHT;
+				auto plan = %s_plan_many_r2r(2, n.ptr, 1, &i, n.ptr, 1, 0, &i,
+											 n.ptr, 1, 0, &k, 0);
+				%s_execute(plan);
+			}, p, p, p));
+		}
+	}
 
 	/* --- guru r2r functions --- */
 
@@ -511,6 +735,18 @@ void %s_execute_split_dft_c2r(%s_plan p, R *ri, R *ii, R *o);
 						 %s_iodim *howmany_dims, R *i, R *o,
 						 %s_r2r_kind *kind, uint flags);
 }, p, p, p, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				auto dim = %s_iodim(1, 1, 1);
+				R i, o;
+				auto k = %s_r2r_kind.FFTW_DHT;
+				auto plan = %s_plan_guru_r2r(1, &dim, 1, &dim, &i, &o,
+											 &k, 0);
+				%s_execute(plan);
+			}, p, p, p, p));
+		}
+	}
 
 	/* X_plan_guru64_r2r */
 	pragma(mangle, format(q{%s_plan_guru64_r2r}, p))
@@ -519,6 +755,18 @@ void %s_execute_split_dft_c2r(%s_plan p, R *ri, R *ii, R *o);
 						   %s_iodim64 *howmany_dims, R *i, R *o,
 						   %s_r2r_kind *kind, uint flags);
 }, p, p, p, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				auto dim = %s_iodim64(1, 1, 1);
+				R i, o;
+				auto k = %s_r2r_kind.FFTW_DHT;
+				auto plan = %s_plan_guru64_r2r(1, &dim, 1, &dim, &i, &o,
+											   &k, 0);
+				%s_execute(plan);
+			}, p, p, p, p));
+		}
+	}
 
 	/* --- execute r2r functions --- */
 
@@ -527,6 +775,16 @@ void %s_execute_split_dft_c2r(%s_plan p, R *ri, R *ii, R *o);
 	mixin(format(q{
 void %s_execute_r2r(%s_plan p, R *i, R *o);
 }, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				R i, o;
+				auto plan = %s_plan_r2r_1d(1, &i, &o,
+										   %s_r2r_kind.FFTW_R2HC, 0);
+				%s_execute_r2r(plan, &i, &o);
+			}, p, p, p));
+		}
+	}
 
 	/* --- other functions --- */
 
