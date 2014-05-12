@@ -1,7 +1,7 @@
 module fftw3;
 
-import std.stdio : FILE;
-import std.string : format; // for the mixin
+import std.stdio;
+import std.string : format, toStringz; // for the mixin
 
 extern(C):
 nothrow:
@@ -74,7 +74,8 @@ void %s_execute(const %s_plan plan);
 				int[] n = [1];
 				auto plan = %s_plan_dft(0, n.ptr, &i, &i, 1, 0);
 				%s_execute(plan);
-			}, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p));
 		}
 	}
 
@@ -89,7 +90,8 @@ void %s_execute(const %s_plan plan);
 				T i;
 				auto plan = %s_plan_dft_1d(1, &i, &i, 1, 0);
 				%s_execute(plan);
-			}, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p));
 		}
 	}
 
@@ -104,7 +106,8 @@ void %s_execute(const %s_plan plan);
 				T[] n = new T[2];
 				auto plan = %s_plan_dft_2d(2, 1, n.ptr, n.ptr, 1, 0);
 				%s_execute(plan);
-			}, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p));
 		}
 	}
 
@@ -120,7 +123,8 @@ void %s_execute(const %s_plan plan);
 				T[] n = new T[3];
 				auto plan = %s_plan_dft_3d(1, 3, 1, n.ptr, n.ptr, 1, 0);
 				%s_execute(plan);
-			}, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p));
 		}
 	}
 
@@ -139,7 +143,8 @@ void %s_execute(const %s_plan plan);
 				auto plan = %s_plan_many_dft(2, n.ptr, 1, &i, n.ptr, 1, 0, &i,
 											 n.ptr, 1, 0, 1, 0);
 				%s_execute(plan);
-			}, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p));
 		}
 	}
 
@@ -159,7 +164,8 @@ void %s_execute(const %s_plan plan);
 				T i;
 				auto plan = %s_plan_guru_dft(1, &dim, 1, &dim, &i, &i, 1, 0);
 				%s_execute(plan);
-			}, p, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p, p));
 		}
 	}
 
@@ -178,7 +184,8 @@ void %s_execute(const %s_plan plan);
 				auto plan = %s_plan_guru_split_dft(1, &dim, 1, &dim, &i1,
 												   &i2, &i1, &i2, 0);
 				%s_execute(plan);
-			}, p, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p, p));
 		}
 	}
 
@@ -197,7 +204,8 @@ void %s_execute(const %s_plan plan);
 				auto plan = %s_plan_guru64_dft(1, &dim, 1, &dim, &i, &i, 1,
 											   0);
 				%s_execute(plan);
-			}, p, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p, p));
 		}
 	}
 
@@ -216,7 +224,8 @@ void %s_execute(const %s_plan plan);
 				auto plan = %s_plan_guru64_split_dft(1, &dim, 1, &dim, &i1,
 													 &i2, &i1, &i2, 0);
 				%s_execute(plan);
-			}, p, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p, p));
 		}
 	}
 
@@ -234,7 +243,8 @@ void %s_execute_dft(%s_plan p, T *i, T *o);
 				int[] n = [1];
 				auto plan = %s_plan_dft(0, n.ptr, &i, &i, 1, 0);
 				%s_execute_dft(plan, &i, &i);
-			}, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p));
 		}
 	}
 
@@ -251,7 +261,8 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 				int[] n = [1];
 				auto plan = %s_plan_dft(0, n.ptr, &i, &i, 1, 0);
 				%s_execute_split_dft(plan, &re, &im, &re, &im);
-			}, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p));
 		}
 	}
 
@@ -269,7 +280,8 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 				int[] n = [1];
 				auto plan = %s_plan_dft_r2c(0, n.ptr, &i, &o, 0);
 				%s_execute(plan);
-			}, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p));
 		}
 	}
 
@@ -284,7 +296,8 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 				R i; T o;
 				auto plan = %s_plan_dft_r2c_1d(1, &i, &o, 0);
 				%s_execute(plan);
-			}, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p));
 		}
 	}
 
@@ -299,7 +312,8 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 				R i; T o;
 				auto plan = %s_plan_dft_r2c_2d(1, 1, &i, &o, 0);
 				%s_execute(plan);
-			}, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p));
 		}
 	}
 
@@ -314,8 +328,9 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 				R i; T o;
 				auto plan = %s_plan_dft_r2c_3d(1, 1, 1, &i, &o, 0);
 				%s_execute(plan);
-			}, p, p));
-		}
+				%s_destroy_plan(plan);
+			}, p, p, p));
+ 		}
 	}
 
 	/* X_plan_many_dft_r2c */
@@ -333,7 +348,8 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 				auto plan = %s_plan_many_dft_r2c(2, n.ptr, 1, &i, n.ptr, 1, 0,
 												 &o, n.ptr, 1, 0, 0);
 				%s_execute(plan);
-			}, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p));
 		}
 	}
 
@@ -351,7 +367,8 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 				int[] n = [1];
 				auto plan = %s_plan_dft_c2r(0, n.ptr, &i, &o, 0);
 				%s_execute(plan);
-			}, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p));
 		}
 	}
 
@@ -366,7 +383,8 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 				T i; R o;
 				auto plan = %s_plan_dft_c2r_1d(1, &i, &o, 0);
 				%s_execute(plan);
-			}, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p));
 		}
 	}
 
@@ -381,7 +399,8 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 				T i; R o;
 				auto plan = %s_plan_dft_c2r_2d(1, 1, &i, &o, 0);
 				%s_execute(plan);
-			}, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p));
 		}
 	}
 
@@ -396,7 +415,8 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 				T i; R o;
 				auto plan = %s_plan_dft_c2r_3d(1, 1, 1, &i, &o, 0);
 				%s_execute(plan);
-			}, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p));
 		}
 	}
 
@@ -415,7 +435,8 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 				auto plan = %s_plan_many_dft_c2r(2, n.ptr, 1, &i, n.ptr, 1, 0,
 												 &o, n.ptr, 1, 0, 0);
 				%s_execute(plan);
-			}, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p));
 		}
 	}
 
@@ -434,7 +455,8 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 				R i; T o;
 				auto plan = %s_plan_guru_dft_r2c(1, &dim, 1, &dim, &i, &o, 0);
 				%s_execute(plan);
-			}, p, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p, p));
 		}
 	}
 
@@ -453,7 +475,8 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 				auto plan = %s_plan_guru_split_dft_r2c(1, &dim, 1, &dim, &i,
 													   &ro, &io, 0);
 				%s_execute(plan);
-			}, p, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p, p));
 		}
 	}
 
@@ -472,7 +495,8 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 				auto plan = %s_plan_guru64_dft_r2c(1, &dim, 1, &dim, &i, &o,
 												   0);
 				%s_execute(plan);
-			}, p, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p, p));
 		}
 	}
 
@@ -491,7 +515,8 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 				auto plan = %s_plan_guru64_split_dft_r2c(1, &dim, 1, &dim, &i,
 													   &ro, &io, 0);
 				%s_execute(plan);
-			}, p, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p, p));
 		}
 	}
 
@@ -510,7 +535,8 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 				T i; R o;
 				auto plan = %s_plan_guru_dft_c2r(1, &dim, 1, &dim, &i, &o, 0);
 				%s_execute(plan);
-			}, p, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p, p));
 		}
 	}
 
@@ -529,7 +555,8 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 				auto plan = %s_plan_guru_split_dft_c2r(1, &dim, 1, &dim, &ri,
 													   &ii, &o, 0);
 				%s_execute(plan);
-			}, p, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p, p));
 		}
 	}
 
@@ -547,7 +574,8 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 				T i; R o;
 				auto plan = %s_plan_guru64_dft_c2r(1, &dim, 1, &dim, &i, &o, 0);
 				%s_execute(plan);
-			}, p, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p, p));
 		}
 	}
 
@@ -566,7 +594,8 @@ void %s_execute_split_dft(%s_plan p, R *ri, R *ii, R *ro, R *io);
 				auto plan = %s_plan_guru64_split_dft_c2r(1, &dim, 1, &dim, &ri,
 														 &ii, &o, 0);
 				%s_execute(plan);
-			}, p, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p, p));
 		}
 	}
 
@@ -583,7 +612,8 @@ void %s_execute_dft_r2c(%s_plan p, R *i, T *o);
 				R i; T o;
 				auto plan = %s_plan_dft_r2c_1d(1, &i, &o, 0);
 				%s_execute_dft_r2c(plan, &i, &o);
-			}, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p));
 		}
 	}
 
@@ -598,7 +628,8 @@ void %s_execute_dft_c2r(%s_plan p, T *i, R *o);
 				T i; R o;
 				auto plan = %s_plan_dft_c2r_1d(1, &i, &o, 0);
 				%s_execute_dft_c2r(plan, &i, &o);
-			}, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p));
 		}
 	}
 
@@ -613,7 +644,8 @@ void %s_execute_split_dft_r2c(%s_plan p, R *i, R *ro, R *io);
 				R i; T o;
 				auto plan = %s_plan_dft_r2c_1d(1, &i, &o, 0);
 				%s_execute_split_dft_r2c(plan, &i, &i, &i);
-			}, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p));
 		}
 	}
 
@@ -628,7 +660,8 @@ void %s_execute_split_dft_c2r(%s_plan p, R *ri, R *ii, R *o);
 				T i; R o;
 				auto plan = %s_plan_dft_c2r_1d(1, &i, &o, 0);
 				%s_execute_split_dft_c2r(plan, &o, &o, &o);
-			}, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p));
 		}
 	}
 
@@ -648,7 +681,8 @@ void %s_execute_split_dft_c2r(%s_plan p, R *ri, R *ii, R *o);
 				auto k = %s_r2r_kind.FFTW_DHT;
 				auto plan = %s_plan_r2r(0, n.ptr, &i, &o, &k, 0);
 				%s_execute(plan);
-			}, p, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p, p));
 		}
 	}
 
@@ -664,7 +698,8 @@ void %s_execute_split_dft_c2r(%s_plan p, R *ri, R *ii, R *o);
 				auto plan = %s_plan_r2r_1d(1, &i, &o,
 										   %s_r2r_kind.FFTW_HC2R, 0);
 				%s_execute(plan);
-			}, p, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p, p));
 		}
 	}
 
@@ -681,7 +716,8 @@ void %s_execute_split_dft_c2r(%s_plan p, R *ri, R *ii, R *o);
 				auto plan = %s_plan_r2r_2d(1, 1, &i, &o, %s_r2r_kind.FFTW_DHT,
 										   %s_r2r_kind.FFTW_DHT, 0);
 				%s_execute(plan);
-			}, p, p, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p, p, p));
 		}
 	}
 
@@ -702,7 +738,8 @@ void %s_execute_split_dft_c2r(%s_plan p, R *ri, R *ii, R *o);
 										   %s_r2r_kind.FFTW_DHT,
 										   0);
 				%s_execute(plan);
-			}, p, p, p, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p, p, p, p));
 		}
 	}
 
@@ -718,11 +755,12 @@ void %s_execute_split_dft_c2r(%s_plan p, R *ri, R *ii, R *o);
 			mixin(format(q{
 				R i;
 				int[] n = [1, 1];
-				auto k = %s_r2r_kind.FFTW_DHT;
+				auto k = new %s_r2r_kind[2];
 				auto plan = %s_plan_many_r2r(2, n.ptr, 1, &i, n.ptr, 1, 0, &i,
-											 n.ptr, 1, 0, &k, 0);
+											 n.ptr, 1, 0, k.ptr, 0);
 				%s_execute(plan);
-			}, p, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p, p));
 		}
 	}
 
@@ -744,7 +782,8 @@ void %s_execute_split_dft_c2r(%s_plan p, R *ri, R *ii, R *o);
 				auto plan = %s_plan_guru_r2r(1, &dim, 1, &dim, &i, &o,
 											 &k, 0);
 				%s_execute(plan);
-			}, p, p, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p, p, p));
 		}
 	}
 
@@ -764,7 +803,8 @@ void %s_execute_split_dft_c2r(%s_plan p, R *ri, R *ii, R *o);
 				auto plan = %s_plan_guru64_r2r(1, &dim, 1, &dim, &i, &o,
 											   &k, 0);
 				%s_execute(plan);
-			}, p, p, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p, p, p));
 		}
 	}
 
@@ -782,7 +822,8 @@ void %s_execute_r2r(%s_plan p, R *i, R *o);
 				auto plan = %s_plan_r2r_1d(1, &i, &o,
 										   %s_r2r_kind.FFTW_R2HC, 0);
 				%s_execute_r2r(plan, &i, &o);
-			}, p, p, p));
+				%s_destroy_plan(plan);
+			}, p, p, p, p));
 		}
 	}
 
@@ -793,88 +834,237 @@ void %s_execute_r2r(%s_plan p, R *i, R *o);
 	mixin(format(q{
 void %s_destroy_plan(%s_plan p);
 }, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				R i; T o;
+				auto plan = %s_plan_dft_r2c_1d(1, &i, &o, 0);
+				%s_destroy_plan(plan);
+			}, p, p));
+		}
+	}
 
 	/* X_forget_wisdom */
 	pragma(mangle, format(q{%s_forget_wisdom}, p))
 	mixin(format(q{
 void %s_forget_wisdom();
 }, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				%s_forget_wisdom();
+			}, p));
+		}
+	}
+
 
 	/* X_cleanup */
 	pragma(mangle, format(q{%s_cleanup}, p))
 	mixin(format(q{
 void %s_cleanup();
 }, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				%s_cleanup();
+			}, p));
+		}
+	}
 
 	/* X_set_timelimit */
 	pragma(mangle, format(q{%s_set_timelimit}, p))
 	mixin(format(q{
 void %s_set_timelimit(double);
 }, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				%s_set_timelimit(3);
+			}, p));
+		}
+	}
 
 	/* X_plan_with_nthreads */
 	pragma(mangle, format(q{%s_plan_with_nthreads}, p))
 	mixin(format(q{
 void %s_plan_with_nthreads(int nthreads);
 }, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				%s_plan_with_nthreads(3);
+			}, p));
+		}
+	}
+
 	/* X_init_threads */
 	pragma(mangle, format(q{%s_init_threads}, p))
 	mixin(format(q{
 int %s_init_threads();
 }, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				%s_init_threads();
+			}, p));
+		}
+	}
+
 	/* X_cleanup_threads */
 	pragma(mangle, format(q{%s_cleanup_threads}, p))
 	mixin(format(q{
 void %s_cleanup_threads();
 }, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				%s_cleanup_threads();
+			}, p));
+		}
+	}
 
 	/* X_export_wisdom_to_file */
 	pragma(mangle, format(q{%s_export_wisdom_to_file}, p))
 	mixin(format(q{
 void %s_export_wisdom_to_file(FILE *output_file);
 }, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				auto f = std.c.stdio.tmpfile();
+				%s_export_wisdom_to_file(f);
+				std.c.stdio.fclose(f);
+				%s_cleanup();
+			}, p, p));
+		}
+	}
+
 	/* X_export_wisdom_to_string */
 	pragma(mangle, format(q{%s_export_wisdom_to_string}, p))
 	mixin(format(q{
 char *%s_export_wisdom_to_string();
 }, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				core.stdc.stdlib.free(%s_export_wisdom_to_string());
+				%s_cleanup();
+			}, p, p));
+		}
+	}
+
 	/* X_export_wisdom */
 	pragma(mangle, format(q{%s_export_wisdom}, p))
 	mixin(format(q{
-void %s_export_wisdom(void function(char c, void *) write_char, void *data);
+void %s_export_wisdom(void function(char, void *) write_char, void *data);
 }, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				extern(C) void pc(char c, void *d) {};
+				%s_export_wisdom(&pc, null);
+				%s_cleanup();
+			}, p, p));
+		}
+	}
 
 	/* X_import_system_wisdom */
 	pragma(mangle, format(q{%s_import_system_wisdom}, p))
 	mixin(format(q{
 int %s_import_system_wisdom();
 }, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				%s_import_system_wisdom();
+			}, p));
+		}
+	}
+
 	/* X_import_wisdom_from_file */
 	pragma(mangle, format(q{%s_import_wisdom_from_file}, p))
 	mixin(format(q{
 int %s_import_wisdom_from_file(FILE *input_file);
 }, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				with(std.c.stdio) {
+					auto f = tmpfile();
+/+					fprintf(f, ("(fftw-3.3.3 fftw_wisdom #x91a0d0f0 "
+							~ "#xe3fff824 #xbb042095 #x2f9c8270)").toStringz);
+					rewind(f);
++/
+					%s_import_wisdom_from_file(f);
+					%s_cleanup();
+					fclose(f);
+				}
+			}, p, p));
+		}
+	}
+
 	/* X_import_wisdom_from_string */
 	pragma(mangle, format(q{%s_import_wisdom_from_string}, p))
 	mixin(format(q{
-int %s_import_wisdom_from_string(char *input_string);
+int %s_import_wisdom_from_string(const char *input_string);
 }, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				%s_import_wisdom_from_string("".toStringz);
+				%s_cleanup();
+			}, p, p));
+		}
+	}
+
 	/* X_import_wisdom */
 	pragma(mangle, format(q{%s_import_wisdom}, p))
 	mixin(format(q{
 int %s_import_wisdom(int function(void *) read_char, void *data);
 }, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				extern(C) int rc(void *d) { return std.c.stdio.EOF; }
+				%s_import_wisdom(&rc, null);
+				%s_cleanup();
+			}, p, p));
+		}
+	}
 
 	/* X_fprint_plan */
 	pragma(mangle, format(q{%s_fprint_plan}, p))
 	mixin(format(q{
 void %s_fprint_plan(%s_plan p, FILE *output_file);
 }, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				R i; T o;
+				auto plan = %s_plan_dft_r2c_1d(1, &i, &o, 0);
+				auto f = std.c.stdio.tmpfile();
+				%s_fprint_plan(plan, f);
+				%s_destroy_plan(plan);
+				std.c.stdio.fclose(f);
+			}, p, p, p));
+		}
+	}
+
 	/* X_print_plan */
 	pragma(mangle, format(q{%s_print_plan}, p))
 	mixin(format(q{
 void %s_print_plan(%s_plan p);
 }, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				R i; T o;
+				auto plan = %s_plan_dft_r2c_1d(1, &i, &o, 0);
+				%s_print_plan(plan);
+				%s_destroy_plan(plan);
+			}, p, p, p));
+		}
+	}
 
 	/* X_malloc */
 	pragma(mangle, format(q{%s_malloc}, p))
@@ -886,35 +1076,87 @@ void *%s_malloc(size_t n);
 	mixin(format(q{
 void %s_free(void *);
 }, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				auto p = %s_malloc(10);
+				%s_free(p);
+			}, p, p));
+		}
+	}
 
 	/* X_flops */
 	pragma(mangle, format(q{%s_flops}, p))
 	mixin(format(q{
 void %s_flops(%s_plan p, double *add, double *mul, double *fmas);
 }, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				R i; T o;
+				double add, mul, fmas;
+				auto plan = %s_plan_dft_r2c_1d(1, &i, &o, 0);
+				%s_flops(plan, &add, &mul, &fmas);
+				%s_destroy_plan(plan);
+			}, p, p, p));
+		}
+	}
+
 	/* X_estimate_cost */
 	pragma(mangle, format(q{%s_estimate_cost}, p))
 	mixin(format(q{
 double %s_estimate_cost(%s_plan p);
 }, p, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				R i; T o;
+				auto plan = %s_plan_dft_r2c_1d(1, &i, &o, 0);
+				%s_estimate_cost(plan);
+				%s_destroy_plan(plan);
+				%s_cleanup();
+			}, p, p, p, p));
+		}
+	}
 
 	/* X_version */
 	pragma(mangle, format(q{%s_version}, p))
 	mixin(format(q{
 extern __gshared char %s_version[];
 }, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				char[] v = %s_version;
+			}, p));
+		}
+	}
 
 	/* X_cc */
 	pragma(mangle, format(q{%s_cc}, p))
 	mixin(format(q{
 extern __gshared const char %s_cc[];
 }, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				const char[] v = %s_cc;
+			}, p));
+		}
+	}
 
 	/* X_codelet_optim */
 	pragma(mangle, format(q{%s_codelet_optim}, p))
 	mixin(format(q{
 extern __gshared char %s_codelet_optim[];
 }, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				char[] v = %s_codelet_optim;
+			}, p));
+		}
+	}
 }
 
 alias cdouble fftw_complex;
