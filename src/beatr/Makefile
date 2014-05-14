@@ -5,7 +5,7 @@ OBJ=$(SRC:.d=.o)
 
 DC=dmd
 DFLAGS=-unittest -debug -gc -fPIC
-IFLAGS=
+IFLAGS=-Idecomp
 LDFLAGS=-L-lavutil -L-lavcodec -L-lavformat -L-lfftw3
 
 .PHONY=clean

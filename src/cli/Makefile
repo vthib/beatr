@@ -8,7 +8,7 @@ LIBBEATR=$(DIRBEATR)/libbeatr.so
 
 DC=dmd
 DFLAGS=-unittest -debug -gc
-IFLAGS=-I..
+IFLAGS=-I.. -I$(DIRBEATR)/decomp/
 LDFLAGS=-L-lavutil -L-lavcodec -L-lavformat -L-lfftw3 -L-lbeatr -L-L$(DIRBEATR)
 
 .PHONY=clean mrproper

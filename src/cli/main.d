@@ -8,7 +8,7 @@ import std.complex;
 import std.exception;
 
 import beatr.anal.fft.fftw3;
-import beatr.decomp.libav;
+import beatr.decomp.libavformat.avformat;
 
 class LibAvException : Exception {
 	int ret;
@@ -21,7 +21,7 @@ class LibAvException : Exception {
     }
 }
 
-void processSamples(inout const byte[] input, double[] output, bool add)
+void processSamples(inout const ubyte[] input, double[] output, bool add)
 {
 	auto ibuf = new double[input.length];
 	auto obuf = new cdouble[input.length];
@@ -130,9 +130,11 @@ main(string args[])
 		int got_frame;
 
 		auto bytes_per_sample = av_samples_get_buffer_size(null, cctx.channels,
-														   1, cctx.sample_fmt, 1);
-		byte[] decoded = new byte[cctx.sample_rate * (avfc.duration / AV_TIME_BASE + 10)
-								  * bytes_per_sample];
+														   1, cctx.sample_fmt,
+														   1);
+		ubyte[] decoded = new ubyte[cctx.sample_rate *
+									(avfc.duration / AV_TIME_BASE + 10)
+									* bytes_per_sample];
 
 	decodeloop:
 		for (;;) {
