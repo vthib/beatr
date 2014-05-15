@@ -1,6 +1,6 @@
 module libavformat.version_;
 
-import libavutil.version_;
+public import libavutil.version_;
 
 enum LIBAVFORMAT_VERSION_MAJOR = 55;
 enum LIBAVFORMAT_VERSION_MINOR = 12;

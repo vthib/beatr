@@ -2,11 +2,13 @@ module libavformat.avio;
 
 import core.stdc.stdio;
 
-import libavutil.common;
-import libavutil.dict;
-import libavutil.log;
+public {
+	import libavutil.common;
+	import libavutil.dict;
+	import libavutil.log;
 
-import libavformat.version_;
+	import libavformat.version_;
+}
 
 extern(C):
 nothrow:

@@ -2,12 +2,14 @@ module libavformat.avformat;
 
 import core.stdc.stdio;
 
-public import libavcodec.avcodec;
-public import libavutil.dict;
-public import libavutil.log;
+public {
+	import libavcodec.avcodec;
+	import libavutil.dict;
+	import libavutil.log;
 
-public import libavformat.avio;
-public import libavformat.version_;
+	import libavformat.avio;
+	import libavformat.version_;
+}
 
 extern(C):
 nothrow:

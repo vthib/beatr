@@ -7,8 +7,8 @@ import std.algorithm;
 import std.complex;
 import std.exception;
 
-import beatr.anal.fft.fftw3;
-import beatr.decomp.libavformat.avformat;
+import fftw.fftw3;
+import libavformat.avformat;
 
 class LibAvException : Exception {
 	int ret;
