@@ -2,7 +2,7 @@ SRC=$(wildcard *.d)
 OBJ=$(SRC:.d=.o)
 TARGET=main
 
-#DIRBEATR=../beatr
+DIRBEATR=../beatr
 #LIBBEATR=$(DIRBEATR)/libbeatr.so
 
 DIR3RDLIB=../beatr/3rdptylib

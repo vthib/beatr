@@ -10,6 +10,10 @@ import std.exception;
 import fftw.fftw3;
 import libavformat.avformat;
 
+import file.audioFile;
+import file.audioStream;
+import file.decompStream;
+
 class LibAvException : Exception {
 	int ret;
 
@@ -74,41 +78,14 @@ void
 main(string args[])
 {
 	AVFormatContext *avfc = null;
+	audioFile af;
+	decompStream audioData;
 
-	try {
-		av_register_all();
+	enforce(args.length > 1, "Not enough arguments");
 
-		enforce(args.length > 1, "Not enough arguments");
+	af = new audioFile(args[1]);
 
-		/* open file */
-		int ret = avformat_open_input(&avfc, args[1].toStringz, null, null);
-		if (ret < 0) throw new LibAvException("avformat_open_input error", ret);
-		scope(exit) avformat_close_input(&avfc);
-
-		/* analyse the file */
-		ret = avformat_find_stream_info(avfc, null);
-		if (ret < 0) throw new LibAvException("avformat_find_stream_info error", ret);
-
-		/* find the audio stream */
-		uint audio = uint.max;
-		for (auto i = 0; i < avfc.nb_streams; i++) {
-			if (avfc.streams[i].codec.codec_type == AVMediaType.AVMEDIA_TYPE_AUDIO)
-				audio = i;
-		}
-
-		AVCodecContext *cctx = avfc.streams[audio].codec;
-
-
-		/* open the decoder */
-		AVCodec *avc = avcodec_find_decoder(cctx.codec_id);
-		if (avc is null) throw new LibAvException("Could not find audio codec");
-
-		if ((ret = avcodec_open2(cctx, avc, null)) < 0)
-			throw new LibAvException("avcodec_open2 error", ret);
-		scope(exit) avcodec_close(cctx);
-
-		writefln("sample rate: %s, duration: %s, total samples: %s", cctx.sample_rate, avfc.duration / AV_TIME_BASE,
-		cctx.sample_rate * avfc.duration / AV_TIME_BASE);
+	audioData = new decompStream(af);
 
 /+
 		/* open resample */
@@ -123,7 +100,7 @@ main(string args[])
 +/
 
 		/* read the packets */
-		AVPacket pkt;
+/+		AVPacket pkt;
 		AVFrame* frame = null;
 
 		ulong total = 0;
@@ -170,24 +147,32 @@ main(string args[])
 
 		decoded.length = total;
 		writefln("length: %s", decoded.length);
-
++/
 //		enum transformSize = 32768; /* 2^15; */
-		immutable auto transformSize = cctx.sample_rate;
+	immutable auto transformSize = audioData.sampleRate;
 
-		double[] norm = new double[transformSize];
-		ulong offset = 0;
-		bool append = false;
-		int n = 0;
-
+	double[] norm = new double[transformSize];
+//		ulong offset = 0;
+	bool append = false;
+	int n = 0;
+/+
 		while (decoded.length - offset >= cctx.sample_rate) {
 			processSamples(decoded[offset .. (offset + cctx.sample_rate)], norm, append);
 			append = true;
 			offset += cctx.sample_rate;
 			n++;
 		}
-		writefln("loop done %s times", n);
++/
 
-		double[] freqs = new double[12*10];
+	foreach(f; audioData) {
+		processSamples(f, norm, append);
+		append = true;
+		n++;
+	}
+	writefln("loop done %s times", n);
+
+
+	double[] freqs = new double[12*10];
 		immutable double nextNote = std.math.pow(2., 1./12.);
 		freqs[0] = 16.352; /* C0 */
 		for(uint i = 1; i < freqs.length; i++)
@@ -197,7 +182,7 @@ main(string args[])
 									"F#", "G", "G#", "A", "Bb", "B"];
 		int note = 0; /* C0 */
 		double[] chromas = new double[freqs.length];
-		auto chromaidx = freqs.map!(f => cast(int) f * transformSize / cctx.sample_rate);
+		auto chromaidx = freqs.map!(f => cast(int) f * transformSize /  audioData.sampleRate);
 		long j1, j2;
 
 		foreach(i, f; freqs) {
@@ -237,18 +222,18 @@ main(string args[])
 			if (s == best)
 				writefln("best key estimate: %s", notes[i]);
 		writefln("%(%s %)", scores);
-
+/+
 		if (frame !is null)
 			av_frame_free(&frame);
-
++/
 		writefln("bitrate: %s", avfc.bit_rate);
-	} catch (LibAvException e) {
+/+	} catch (LibAvException e) {
 		char[] buf = new char[512];
 		if (e.ret != 0) {
 			av_strerror(e.ret, buf.ptr, 512);
 			stderr.writefln("%s: %s", e.msg, to!string(buf.ptr));
 		} else
 			stderr.writefln("%s", e.msg);
-
 	}
++/
 }
