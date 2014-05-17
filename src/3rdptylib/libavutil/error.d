@@ -3,6 +3,7 @@ module libavutil.error;
 import core.stdc.errno;
 
 extern(C):
+@trusted:
 nothrow:
 
 static if (EDOM > 0) {
@@ -30,4 +31,4 @@ enum AVERROR_BUG                = (-0x5fb8aabe);
 enum AVERROR_UNKNOWN            = (-0x31b4b1ab);
 enum AVERROR_EXPERIMENTAL       = (-0x2bb2afa8);
 
-int av_strerror(int errnum, char *errbuf, size_t errbuf_size);
+int av_strerror(int errnum, char *errbuf, size_t errbuf_size) pure;

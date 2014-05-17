@@ -40,7 +40,7 @@ public:
 
 		d = new ubyte[bytesPerSamples*sampleSize*10];
 		offset = d.length;
-}
+	}
 
 	~this()
 	{
@@ -51,13 +51,19 @@ public:
 
 	@property bool empty() const
 	{
-		return endOfFile && offset == d.length;
+		return endOfFile && (offset + sampleSize > d.length);
 	}
 
 	@property sample front()
 	{
 		if (offset + sampleSize > d.length)
 			addFrames();
+
+		/* XXX: fill with blank if not a multiple of sampleSize? */
+		if (offset + sampleSize > d.length) {
+			assert(false, "should never happend?");
+			return null;
+		}
 
 		return d[offset .. (offset + sampleSize)];
 	}
@@ -105,6 +111,10 @@ private:
 									   ctx.sample_fmt, 1);
 		if (offset + data_size > d.length)
 			return false;
+
+		debug {
+			std.stdio.writefln("copyFrame: %s -> %s / %s", offset, offset + data_size, d.length);
+		}
 
 		d[offset .. (offset + data_size)] = frame.data[0][0 .. data_size];
 		offset += data_size;

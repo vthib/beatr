@@ -8,7 +8,6 @@ import std.complex;
 import std.exception;
 
 import fftw.fftw3;
-import libavformat.avformat;
 
 import file.audioFile;
 import file.audioStream;
@@ -77,7 +76,6 @@ createProfiles()
 void
 main(string args[])
 {
-	AVFormatContext *avfc = null;
 	audioFile af;
 	decompStream audioData;
 
@@ -112,128 +110,69 @@ main(string args[])
 		ubyte[] decoded = new ubyte[cctx.sample_rate *
 									(avfc.duration / AV_TIME_BASE + 10)
 									* bytes_per_sample];
-
-	decodeloop:
-		for (;;) {
-			do {
-				av_init_packet(&pkt);
-				ret = av_read_frame(avfc, &pkt);
-				if (ret < 0) {
-					if (ret == AVERROR_EOF)
-						break decodeloop;
-					throw new LibAvException("Error reading frame", ret);
-				}
-//				writefln("packet: size: %s", pkt.size);
-			} while (pkt.stream_index != audio);
-
-			if (frame is null) {
-				if ((frame = av_frame_alloc()) is null)
-					throw new LibAvException("Error allocating frame");
-			} else
-				av_frame_unref(frame);
-
-			if ((ret = avcodec_decode_audio4(cctx, frame, &got_frame, &pkt)) < 0)
-				throw new LibAvException("Error while decoding", ret);
-
-			if (got_frame) {
-				int data_size = av_samples_get_buffer_size(null, cctx.channels,
-														   frame.nb_samples,
-														   cctx.sample_fmt, 1);
-
-				decoded[total .. (total + data_size)] = frame.data[0][0 .. data_size];
-				total += data_size;
-			}
-		}
-
-		decoded.length = total;
-		writefln("length: %s", decoded.length);
 +/
-//		enum transformSize = 32768; /* 2^15; */
+
 	immutable auto transformSize = audioData.sampleRate;
 
 	double[] norm = new double[transformSize];
-//		ulong offset = 0;
 	bool append = false;
 	int n = 0;
-/+
-		while (decoded.length - offset >= cctx.sample_rate) {
-			processSamples(decoded[offset .. (offset + cctx.sample_rate)], norm, append);
-			append = true;
-			offset += cctx.sample_rate;
-			n++;
-		}
-+/
 
-	foreach(f; audioData) {
-		processSamples(f, norm, append);
+	foreach(frame; audioData) {
+		processSamples(frame, norm, append);
 		append = true;
 		n++;
 	}
 	writefln("loop done %s times", n);
 
-
 	double[] freqs = new double[12*10];
-		immutable double nextNote = std.math.pow(2., 1./12.);
-		freqs[0] = 16.352; /* C0 */
-		for(uint i = 1; i < freqs.length; i++)
-			freqs[i] = freqs[i-1] * nextNote;
+	immutable double nextNote = std.math.pow(2., 1./12.);
+	freqs[0] = 16.352; /* C0 */
+	for(uint i = 1; i < freqs.length; i++)
+		freqs[i] = freqs[i-1] * nextNote;
 
-		immutable string[] notes = ["C", "C#", "D", "Eb", "E", "F",
-									"F#", "G", "G#", "A", "Bb", "B"];
-		int note = 0; /* C0 */
-		double[] chromas = new double[freqs.length];
-		auto chromaidx = freqs.map!(f => cast(int) f * transformSize /  audioData.sampleRate);
-		long j1, j2;
+	immutable string[] notes = ["C", "C#", "D", "Eb", "E", "F",
+								"F#", "G", "G#", "A", "Bb", "B"];
+	int note = 0; /* C0 */
+	double[] chromas = new double[freqs.length];
+	auto chromaidx = freqs.map!(f => cast(int) f * transformSize /  audioData.sampleRate);
+	long j1, j2;
 
-		foreach(i, f; freqs) {
-			j1 = (i != 0) ? (chromaidx[i-1] - chromaidx[i])/2 : 0;
-			j2 = (i < freqs.length - 1) ? (chromaidx[i+1] - chromaidx[i])/2 : 0;
-			chromas[i] = 0.;
-			for (long k = j1; k <= j2; k++)
-				chromas[i] += norm[chromaidx[i] + k]; 
-			chromas[i] /= (j2 - j1 + 1);
+	foreach(i, f; freqs) {
+		j1 = (i != 0) ? (chromaidx[i-1] - chromaidx[i])/2 : 0;
+		j2 = (i < freqs.length - 1) ? (chromaidx[i+1] - chromaidx[i])/2 : 0;
+		chromas[i] = 0.;
+		for (long k = j1; k <= j2; k++)
+			chromas[i] += norm[chromaidx[i] + k]; 
+		chromas[i] /= (j2 - j1 + 1);
 
 //			chromas[i] = norm[chromaidx[i]];
-			writefln("%s%s\t%.3e\t%s\t%s", notes[note % 12], note / 12,
-					 f, chromaidx[i], chromas[i]);
-			note++;
-		}
+		writefln("%s%s\t%.3e\t%s\t%s", notes[note % 12], note / 12,
+				 f, chromaidx[i], chromas[i]);
+		note++;
+	}
 /*		for(uint i = 0; i < norm.length; i++)
 		writefln("%s: %s", i, norm[i]);*/
 
-		auto m = chromas.reduce!(max);
-		auto m2 = chromas.reduce!((a, b) => (b > a && b != m) ? b : a);
+	auto m = chromas.reduce!(max);
+	auto m2 = chromas.reduce!((a, b) => (b > a && b != m) ? b : a);
 
-		writefln("max: %s; %%%s greater", m, cast(int) (m - m2)/m2*100);
+	writefln("max: %s; %%%s greater", m, cast(int) (m - m2)/m2*100);
 
-		auto profiles = createProfiles();
+	auto profiles = createProfiles();
 
-		double[12] scores;
+	double[12] scores;
 
-		foreach(i, ref s; scores) {
-			s = 0.;
-			foreach(j, c; chromas)
-				s += c*profiles[i][j % 12];
-			s /= chromas.length;
-		}
-
-		auto best = scores.reduce!(max);
-		foreach(i, s; scores)
-			if (s == best)
-				writefln("best key estimate: %s", notes[i]);
-		writefln("%(%s %)", scores);
-/+
-		if (frame !is null)
-			av_frame_free(&frame);
-+/
-		writefln("bitrate: %s", avfc.bit_rate);
-/+	} catch (LibAvException e) {
-		char[] buf = new char[512];
-		if (e.ret != 0) {
-			av_strerror(e.ret, buf.ptr, 512);
-			stderr.writefln("%s: %s", e.msg, to!string(buf.ptr));
-		} else
-			stderr.writefln("%s", e.msg);
+	foreach(i, ref s; scores) {
+		s = 0.;
+		foreach(j, c; chromas)
+			s += c*profiles[i][j % 12];
+		s /= chromas.length;
 	}
-+/
+
+	auto best = scores.reduce!(max);
+	foreach(i, s; scores)
+		if (s == best)
+			writefln("best key estimate: %s", notes[i]);
+	writefln("%(%s %)", scores);
 }
