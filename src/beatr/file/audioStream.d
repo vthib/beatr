@@ -1,3 +1,4 @@
+
 interface audioStream(T)
 {
 	@property bool empty() const;

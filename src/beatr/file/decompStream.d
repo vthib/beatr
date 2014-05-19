@@ -4,14 +4,11 @@ import std.array;
 import file.audioStream;
 import file.audioFile;
 import exc.libAvException;
+import util.types;
 
 import libavcodec.avcodec;
 
-enum sampleSize = 44100;
-
-alias ubyte[] sample;
-
-class decompStream : audioStream!sample
+class decompStream : audioStream!beatrSample
 {
 private:
 	ubyte[] d;
@@ -38,7 +35,7 @@ public:
 			av_samples_get_buffer_size(null, ctx.channels,
 									   1, ctx.sample_fmt, 1);
 
-		d = new ubyte[bytesPerSamples*sampleSize*10];
+		d = new ubyte[bytesPerSamples*BeatrSampleSize*10];
 		offset = d.length;
 	}
 
@@ -51,29 +48,29 @@ public:
 
 	@property bool empty() const
 	{
-		return endOfFile && (offset + sampleSize > d.length);
+		return endOfFile && (offset + BeatrSampleSize > d.length);
 	}
 
-	@property sample front()
+	@property beatrSample front()
 	{
-		if (offset + sampleSize > d.length)
+		if (offset + BeatrSampleSize > d.length)
 			addFrames();
 
-		/* XXX: fill with blank if not a multiple of sampleSize? */
-		if (offset + sampleSize > d.length) {
+		/* XXX: fill with blank if not a multiple of BeatrSampleSize? */
+		if (offset + BeatrSampleSize > d.length) {
 			assert(false, "should never happend?");
 			return null;
 		}
 
-		return d[offset .. (offset + sampleSize)];
+		return d[offset .. (offset + BeatrSampleSize)];
 	}
 
 	void popFront()
 	{
-		if (offset + sampleSize > d.length)
+		if (offset + BeatrSampleSize > d.length)
 			addFrames();
 
-		offset += sampleSize;
+		offset += BeatrSampleSize;
 	}
 
 	@property auto sampleRate() const
@@ -151,7 +148,10 @@ private:
             if ((ret = avcodec_decode_audio4(ctx, frame, &got_frame,
 											 &pkt)) < 0)
                 throw new LibAvException("Error while decoding", ret);
+			else if (got_frame)
+				av_free_packet(&pkt);
         }
+
 
 		offset = 0;
 	}

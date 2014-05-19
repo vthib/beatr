@@ -8,9 +8,11 @@ import exc.libAvException;
 
 class audioFile
 {
+private:
 	AVFormatContext *ctx;
 	uint audioStream;
 
+public:
 	this(string file)
 	{
 		int ret;
