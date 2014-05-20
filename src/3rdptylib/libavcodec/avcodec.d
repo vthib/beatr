@@ -290,8 +290,8 @@ struct AVCodecContext {
 	static if (FF_API_REQUEST_CHANNELS)
 		deprecated int request_channels;
 
-	long channel_layout;
-	long request_channel_layout;
+	ulong channel_layout;
+	ulong request_channel_layout;
 
 	AVAudioServiceType audio_service_type;
 	AVSampleFormat request_sample_fmt;

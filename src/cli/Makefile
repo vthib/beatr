@@ -10,7 +10,7 @@ DIR3RDLIB=../3rdptylib
 DC=dmd
 DFLAGS=-unittest -debug -gc
 IFLAGS=-I.. -I$(DIRBEATR) -I$(DIR3RDLIB)
-LDFLAGS=-L-L$(DIR3RDLIB) -L-ldfftw3 -L-lfftw3 -L-lbeatr -L-L$(DIRBEATR)
+LDFLAGS=-L-L$(DIR3RDLIB) -L-lbeatr -L-L$(DIRBEATR)
 
 .PHONY=clean mrproper
 all:$(TARGET)

@@ -9,7 +9,7 @@ OBJ=$(SRC:.d=.o)
 DC=dmd
 DFLAGS=-unittest -debug -gc -fPIC -version=full_decomp
 IFLAGS=-I$(shell pwd) -I$(shell pwd)/../3rdptylib
-LDFLAGS=-L-L$(3RDDIR) -L-ldavcodec -L-ldavformat -L-ldfftw3
+LDFLAGS=-L-L$(3RDDIR) -L-ldavcodec -L-ldavformat -L-ldfftw3 -L-ldavresample -L-ldavutil
 
 .PHONY=clean
 all:$(TARGET)

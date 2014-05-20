@@ -9,6 +9,9 @@ import exc.libavexception;
 import util.types;
 
 import libavcodec.avcodec;
+import libavresample.avresample;
+import libavutil.opt;
+import libavutil.samplefmt;
 
 /++
  + Provides a Range object for the decompressed
@@ -21,8 +24,9 @@ private:
 	ulong offset; /++ current position in the buffer +/
 	AudioFile af; /++ the audio file we are decompressing +/
 	AVFrame* frame; /++ a frame, kept if already decompressed but buffer full +/
-	AVCodecContext* ctx;
 	bool endOfFile; /++ No more data is available from the audio file +/
+	AVCodecContext* ctx;
+	AVAudioResampleContext *resamplectx;
 
 	invariant() {
 		assert(offset >= 0 && offset <= d.length);
@@ -113,30 +117,60 @@ private:
         if ((ret = avcodec_open2(ctx, avc, null)) < 0)
             throw new LibAvException("avcodec_open2 error", ret);
 
-        debug writefln("sample rate: %s, duration: %s", ctx.sample_rate,
-					   af.duration / AV_TIME_BASE);
+		debug core.stdc.stdio.printf("sample format: %s\n",
+									 av_get_sample_fmt_name(ctx.sample_fmt));
+        debug writefln("sample rate: %s, duration: %s, channels: %s", ctx.sample_rate,
+					   af.duration / AV_TIME_BASE, ctx.channels);
+
+		/* open resampler */
+		resamplectx = avresample_alloc_context();
+		av_opt_set_int(resamplectx, "in_channels", ctx.channels, 0);
+		av_opt_set_int(resamplectx, "in_channel_layout",
+					   av_get_default_channel_layout(ctx.channels), 0);
+		av_opt_set_int(resamplectx, "out_channel_layout",
+					   av_get_default_channel_layout(1), 0);
+		av_opt_set_int(resamplectx, "out_channels", 1, 0);
+		av_opt_set_int(resamplectx, "in_sample_rate", ctx.sample_rate, 0);
+		av_opt_set_int(resamplectx, "out_sample_rate", beatrSampleRate, 0);
+		av_opt_set_int(resamplectx, "in_sample_fmt", ctx.sample_fmt, 0);
+		av_opt_set_int(resamplectx, "out_sample_fmt",
+					   AVSampleFormat.AV_SAMPLE_FMT_S16P, 0);
+		if ((ret = avresample_open(resamplectx)) < 0)
+			throw new LibAvException("Cannot open resampler", ret);
+
 	}
 
 	/++ Copies a frame in the data buffer
 	 + Returns: false if buffer full, true otherwise
 	 +/
-	bool copyFrame() nothrow
+	bool copyFrame() // XXX: while debugging nothrow
 	in
 	{
 		assert(frame !is null);
 	}
 	body
 	{
-		/* computes the size of the whole frame */
-		auto data_size =
-			av_samples_get_buffer_size(null, ctx.channels,
-									   frame.nb_samples,
-									   ctx.sample_fmt, 1);
-		if (offset + data_size > d.length)
+		int linesize;
+
+		if (offset + frame.nb_samples > d.length)
 			return false; /* buffer full */
 
-		d[offset .. (offset + data_size/2)] = cast(short[]) frame.data[0][0 .. data_size];
-		offset += data_size/2;
+		/* computes the size of the whole frame */
+		auto data_size =
+			av_samples_get_buffer_size(&linesize, ctx.channels,
+									   frame.nb_samples,
+									   ctx.sample_fmt, 1);
+		ubyte[] output = new ubyte[data_size / ctx.channels];
+
+		ubyte* ptr = output.ptr;
+		auto nbsamples = avresample_convert(resamplectx, &ptr,
+											cast(int) output.length,
+											frame.nb_samples,
+											&(frame.data[0]), linesize,
+											frame.nb_samples);
+
+		d[offset .. (offset + nbsamples)] = cast(short[]) output;
+		offset += nbsamples;
 
 		return true;
 	}
@@ -180,6 +214,7 @@ private:
             if ((ret = avcodec_decode_audio4(ctx, frame, &got_frame,
 											 &pkt)) < 0)
                 throw new LibAvException("Error while decoding", ret);
+
 			else if (got_frame)
 				av_free_packet(&pkt);
         }
