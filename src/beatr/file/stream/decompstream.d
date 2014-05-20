@@ -17,7 +17,7 @@ import libavcodec.avcodec;
 class DecompStream : AudioStream!beatrSample
 {
 private:
-	ubyte[] d; /++ buffer containing the decompressed data +/
+	short[] d; /++ buffer containing the decompressed data +/
 	ulong offset; /++ current position in the buffer +/
 	AudioFile af; /++ the audio file we are decompressing +/
 	AVFrame* frame; /++ a frame, kept if already decompressed but buffer full +/
@@ -41,11 +41,22 @@ public:
 			av_samples_get_buffer_size(null, ctx.channels,
 									   1, ctx.sample_fmt, 1);
 
-		/* XXX: experiment with this value */
-		/* allocates for the buffer 10 seconds of samples */
-		d = new ubyte[bytesPerSamples*beatrSampleRate*10];
+		version(stream_decomp) {
+			/* XXX: experiment with this value */
+			/* allocates for the buffer 10 seconds of samples */
+			d = new short[beatrSampleRate*10];
 
-		offset = d.length; /* indicates the buffer unusable */
+			offset = d.length; /* indicates the buffer unusable */
+		} version (full_decomp) {
+			d = new short[beatrSampleRate *
+						  (af.duration / AV_TIME_BASE + 10)];
+
+			offset = d.length; /* indicates the buffer unusable */
+
+			addFrames();
+			offset = 0;
+			assert(endOfFile, "file not decompressed entirely");
+		}
 	}
 
 	/++++ Range Functions +++++/
@@ -124,8 +135,8 @@ private:
 		if (offset + data_size > d.length)
 			return false; /* buffer full */
 
-		d[offset .. (offset + data_size)] = frame.data[0][0 .. data_size];
-		offset += data_size;
+		d[offset .. (offset + data_size/2)] = cast(short[]) frame.data[0][0 .. data_size];
+		offset += data_size/2;
 
 		return true;
 	}
@@ -137,6 +148,8 @@ private:
 		AVPacket pkt;
 		int got_frame;
 		int ret;
+
+		debug writefln("adding decompressed frames...");
 
 		if (endOfFile)
 			return;

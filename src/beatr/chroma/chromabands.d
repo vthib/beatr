@@ -89,6 +89,15 @@ public:
 
 		debug writefln("Scores for each note: %s", scores);
 
+		double secondmax = 0.;
+		foreach(s; scores) {
+			if (s > secondmax && s != best)
+				secondmax = s;
+		}
+
+		debug writefln("Best estimate %.2f%% better than next one",
+					   (best - secondmax)*100/secondmax);
+
 		foreach(i, s; scores) {
 			if (s == best)
 				return new Note(i % 12);

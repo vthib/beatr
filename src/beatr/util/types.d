@@ -6,4 +6,4 @@
 enum beatrSampleRate = 44100;
 
 /++ an array containing a sample of the input audio data +/
-alias ubyte[] beatrSample;
+alias short[] beatrSample;
