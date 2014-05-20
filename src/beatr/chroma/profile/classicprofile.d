@@ -1,9 +1,19 @@
-import chroma.profile.chromaProfile;
+import chroma.profile.chromaprofile;
 
-class classicProfile : chromaProfile
+@safe:
+
+/++
+ + A basic chroma profile for a major scale
+ + Tonic note gets a 3 coefficient
+ + Mediant, Dominant and Submediant gets a 2 coefficient
+ + Supertonic, Subdominant and subtonic gets a 1 coefficient
+ +/
+class ClassicProfile : ChromaProfile
 {
+private:
 	profile pf;
 
+public:
 	this()
 	{
 		pf = new profile(12, 12);
@@ -24,13 +34,15 @@ class classicProfile : chromaProfile
 		}
 	}
 
+	@property const(profile) getProfile() const nothrow
+	{
+		return pf;
+	}
+
+private:
 	~this()
 	{
 		pf.destroy;
 	}
 
-	@property const(profile) getProfile() const nothrow
-	{
-		return pf;
-	}
 }
