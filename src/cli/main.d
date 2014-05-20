@@ -4,8 +4,7 @@ import std.stdio;
 import std.exception;
 
 import file.audiofile;
-import file.audiostream;
-import file.decompstream;
+import file.stream.decompstream;
 import analysis.analyzer;
 
 void

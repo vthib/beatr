@@ -3,7 +3,7 @@
 import std.array;
 import std.stdio;
 
-import file.audiostream;
+import file.stream.audiostream;
 import file.audiofile;
 import exc.libavexception;
 import util.types;
