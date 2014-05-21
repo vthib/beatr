@@ -1,6 +1,7 @@
 import chroma.profile.chromaprofile;
 import util.note;
 import util.types;
+import util.beatr;
 
 import std.math : pow;
 import std.algorithm : map, reduce, max;
@@ -48,16 +49,19 @@ public:
 			/* for each band, computes the mean of the values around its
 			   index (to compensate the note frequencies not being perfectly
 			   equals to the FFT frequencies */
-			j1 = (i != 0) ? (chromaidx[i-1] - chromaidx[i])/2 : 0;
+/+			j1 = (i != 0) ? (chromaidx[i-1] - chromaidx[i])/2 : 0;
 			j2 = (i < freqs.length - 1) ? (chromaidx[i+1] - chromaidx[i])/2 : 0;
 
 			bands[i] = 0.;
 			for (long k = j1; k <= j2; k++)
 				bands[i] += s[chromaidx[i] + k];
-			bands[i] /= (j2 - j1 + 1);
+			bands[i] /= (j2 - j1 + 1);+/
+			bands[i] = s[chromaidx[i]];
 
-			debug writefln("%s%s\t%.3e\t%s\t%s", Note.name(note % 12), note / 12,
+			Beatr.writefln(BEATR_DEBUG, "%s%s\t%.3e\t%s\t%s",
+						   Note.name(note % 12), note / 12,
 						   f, chromaidx[i], bands[i]);
+
 
 			note++;
 		}
@@ -69,8 +73,6 @@ public:
 	 +/
 	Note bestFit(in ChromaProfile p) const
 	{
-		debug writefln("using profile: %s", p);
-
 		/* compute a score multiplying each band with its profile coeff */
 		auto combineBandsAndProfile(inout ubyte[] p)
 		{
@@ -87,7 +89,7 @@ public:
 		auto scores = array(p.getProfile.map!(combineBandsAndProfile));
 		auto best = scores.reduce!(max);
 
-		debug writefln("Scores for each note: %s", scores);
+		Beatr.writefln(BEATR_DEBUG, "Scores for each note: %s", scores);
 
 		double secondmax = 0.;
 		foreach(s; scores) {
@@ -95,7 +97,7 @@ public:
 				secondmax = s;
 		}
 
-		debug writefln("Best estimate %.2f%% better than next one",
+		Beatr.writefln(BEATR_DEBUG, "Best estimate %.2f%% better than next one",
 					   (best - secondmax)*100/secondmax);
 
 		foreach(i, s; scores) {
@@ -105,6 +107,44 @@ public:
 
 		/* XXX: do something better (test equality double can fail?) */
 		throw new Exception("impossible!");
+	}
+
+	void printHistograms(in uint height) const
+	{
+		auto m = bands.reduce!(max);
+		auto step = m/height;
+
+		foreach(i; 0 .. (height + 1)) {
+			foreach(b; bands) {
+				if (b >= (height - i) * step)
+					write('X');
+				else
+					write(' ');
+			}
+			writeln();
+		}
+
+		foreach(i; 0 .. bands.length) {
+			switch (i % 12) {
+			case 0: write('C'); break;
+			case 2: write('D'); break;
+			case 4: write('E'); break;
+			case 5: write('F'); break;
+			case 7: write('G'); break;
+			case 9: write('A'); break;
+			case 11: write('B'); break;
+			default: write(' '); break;
+			}
+		}
+		writeln();
+
+		foreach(i; 0 .. bands.length) {
+			if (i % 12 == 0)
+				write(i / 12);
+			else
+				write(' ');
+		}
+		writeln();
 	}
 
 private:

@@ -7,6 +7,7 @@ import file.stream.audiostream;
 import file.audiofile;
 import exc.libavexception;
 import util.types;
+import util.beatr;
 
 import libavcodec.avcodec;
 import libavresample.avresample;
@@ -117,9 +118,8 @@ private:
         if ((ret = avcodec_open2(ctx, avc, null)) < 0)
             throw new LibAvException("avcodec_open2 error", ret);
 
-		debug core.stdc.stdio.printf("sample format: %s\n",
-									 av_get_sample_fmt_name(ctx.sample_fmt));
-        debug writefln("sample rate: %s, duration: %s, channels: %s", ctx.sample_rate,
+        Beatr.writefln(BEATR_DEBUG, "sample rate: %s, duration: %s, "
+					   "channels: %s", ctx.sample_rate,
 					   af.duration / AV_TIME_BASE, ctx.channels);
 
 		/* open resampler */
@@ -137,7 +137,6 @@ private:
 					   AVSampleFormat.AV_SAMPLE_FMT_S16P, 0);
 		if ((ret = avresample_open(resamplectx)) < 0)
 			throw new LibAvException("Cannot open resampler", ret);
-
 	}
 
 	/++ Copies a frame in the data buffer
@@ -183,7 +182,7 @@ private:
 		int got_frame;
 		int ret;
 
-		debug writefln("adding decompressed frames...");
+		Beatr.writefln(BEATR_DEBUG, "adding decompressed frames...");
 
 		if (endOfFile)
 			return;

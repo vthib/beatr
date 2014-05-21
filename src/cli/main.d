@@ -2,15 +2,24 @@ module main;
 
 import std.stdio;
 import std.exception;
+import std.getopt;
 
 import file.audiofile;
 import file.stream.decompstream;
 import analysis.analyzer;
+import util.beatr;
 
 void
 main(string args[])
 {
-	enforce(args.length > 1, "Not enough arguments");
+	bool verbose;
+	getopt(
+		args,
+		"verbose|v",  &verbose);
+
+	enforce(args.length > 1, "Not enough arguments: file to analyze missing.");
+
+	Beatr.setVerboseLevel(verbose);
 
 	auto af = new AudioFile(args[1]);
 
@@ -18,12 +27,8 @@ main(string args[])
 
 	auto a = new Analyzer();
 
-	ulong n = 0;
-	foreach(frame; audioData) {
+	foreach(frame; audioData)
 		a.processSample(frame);
-		n++;
-	}
-	writefln("loop done %s times", n);
 
 	writefln("best key estimate: %s", a.bestKey());
 }

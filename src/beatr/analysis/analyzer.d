@@ -63,6 +63,7 @@ public:
 	auto bestKey()
 	{
 		b.addFftSample(norms);
+		b.printHistograms(30);
 		return b.bestFit(new ClassicProfile());
 	}
 
