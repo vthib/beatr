@@ -3,6 +3,7 @@ import chroma.chromabands;
 import file.stream.decompstream;
 import file.audiofile;
 import util.types;
+import util.beatr;
 
 import fftw.fftw3;
 
@@ -44,7 +45,8 @@ public:
 	auto bestKey()
 	{
 		b.addFftSample(norms);
-		b.printHistograms(30);
+		if (Beatr.verboseLevel >= BEATR_DEBUG)
+			b.printHistograms(30);
 		return b.bestFit(new ClassicProfile());
 	}
 

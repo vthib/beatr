@@ -13,18 +13,23 @@ enum {
  + to a verbose level +/
 class Beatr
 {
-	static int verboseLevel;
+	static int verbLevel;
 
 public:
 
 	static void setVerboseLevel(in int v) nothrow
 	{
-		verboseLevel = v;
+		verbLevel = v;
+	}
+
+	@property static int verboseLevel() nothrow
+	{
+		return verbLevel;
 	}
 
 	static void writefln(T...)(int v, T args) nothrow
 	{
-		if (verboseLevel >= v) {
+		if (verbLevel >= v) {
 			try {
 				io.writefln(args);
 			} catch (Exception exc) {

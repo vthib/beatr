@@ -26,6 +26,11 @@ public:
 		return k;
 	}
 
+	@property auto name() const nothrow
+	{
+		return notes[k];
+	}
+
 	static string name(T)(in T i) nothrow pure
 	in
 	{
@@ -36,10 +41,9 @@ public:
 		return notes[i];
 	}
 
-
 	override string toString() const nothrow
 	{
-		return name(k);
+		return notes[k];
 	}
 
 	alias k this;

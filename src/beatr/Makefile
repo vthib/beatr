@@ -11,11 +11,11 @@ DFLAGS=-unittest -debug -gc -fPIC -version=full_decomp
 IFLAGS=-I$(shell pwd) -I$(shell pwd)/../3rdptylib
 LDFLAGS=-L-L$(3RDDIR) -L-ldavcodec -L-ldavformat -L-ldfftw3 -L-ldavresample -L-ldavutil
 
-.PHONY=clean
+.PHONY=clean test
 all:$(TARGET)
 
 $(TARGET): $(OBJ) $(3RDLIBS)
-	$(DC) $(DFLAGS) $(LDFLAGS) -of$@ -shared -defaultlib=libphobos2.so -L-rpath=$(shell pwd)/../3rdptylib -L-L/usr/local/lib $(OBJ)
+	$(DC) $(DFLAGS) $(LDFLAGS) -of$@ -shared -defaultlib=libphobos2.so -L-rpath=$(shell pwd)/../3rdptylib $(OBJ)
 
 $(OBJ): %.o : %.d
 	$(DC) $(DFLAGS) $(IFLAGS) -of$@ -c $<
@@ -25,3 +25,6 @@ $(3RDLIBS):
 
 clean:
 	rm -rf $(OBJ) $(TARGET)
+
+test:
+	cd tests; $(MAKE) test
