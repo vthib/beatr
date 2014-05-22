@@ -1,5 +1,7 @@
-import chroma.chromabands;
 import chroma.profile.classicprofile;
+import chroma.chromabands;
+import file.stream.decompstream;
+import file.audiofile;
 import util.types;
 
 import fftw.fftw3;
@@ -15,29 +17,57 @@ class Analyzer
 {
 private:
 	ChromaBands b;
-	double[] norms;
+	double[beatrSampleRate] norms;
+	AudioFile af;
 
 public:
-	this()
+	this(string as)
 	{
-		norms = new double[beatrSampleRate];
-		norms[0 .. $] = 0.0; /* set all to 0, as by default it is NaN */
+		af = new AudioFile(as);
+		norms[] = 0.0; /* set all to 0, as by default it is NaN */
 		b = new ChromaBands();
 	}
 
-	/++ Process the input sample for a future key estimate +/
-	void processSample(inout beatrSample s)
+	/++ Process the audio file +/
+	void process()
+	in {
+		assert(af !is null);
+	}
+	body {
+		auto stream = new DecompStream(af);
+
+		foreach(frame; stream)
+			processSample(frame);
+	}
+
+	/++ Returns the best key estimate of the sample processed +/
+	auto bestKey()
 	{
+		b.addFftSample(norms);
+		b.printHistograms(30);
+		return b.bestFit(new ClassicProfile());
+	}
+
+private:
+	~this()
+	{
+		fftw_cleanup();
+	}
+
+	/++ Process the input sample for a future key estimate +/
+	void processSample(inout ref beatrSample s)
+	in {
+		assert(s.length == beatrSampleRate);
+	}
+	body {
 		auto ibuf = new double[s.length];
 		auto obuf = new cdouble[s.length];
 		enum step = 1;
 		uint idx = 0;
 
-		enforce(s.length == beatrSampleRate, "a sample is not of the same "
-				 ~ "size as the predefined sample size");
-
 		auto plan = fftw_plan_dft_r2c_1d(cast(int) s.length, ibuf.ptr, obuf.ptr,
 										 0);
+		scope(exit) fftw_destroy_plan(plan);
 
 		/* copy the input into the ibuf buffer */
 		/* !!! This has to be _after_ the plan creation, as this function sets
@@ -55,22 +85,5 @@ public:
 		/* add it to our norms field */
 		foreach (i, ref o; this.norms)
 			o += n[i];
-
-		fftw_destroy_plan(plan);
 	}
-
-	/++ Returns the best key estimate of the sample processed +/
-	auto bestKey()
-	{
-		b.addFftSample(norms);
-		b.printHistograms(30);
-		return b.bestFit(new ClassicProfile());
-	}
-
-private:
-	~this()
-	{
-		fftw_cleanup();
-	}
-
 }

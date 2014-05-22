@@ -21,14 +21,9 @@ main(string args[])
 
 	Beatr.setVerboseLevel(verbose);
 
-	auto af = new AudioFile(args[1]);
+	auto a = new Analyzer(args[1]);
 
-	auto audioData = new DecompStream(af);
-
-	auto a = new Analyzer();
-
-	foreach(frame; audioData)
-		a.processSample(frame);
+	a.process();
 
 	writefln("best key estimate: %s", a.bestKey());
 }
