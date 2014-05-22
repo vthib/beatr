@@ -142,7 +142,7 @@ private:
 	/++ Copies a frame in the data buffer
 	 + Returns: false if buffer full, true otherwise
 	 +/
-	bool copyFrame() // XXX: while debugging nothrow
+	bool copyFrame() nothrow
 	in
 	{
 		assert(frame !is null);
