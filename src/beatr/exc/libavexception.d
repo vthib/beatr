@@ -1,6 +1,7 @@
 import libavutil.error;
 
 import core.stdc.string : strlen;
+import std.string : indexOf;
 
 @safe:
 
@@ -17,16 +18,30 @@ class LibAvException : Exception
          Throwable next = null) pure //nothrow
     {
         this.ret = r;
-        if (r != 0) { /* append a descriptive error message */
-			auto buf = new char[512];
-			av_strerror(r, buf.ptr, buf.length);
-			msg ~= ": " ~ ptrToString(buf);
-		}
+        if (r != 0) /* append a descriptive error message */
+			msg ~= ": " ~ libavErrorToString(r);
 
 		super(msg, file, line, next);
     }
+	@system unittest
+	{
+		auto m = "test message";
+		auto exc = new LibAvException(m, 5);
+
+		assert(-1 != exc.msg.indexOf(m));
+		assert(-1 != exc.msg.indexOf(libavErrorToString(5)));
+	}
 
 private:
+
+	/++ returns a string describing a libav error +/
+	static string libavErrorToString(int r) pure //nothrow
+	{
+		char[512] buf;
+		av_strerror(r, buf.ptr, buf.length);
+		return ptrToString(buf);
+	}
+
 	/++ converts a c-style string to a string type +/
 	static string ptrToString(char[] b) pure //nothrow
 	{
@@ -34,5 +49,10 @@ private:
 		auto end = trustedstrlen(b.ptr);
 		b.length = end;
 		return b.idup;
+	}
+	unittest
+	{
+		assert(ptrToString(['f', 'o', 'o', '\0']) == "foo");
+		assert(ptrToString(['\0']) == "");
 	}
 }

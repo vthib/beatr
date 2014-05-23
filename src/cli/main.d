@@ -4,22 +4,38 @@ import std.stdio;
 import std.exception;
 import std.getopt;
 
-import file.audiofile;
-import file.stream.decompstream;
 import analysis.analyzer;
 import util.beatr;
 
 void
+verbose_callback(string opt)
+{
+	switch (opt) {
+	case "verbose|v":
+		Beatr.setVerboseLevel(BEATR_VERBOSE);
+		break;
+	case "debug|d":
+		Beatr.setVerboseLevel(BEATR_DEBUG);
+		break;
+	case "quiet|q":
+		Beatr.setVerboseLevel(BEATR_NORMAL);
+		break;
+	default:
+		break;
+	}
+}
+
+void
 main(string args[])
 {
-	bool verbose;
+	int verbose;
 	getopt(
 		args,
-		"verbose|v",  &verbose);
+		"verbose|v", &verbose_callback,
+		"debug|d", &verbose_callback,
+		"quiet|q", &verbose_callback);
 
 	enforce(args.length > 1, "Not enough arguments: file to analyze missing.");
-
-	Beatr.setVerboseLevel(verbose);
 
 	auto a = new Analyzer(args[1]);
 

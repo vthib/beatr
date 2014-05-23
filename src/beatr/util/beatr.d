@@ -4,8 +4,10 @@ import std.c.stdlib;
 
 @system:
 
+/++ different levels of debugging +/
 enum {
 	BEATR_NORMAL,
+	BEATR_VERBOSE,
 	BEATR_DEBUG
 };
 
@@ -13,7 +15,7 @@ enum {
  + to a verbose level +/
 class Beatr
 {
-	static int verbLevel;
+	static int verbLevel = BEATR_NORMAL;
 
 public:
 

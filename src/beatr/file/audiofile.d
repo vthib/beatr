@@ -1,5 +1,3 @@
-//@safe:
-
 import std.string;
 
 import libavcodec.avcodec;
@@ -28,18 +26,21 @@ public:
 		
 		/* open file */
 		ret = avformat_open_input(&ctx, file.toStringz, null, null);
-		if (ret < 0) throw new LibAvException("avformat_open_input error", ret);
+		if (ret < 0)
+			throw new LibAvException("avformat_open_input error", ret);
 
 		/* analyse the file */
 		ret = avformat_find_stream_info(ctx, null);
-		if (ret < 0) throw new LibAvException("avformat_find_stream_info error", ret);
+		if (ret < 0)
+			throw new LibAvException("avformat_find_stream_info error", ret);
 
 		/* find the audio stream */
 		audioStream = uint.max;
 
 		/* XXX: first one or last one? */
-		for (auto i = 0; i < ctx.nb_streams; i++) {
-			if (ctx.streams[i].codec.codec_type == AVMediaType.AVMEDIA_TYPE_AUDIO)
+		foreach (i; 0 .. ctx.nb_streams) {
+			if (ctx.streams[i].codec.codec_type
+				== AVMediaType.AVMEDIA_TYPE_AUDIO)
 				audioStream = i;
 		}
 	}
@@ -89,5 +90,7 @@ private:
 		avformat_close_input(&ctx);
 	}
 
+	/++ An AudioFile object can be used to access directly the members
+	 + of the AVFormatContext structure +/
 	alias formatContext this;
 }

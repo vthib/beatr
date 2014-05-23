@@ -1,6 +1,6 @@
 import chroma.profile.classicprofile;
 import chroma.chromabands;
-import file.stream.decompstream;
+import file.audiostream;
 import file.audiofile;
 import util.types;
 import util.beatr;
@@ -35,7 +35,7 @@ public:
 		assert(af !is null);
 	}
 	body {
-		auto stream = new DecompStream(af);
+		auto stream = new AudioStream(af);
 
 		foreach(frame; stream)
 			processSample(frame);
@@ -45,7 +45,7 @@ public:
 	auto bestKey()
 	{
 		b.addFftSample(norms);
-		if (Beatr.verboseLevel >= BEATR_DEBUG)
+		if (Beatr.verboseLevel >= BEATR_VERBOSE)
 			b.printHistograms(30);
 		return b.bestFit(new ClassicProfile());
 	}

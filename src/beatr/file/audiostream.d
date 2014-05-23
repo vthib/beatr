@@ -3,7 +3,6 @@
 import std.array;
 import std.stdio;
 
-import file.stream.audiostream;
 import file.audiofile;
 import exc.libavexception;
 import util.types;
@@ -18,7 +17,7 @@ import libavutil.samplefmt;
  + Provides a Range object for the decompressed
  + data of an audio file
  +/
-class DecompStream : AudioStream!beatrSample
+class AudioStream
 {
 private:
 	short[] d; /++ buffer containing the decompressed data +/
@@ -98,6 +97,9 @@ private:
 	~this()
 	{
 		avcodec_close(ctx);
+
+		avresample_close(resamplectx);
+		avresample_free(&resamplectx);
 
         if (frame !is null)
             av_frame_free(&frame);
