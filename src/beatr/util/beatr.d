@@ -6,6 +6,7 @@ import std.c.stdlib;
 
 /++ different levels of debugging +/
 enum {
+	BEATR_WARNING = -1,
 	BEATR_NORMAL,
 	BEATR_VERBOSE,
 	BEATR_DEBUG
@@ -33,7 +34,10 @@ public:
 	{
 		if (verbLevel >= v) {
 			try {
-				io.writefln(args);
+				if (v < 0)
+					io.stderr.writefln(args);
+				else
+					io.stdout.writefln(args);
 			} catch (Exception exc) {
 				cio.printf("%.*s\n", exc.msg.length, exc.msg.ptr);
 				exit(1);

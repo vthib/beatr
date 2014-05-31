@@ -28,6 +28,7 @@ private:
 	/* 12 semitons times number of scales = number of notes considered */
 	beatrBands bands; /++ the chroma bands +/
 	enum freqs = genFreqs(); /++ the frequencies for each note +/
+	double marginScore;
 
 	invariant() {
 		assert(beatrBands.length == nbScales * 12);
@@ -78,7 +79,7 @@ public:
 	 + Params: p = the profile to use against our chroma bands
 	 + Returns: the best key estimate
 	 +/
-	Note bestFit(in ChromaProfile p) const
+	Note bestFit(in ChromaProfile p)
 	{
 		/* compute a score multiplying each band with its profile coeff */
 		auto combineBandsAndProfile(inout typeof(p[0]) profile)
@@ -110,8 +111,10 @@ public:
 				secondmax = s;
 		}
 
+		marginScore = (max - secondmax)*100 / secondmax;
+
 		Beatr.writefln(BEATR_DEBUG, "Best estimate %.2f%% better than next one",
-					   (max - secondmax)*100/secondmax);
+					   marginScore);
 
 		/* return best match */
 		return new Note(imax % 12);
@@ -164,6 +167,11 @@ public:
 				write(' ');
 		}
 		writeln();
+	}
+
+	@property auto confidence() const
+	{
+		return marginScore;
 	}
 
 private:

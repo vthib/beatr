@@ -38,11 +38,4 @@ public:
 	{
 		return pf;
 	}
-
-private:
-	~this()
-	{
-		pf.destroy;
-	}
-
 }

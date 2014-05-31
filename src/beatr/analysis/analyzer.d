@@ -50,11 +50,19 @@ public:
 		return b.bestFit(new ClassicProfile());
 	}
 
+	/++ Returns the best key estimate of the sample processed +/
+	/* XXX: expose chromabands object? */
+	@property auto confidence() const
+	{
+		return b.confidence;
+	}
+
 private:
 	~this()
 	{
 		fftw_cleanup();
 	}
+
 
 	/++ Process the input sample for a future key estimate +/
 	void processSample(inout ref beatrSample s)

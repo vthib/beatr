@@ -19,7 +19,7 @@ class LibAvException : Exception
     {
         this.ret = r;
         if (r != 0) /* append a descriptive error message */
-			msg ~= ": " ~ libavErrorToString(r);
+			msg ~= ": " ~ errorToString(r);
 
 		super(msg, file, line, next);
     }
@@ -29,19 +29,18 @@ class LibAvException : Exception
 		auto exc = new LibAvException(m, 5);
 
 		assert(-1 != exc.msg.indexOf(m));
-		assert(-1 != exc.msg.indexOf(libavErrorToString(5)));
+		assert(-1 != exc.msg.indexOf(errorToString(5)));
 	}
 
-private:
-
 	/++ returns a string describing a libav error +/
-	static string libavErrorToString(int r) pure //nothrow
+	static string errorToString(int r) pure //nothrow
 	{
 		char[512] buf;
 		av_strerror(r, buf.ptr, buf.length);
 		return ptrToString(buf);
 	}
 
+private:
 	/++ converts a c-style string to a string type +/
 	static string ptrToString(char[] b) pure //nothrow
 	{

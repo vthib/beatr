@@ -98,6 +98,9 @@ private:
 	{
 		avcodec_close(ctx);
 
+		if (avresample_available(resamplectx))
+			Beatr.writefln(BEATR_WARNING, "Still some "
+						   "resampled samples available");
 		avresample_close(resamplectx);
 		avresample_free(&resamplectx);
 
@@ -157,21 +160,29 @@ private:
 			return false; /* buffer full */
 
 		/* computes the size of the whole frame */
-		auto data_size =
-			av_samples_get_buffer_size(&linesize, ctx.channels,
-									   frame.nb_samples,
-									   ctx.sample_fmt, 1);
-		ubyte[] output = new ubyte[data_size / ctx.channels];
+		/* XXX quick instruction or double libav call? */
+		immutable auto size = frame.nb_samples + avresample_available(resamplectx)
+			+ avresample_get_delay(resamplectx);
+		// immutable auto size = frame.nb_samples;
 
-		ubyte* ptr = output.ptr;
-		auto nbsamples = avresample_convert(resamplectx, &ptr,
-											cast(int) output.length,
-											frame.nb_samples,
-											&(frame.data[0]), linesize,
-											frame.nb_samples);
+		ubyte *output;
+		int out_linesize, in_linesize;
 
-		d[offset .. (offset + nbsamples)] = cast(short[]) output;
-		offset += nbsamples;
+		/* allocate a output buffer big enough */
+		av_samples_alloc(&output, &out_linesize, 1, size,
+						 AVSampleFormat.AV_SAMPLE_FMT_S16P, 0);
+		/* get the linesize */
+		av_samples_get_buffer_size(&in_linesize, ctx.channels,
+								   frame.nb_samples, ctx.sample_fmt, 0);
+
+		/* resample input in the output buffer */
+		auto out_samples = avresample_convert(resamplectx, &output,
+											  out_linesize, size,
+											  &(frame.data[0]), in_linesize,
+											  frame.nb_samples);
+		memcpy(d.ptr + offset, output, out_samples * 2);
+		offset += out_samples;
+		av_freep(&output);
 
 		return true;
 	}
@@ -196,14 +207,17 @@ private:
 		/* XXX: always 0? if this is the case, can clean these instructions */
 		assert(offset == 0, "offset equal length when adding frames");
 
+		scope(exit) {
+			endOfFile = true;
+			d.length = offset;
+			/* put the offset back at the beginning */
+			offset = 0;
+		}
 
 		/* while we have frames and we copy them successfully in the buffer */
 		while (!got_frame || copyFrame()) {
-			if (!af.getFrame(&pkt)) {
-				endOfFile = true;
-				d.length = offset;
-				break;
-			}
+			if (!af.getFrame(&pkt))
+				return;
 
             /* allocates the frame */
 			if (frame is null) {
@@ -212,15 +226,14 @@ private:
             } else
                 av_frame_unref(frame);
 
-            if ((ret = avcodec_decode_audio4(ctx, frame, &got_frame,
-											 &pkt)) < 0)
-                throw new LibAvException("Error while decoding", ret);
-
-			else if (got_frame)
+			if ((ret = avcodec_decode_audio4(ctx, frame, &got_frame,
+											 &pkt)) < 0) {
+				Beatr.writefln(BEATR_WARNING, "Error while decoding: %s",
+							   LibAvException.errorToString(ret));
+				return;
+			}
+			if (got_frame)
 				av_free_packet(&pkt);
         }
-
-		/* put the offset back at the beginning */
-		offset = 0;
 	}
 }

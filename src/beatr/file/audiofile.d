@@ -30,6 +30,7 @@ public:
 			throw new LibAvException("avformat_open_input error", ret);
 
 		/* analyse the file */
+		/* XXX: full decomp needs this (needs to know duration) */
 		ret = avformat_find_stream_info(ctx, null);
 		if (ret < 0)
 			throw new LibAvException("avformat_find_stream_info error", ret);
@@ -43,6 +44,9 @@ public:
 				== AVMediaType.AVMEDIA_TYPE_AUDIO)
 				audioStream = i;
 		}
+
+		if (audioStream == uint.max)
+			throw new LibAvException("No audio stream found");
 	}
 
 	/* find the audio stream */
@@ -87,7 +91,8 @@ public:
 private:
 	~this()
 	{
-		avformat_close_input(&ctx);
+		if (ctx !is null)
+			avformat_close_input(&ctx);
 	}
 
 	/++ An AudioFile object can be used to access directly the members
