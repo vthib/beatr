@@ -1,4 +1,4 @@
-import chroma.profile.classicprofile;
+import chroma.chromaprofile;
 import chroma.chromabands;
 import file.audiostream;
 import file.audiofile;
@@ -42,12 +42,12 @@ public:
 	}
 
 	/++ Returns the best key estimate of the sample processed +/
-	auto bestKey()
+	auto bestKey(ProfileType pt = ProfileType.PROFILE_CLASSIC)
 	{
 		b.addFftSample(norms);
 		if (Beatr.verboseLevel >= BEATR_VERBOSE)
 			b.printHistograms(30);
-		return b.bestFit(new ClassicProfile());
+		return b.bestFit(new ChromaProfile(pt));
 	}
 
 	/++ Returns the best key estimate of the sample processed +/

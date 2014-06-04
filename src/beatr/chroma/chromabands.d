@@ -1,4 +1,4 @@
-import chroma.profile.chromaprofile;
+import chroma.chromaprofile;
 import util.note;
 import util.types;
 import util.beatr;
@@ -7,6 +7,7 @@ import std.math : pow;
 import std.algorithm : map, reduce, max;
 import std.array : array;
 import std.stdio;
+import std.conv : to;
 
 /* XXX: because of writefln functions... */
 //@safe:
@@ -82,7 +83,7 @@ public:
 	Note bestFit(in ChromaProfile p)
 	{
 		/* compute a score multiplying each band with its profile coeff */
-		auto combineBandsAndProfile(inout typeof(p[0]) profile)
+		auto combineBandsAndProfile(inout typeof(p[0][0]) profile)
 		{
 			band s = 0.;
 
@@ -94,7 +95,11 @@ public:
 			return s / bands.length;
 		}
 
-		auto scores = array(p.getProfile.map!(combineBandsAndProfile));
+		auto scores = new band[24];
+		foreach (i; 0 .. 12)
+			scores[i] = combineBandsAndProfile(p[0][i]);
+		foreach (i; 12 .. 24)
+			scores[i] = combineBandsAndProfile(p[1][i - 12]);
 
 		Beatr.writefln(BEATR_DEBUG, "Scores for each note: %s", scores);
 
@@ -117,7 +122,7 @@ public:
 					   marginScore);
 
 		/* return best match */
-		return new Note(imax % 12);
+		return new Note(to!int(imax % 12), to!int(imax / 12));
 	}
 
 	/++ print an histogram of the bands

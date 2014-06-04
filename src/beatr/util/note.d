@@ -8,6 +8,8 @@ class Note
 {
 private:
 	int k;
+	int minor;
+
 	enum notes = ["C", "C#", "D", "Eb", "E", "F",
 				  "F#", "G", "G#", "A", "Bb", "B"];
 
@@ -16,9 +18,10 @@ private:
 	}
 
 public:
-	this(in int key) nothrow
+	this(in int key, in int m = -1) nothrow
 	{
 		k = key;
+		minor = m;
 	}
 
 	@property auto get() const nothrow
@@ -34,24 +37,31 @@ public:
 	/++ return the english name of the note +/
 	@property auto name() const nothrow
 	{
-		return notes[k];
+		if (minor == -1)
+			return notes[k];
+		else
+			return notes[k] ~ (minor == 1 ? "min" : "maj");
 	}
 
 	/++ return the english name of the note +/
-	static string name(T)(in T i) nothrow pure
+	static string name(T)(in T i, in T minor = -1) nothrow pure
 	in
 	{
 		assert(0 <= i && i < 12);
+		assert(-1 <= minor && minor < 2);
 	}
 	body
 	{
-		return notes[i];
+		if (minor == -1)
+			return notes[i];
+		else
+			return notes[i] ~ (minor == 1 ? "min" : "maj");
 	}
 
 	/++ return the english name of the note +/
 	override string toString() const nothrow
 	{
-		return notes[k];
+		return name();
 	}
 	unittest
 	{
@@ -59,13 +69,15 @@ public:
 		Note n = new Note(k);
 		assert("G" == n.name);
 		assert("G" == Note.name(k));
+		assert("Gmaj" == Note.name(k, 0));
+		assert("Gmin" == Note.name(k, 1));
 		assert("G" == n.toString());
 
 		k = 3;
-		n = new Note(k);
-		assert("Eb" == n.name);
+		n = new Note(k, 1);
+		assert("Ebmin" == n.name);
 		assert("Eb" == Note.name(k));
-		assert("Eb" == n.toString());
+		assert("Ebmin" == n.toString());
 	}
 
 	/* the note is caracterized by its number */
