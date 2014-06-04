@@ -7,11 +7,11 @@ import std.exception;
  + Second dimension the number of possible key (12)
  + Third dimension is the number of notes in a scale (12)
  + Values are coefficients rating the corresponding note in the scale +/
-alias ubyte[12][12][2] profile;
+alias double[12][12][2] profile;
 
 enum ProfileType {
 	PROFILE_CLASSIC = 0,
-	PROFILE_MAJ = 1,
+	PROFILE_KRUMHANSL = 1,
 };
 
 /++ An interface representing chroma profiles for each possible key +/
@@ -35,13 +35,17 @@ class ChromaProfile
 
 private:
 struct pf {
-	ubyte[12] maj;
-	ubyte[12] min;
+	double[12] maj;
+	double[12] min;
 };
 
 enum pfs = [
+	// CLASSIC
 	pf([3, 0, 1, 0, 2, 1, 0, 2, 0, 2, 0, 1],
-	   [3, 0, 1, 2, 0, 1, 0, 2, 0, 2, 0, 1]), // CLASSIC
-	pf([2, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-       [2, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]), // MAJ
+	   [3, 0, 1, 2, 0, 1, 0, 2, 0, 2, 0, 1]),
+	// KRUMHANSL
+	pf([6.35, 2.23, 3.48, 2.33, 4.38, 4.09,
+		2.52, 5.19, 2.39, 3.66, 2.29, 2.88],
+       [6.33, 2.68, 3.52, 5.38, 2.60, 3.53,
+		2.54, 4.75, 3.98, 2.69, 3.34, 3.17]),
 	];

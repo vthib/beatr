@@ -42,7 +42,7 @@ public:
 	}
 
 	/++ Returns the best key estimate of the sample processed +/
-	auto bestKey(ProfileType pt = ProfileType.PROFILE_CLASSIC)
+	auto bestKey(ProfileType pt = ProfileType.PROFILE_KRUMHANSL)
 	{
 		b.addFftSample(norms);
 		if (Beatr.verboseLevel >= BEATR_VERBOSE)

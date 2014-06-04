@@ -59,14 +59,14 @@ public:
 			/* for each band, computes the mean of the values around its
 			   index (to compensate the note frequencies not being perfectly
 			   equals to the FFT frequencies */
-/+			j1 = (i != 0) ? (chromaidx[i-1] - chromaidx[i])/2 : 0;
+			j1 = (i != 0) ? (chromaidx[i-1] - chromaidx[i])/2 : 0;
 			j2 = (i < freqs.length - 1) ? (chromaidx[i+1] - chromaidx[i])/2 : 0;
 
 			bands[i] = 0.;
 			for (long k = j1; k <= j2; k++)
 				bands[i] += s[chromaidx[i] + k];
-			bands[i] /= (j2 - j1 + 1);+/
-			bands[i] += s[chromaidx[i]];
+			bands[i] /= (j2 - j1 + 1);
+//			bands[i] += s[chromaidx[i]];
 
 			Beatr.writefln(BEATR_DEBUG, "%s%s\t%.3e\t%s\t%s",
 						   Note.name(note % 12), note / 12,
@@ -82,6 +82,7 @@ public:
 	 +/
 	Note bestFit(in ChromaProfile p)
 	{
+
 		/* compute a score multiplying each band with its profile coeff */
 		auto combineBandsAndProfile(inout typeof(p[0][0]) profile)
 		{
