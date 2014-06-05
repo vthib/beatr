@@ -1,23 +1,10 @@
-import chroma.chromaprofile;
-import util.note;
 import util.types;
-import util.beatr;
 
-import std.math : pow;
-import std.algorithm : map, reduce, max;
-import std.array : array;
+import std.algorithm : map;
 import std.stdio;
-import std.conv : to;
 
 /* XXX: because of writefln functions... */
 //@safe:
-
-/++ Number of scales in our chroma bands +/
-private:
-enum nbScales = 10;
-
-alias double band;
-alias band[nbScales * 12] beatrBands;
 
 /++
  + Chroma bands represents an histogram of the intensity of each note.
@@ -26,20 +13,25 @@ public:
 class ChromaBands
 {
 private:
-	/* 12 semitons times number of scales = number of notes considered */
-	beatrBands bands; /++ the chroma bands +/
-	enum freqs = genFreqs(); /++ the frequencies for each note +/
-	double marginScore;
+	/* Number of scales in our chroma bands */
+	enum NB_SCALES = 10;
 
-	invariant() {
-		assert(beatrBands.length == nbScales * 12);
-	}
+	/* 12 semitons times number of scales = number of notes considered */
+	double[NB_SCALES * 12] bands; /++ the chroma bands +/
+
+	enum freqs = genFreqs(); /++ the frequencies for each note +/
 
 public:
 	this()
 	{
 		bands[] = 0.0;
 	}
+
+	@property auto getBands() const nothrow
+	{
+		return bands;
+	}
+	alias getBands this;
 
 	/* XXX: if too much add, bands can overflow
 	 * solution: track max at all time, divide all when reach threshold? */
@@ -50,7 +42,8 @@ public:
 	void addFftSample(double[] s) nothrow
 	{
 		/* indexes of each note in the FFT array */
-		auto chromaidx = freqs.map!(f => cast(int) (f * s.length / beatrSampleRate));
+		auto chromaidx = freqs.map!(f => cast(int) (f * s.length /
+													beatrSampleRate));
 
 		int note;
 		int j1, j2;
@@ -68,62 +61,8 @@ public:
 			bands[i] /= (j2 - j1 + 1);
 //			bands[i] += s[chromaidx[i]];
 
-			Beatr.writefln(BEATR_DEBUG, "%s%s\t%.3e\t%s\t%s",
-						   Note.name(note % 12), note / 12,
-						   f, chromaidx[i], bands[i]);
-
 			note++;
 		}
-	}
-
-	/++ Find the best key possible for our chroma bands using the given profile
-	 + Params: p = the profile to use against our chroma bands
-	 + Returns: the best key estimate
-	 +/
-	Note bestFit(in ChromaProfile p)
-	{
-
-		/* compute a score multiplying each band with its profile coeff */
-		auto combineBandsAndProfile(inout typeof(p[0][0]) profile)
-		{
-			band s = 0.;
-
-			std.exception.enforce(profile.length >= 12);
-
-			foreach(j, c; bands)
-				s += c*profile[j % 12];
-
-			return s / bands.length;
-		}
-
-		auto scores = new band[24];
-		foreach (i; 0 .. 12)
-			scores[i] = combineBandsAndProfile(p[0][i]);
-		foreach (i; 12 .. 24)
-			scores[i] = combineBandsAndProfile(p[1][i - 12]);
-
-		Beatr.writefln(BEATR_DEBUG, "Scores for each note: %s", scores);
-
-		/* find max and secondmax */
-		band max = 0.;
-		ulong imax;
-		band secondmax = 0.;
-		foreach(j, s; scores) {
-			if (s > max) {
-				secondmax = max;
-				max = s;
-				imax = j;
-			} else if (s > secondmax)
-				secondmax = s;
-		}
-
-		marginScore = (max - secondmax)*100 / secondmax;
-
-		Beatr.writefln(BEATR_DEBUG, "Best estimate %.2f%% better than next one",
-					   marginScore);
-
-		/* return best match */
-		return new Note(to!int(imax % 12), to!int(imax / 12));
 	}
 
 	/++ print an histogram of the bands
@@ -131,8 +70,7 @@ public:
 	 +/
 	void printHistograms(in uint height) const
 	{
-		// auto m = bands.reduce!(max); XXX: need update of compiler?
-		band m = 0;
+		double m = 0;
 		foreach(b; bands)
 			if (b >= m)
 				m = b;
@@ -175,16 +113,11 @@ public:
 		writeln();
 	}
 
-	@property auto confidence() const
-	{
-		return marginScore;
-	}
-
 private:
 	/++ Generate an array of the frequencies for each note +/
-	static double[] genFreqs()
+	static double[] genFreqs() pure
 	{
-		double[] freqs = new double[12*nbScales];
+		double[] freqs = new double[NB_SCALES * 12];
 
 		/* pow cannot be used in CTFE, so use a literal value instead */
 		immutable double nextNote = 1.05946309435929;

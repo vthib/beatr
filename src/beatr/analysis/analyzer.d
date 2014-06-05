@@ -4,6 +4,7 @@ import file.audiostream;
 import file.audiofile;
 import util.types;
 import util.beatr;
+import analysis.scores;
 
 import fftw.fftw3;
 
@@ -19,6 +20,7 @@ class Analyzer
 private:
 	ChromaBands b;
 	double[beatrSampleRate] norms;
+	Scores scores;
 	AudioFile af;
 
 public:
@@ -42,19 +44,22 @@ public:
 	}
 
 	/++ Returns the best key estimate of the sample processed +/
-	auto bestKey(ProfileType pt = ProfileType.PROFILE_KRUMHANSL)
+	auto bestKey(ProfileType pt = ProfileType.PROFILE_KRUMHANSL,
+				 MatchingType mt = MatchingType.CLASSIC)
 	{
 		b.addFftSample(norms);
-		if (Beatr.verboseLevel >= BEATR_VERBOSE)
-			b.printHistograms(30);
-		return b.bestFit(new ChromaProfile(pt));
+
+		Beatr.writefln(BEATR_VERBOSE, "Using profile %s and matching %s",
+					   pt, mt);
+
+		scores = new Scores(b, new ChromaProfile(pt), mt);
+
+		return scores.bestKey();
 	}
 
-	/++ Returns the best key estimate of the sample processed +/
-	/* XXX: expose chromabands object? */
-	@property auto confidence() const
+	@property auto getScores() nothrow
 	{
-		return b.confidence;
+		return this.scores;
 	}
 
 private:

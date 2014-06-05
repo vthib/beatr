@@ -1,6 +1,6 @@
 SRC=$(wildcard *.d)
 OBJ=$(SRC:.d=.o)
-TARGET=main
+TARGET=beatr
 
 DIRBEATR=../beatr
 LIBBEATR=$(DIRBEATR)/libbeatr.so
