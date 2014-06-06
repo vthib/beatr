@@ -44,7 +44,7 @@ public:
 	}
 
 	/++ Returns the best key estimate of the sample processed +/
-	auto bestKey(ProfileType pt = ProfileType.PROFILE_KRUMHANSL,
+	auto bestKey(ProfileType pt = ProfileType.KRUMHANSL,
 				 MatchingType mt = MatchingType.CLASSIC)
 	{
 		b.addFftSample(norms);

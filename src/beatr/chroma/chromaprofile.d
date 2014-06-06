@@ -10,8 +10,12 @@ import std.exception;
 alias double[12][12][2] profile;
 
 enum ProfileType {
-	PROFILE_CLASSIC = 0,
-	PROFILE_KRUMHANSL = 1,
+	KRUMHANSL = 0,
+	SCALE = 1,
+	SCALE_HARM = 2,
+	SCALE_BOTH = 3,
+	CHORD = 4,
+	CHORD_NORMALIZED = 5,
 };
 
 /++ An interface representing chroma profiles for each possible key +/
@@ -40,12 +44,24 @@ struct pf {
 };
 
 enum pfs = [
-	// CLASSIC
-	pf([3, 0, 1, 0, 2, 1, 0, 2, 0, 2, 0, 1],
-	   [3, 0, 1, 2, 0, 1, 0, 2, 0, 2, 0, 1]),
 	// KRUMHANSL
 	pf([6.35, 2.23, 3.48, 2.33, 4.38, 4.09,
 		2.52, 5.19, 2.39, 3.66, 2.29, 2.88],
        [6.33, 2.68, 3.52, 5.38, 2.60, 3.53,
 		2.54, 4.75, 3.98, 2.69, 3.34, 3.17]),
+	// SCALE
+	pf([1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1],
+	   [1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0]),
+	// SCALE_HARM
+	pf([1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1],
+	   [1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1]),
+	// SCALE_BOTH
+	pf([1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1],
+	   [1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0.5, 0.5]),
+	// CHORD
+	pf([3, 0, 1, 0, 2, 1, 0, 2, 0, 2, 0, 1],
+	   [2, 0, 1, 2, 0, 1, 0, 3, 1, 0, 1.5, 0.5]),
+	// CHORD_NORMALIZED
+	pf([3, 0, 1, 0, 2, 1, 0, 2, 0, 2, 0, 1],
+	   [3, 0, 1, 2, 0, 1, 0, 2, 1, 0, 1.5, 0.5]),
 	];

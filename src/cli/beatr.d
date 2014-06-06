@@ -18,6 +18,7 @@ main(string args[])
 	int verbose;
 	bool recursive;
 	MatchingType m;
+	ProfileType p;
 	bool graph;
 
 	void matchingCallback(string opt, string val)
@@ -36,6 +37,19 @@ main(string args[])
 		}
 	}
 
+	void profileCallback(string opt, string val)
+	{
+		switch (val) {
+		case "krumhansl":        p = ProfileType.KRUMHANSL; break;
+		case "scale":            p = ProfileType.SCALE; break;
+		case "scale_harm":       p = ProfileType.SCALE_HARM; break;
+		case "scale_both":       p = ProfileType.SCALE_BOTH; break;
+		case "chord":            p = ProfileType.CHORD; break;
+		case "chord_normalized": p = ProfileType.CHORD_NORMALIZED; break;
+		default: break;
+		}
+	}
+
 	void printHelp()
 	{
 		writefln("usage: %s [options] input", args[0]);
@@ -48,6 +62,9 @@ main(string args[])
 		writeln("\t\t\tIt can be 'classic', 'dominant', 'cadence', 'all'");
 		writeln("\t\t\tor any combination (separated with a command) of");
 		writeln("\t\t\t\t'add_dom', 'add_subdom' and 'add_rel'");
+		writeln("\t\t-p|--profile\tUse the specified profile");
+		writeln("\t\t\tIt can be 'krumhansl', 'scale', 'scale_harm',");
+		writeln("\t\t\t'scale_both', 'chord' or 'chord_normalized'");
 		writeln("\t\t-q|--quiet\tOnly print the result");
 		writeln("\t\t-r|--recursive\tRecursively analyze every file in "
 				 "'input'");
@@ -62,6 +79,7 @@ main(string args[])
 			"quiet|q", &verboseCallback,
 			"recursive|r", &recursive,
 			"mtype|m", &matchingCallback,
+			"profile|p", &profileCallback,
 			"graph|g", &graph,
 			"help|h", &printHelp);
 	} catch (Exception e) {
@@ -73,11 +91,11 @@ main(string args[])
 		printHelp();
 		return 2;
 	} else
-		return process(args[1], m, recursive, graph);
+		return process(args[1], p, m, recursive, graph);
 }
 
 bool
-process(string f, MatchingType m, bool recursive, bool graph)
+process(string f, ProfileType p, MatchingType m, bool recursive, bool graph)
 {
 	bool hadError = false;
 	DirEntry d;
@@ -95,7 +113,7 @@ process(string f, MatchingType m, bool recursive, bool graph)
 			auto a = new Analyzer(f);
 			a.process();
 
-			auto k = a.bestKey(ProfileType.PROFILE_KRUMHANSL, m);
+			auto k = a.bestKey(p, m);
 			auto scores = a.getScores();
 			if (graph)
 				scores.printHistograms(15);
@@ -107,7 +125,7 @@ process(string f, MatchingType m, bool recursive, bool graph)
 	} else if (d.isDir)
 		foreach (name; dirEntries(f, recursive ? SpanMode.breadth :
 								  SpanMode.shallow))
-			hadError |= process(name, m, recursive, graph);
+			hadError |= process(name, p, m, recursive, graph);
 	else
 		stderr.writefln("'%s' is neither a file nor a directory", f);
 
