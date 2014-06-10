@@ -32,7 +32,7 @@ public:
 	}
 
 	/++ Process the audio file +/
-	void process()
+	void process(in double sigma = 0.)
 	in {
 		assert(af !is null);
 	}
@@ -41,13 +41,14 @@ public:
 
 		foreach(frame; stream)
 			processSample(frame);
+
+		b.addFftSample(norms, sigma);
 	}
 
 	/++ Returns the best key estimate of the sample processed +/
 	auto bestKey(ProfileType pt = ProfileType.KRUMHANSL,
 				 MatchingType mt = MatchingType.CLASSIC)
 	{
-		b.addFftSample(norms);
 
 		Beatr.writefln(BEATR_VERBOSE, "Using profile %s and matching %s",
 					   pt, mt);

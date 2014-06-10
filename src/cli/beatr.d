@@ -12,40 +12,44 @@ import analysis.scores;
 import util.beatr;
 import chroma.chromaprofile;
 
+struct Options {
+	double sigma;
+	MatchingType m;
+	ProfileType p;
+	bool recursive;
+	bool graph;
+}
+
 int
 main(string args[])
 {
-	int verbose;
-	bool recursive;
-	MatchingType m;
-	ProfileType p;
-	bool graph;
+	Options opt;
 
-	void matchingCallback(string opt, string val)
+	void matchingCallback(string option, string val)
 	{
 		foreach (s; val.splitter(',')) {
 			switch (s) {
-			case "add_dom":      m |= MatchingType.ADD_DOMINANT; break;
-			case "add_subdom":   m |= MatchingType.ADD_SUBDOM; break;
-			case "add_relative": m |= MatchingType.ADD_RELATIVE; break;
-			case "dominant":     m = MatchingType.DOMINANT; break;
-			case "cadence":      m = MatchingType.CADENCE; break;
-			case "all":          m = MatchingType.ALL; break;
-			case "classic":      m = MatchingType.CLASSIC; break;
+			case "add_dom":      opt.m |= MatchingType.ADD_DOMINANT; break;
+			case "add_subdom":   opt.m |= MatchingType.ADD_SUBDOM; break;
+			case "add_relative": opt.m |= MatchingType.ADD_RELATIVE; break;
+			case "dominant":     opt.m = MatchingType.DOMINANT; break;
+			case "cadence":      opt.m = MatchingType.CADENCE; break;
+			case "all":          opt.m = MatchingType.ALL; break;
+			case "classic":      opt.m = MatchingType.CLASSIC; break;
 			default: break;
 			}
 		}
 	}
 
-	void profileCallback(string opt, string val)
+	void profileCallback(string option, string val)
 	{
 		switch (val) {
-		case "krumhansl":        p = ProfileType.KRUMHANSL; break;
-		case "scale":            p = ProfileType.SCALE; break;
-		case "scale_harm":       p = ProfileType.SCALE_HARM; break;
-		case "scale_both":       p = ProfileType.SCALE_BOTH; break;
-		case "chord":            p = ProfileType.CHORD; break;
-		case "chord_normalized": p = ProfileType.CHORD_NORMALIZED; break;
+		case "krumhansl":        opt.p = ProfileType.KRUMHANSL; break;
+		case "scale":            opt.p = ProfileType.SCALE; break;
+		case "scale_harm":       opt.p = ProfileType.SCALE_HARM; break;
+		case "scale_both":       opt.p = ProfileType.SCALE_BOTH; break;
+		case "chord":            opt.p = ProfileType.CHORD; break;
+		case "chord_normalized": opt.p = ProfileType.CHORD_NORMALIZED; break;
 		default: break;
 		}
 	}
@@ -68,20 +72,23 @@ main(string args[])
 		writeln("\t\t-q|--quiet\tOnly print the result");
 		writeln("\t\t-r|--recursive\tRecursively analyze every file in "
 				 "'input'");
+		writeln("\t\t-s|--sigma\tSelect a sigma value for the gaussian");
+		writeln("\t\t\tprofiles to process DFT samples");
 		writeln("\t\t-v|--verbose\tAdd more messages");
 	}
 
 	try {
 		getopt(
 			args,
-			"verbose|v", &verboseCallback,
 			"debug|d", &verboseCallback,
-			"quiet|q", &verboseCallback,
-			"recursive|r", &recursive,
+			"graph|g", &opt.graph,
+			"help|h", &printHelp,
 			"mtype|m", &matchingCallback,
 			"profile|p", &profileCallback,
-			"graph|g", &graph,
-			"help|h", &printHelp);
+			"quiet|q", &verboseCallback,
+			"recursive|r", &opt.recursive,
+			"sigma|s", &opt.sigma,
+			"verbose|v", &verboseCallback);
 	} catch (Exception e) {
 		stderr.writefln("error: %s", e.msg);
 		return 3;
@@ -91,11 +98,11 @@ main(string args[])
 		printHelp();
 		return 2;
 	} else
-		return process(args[1], p, m, recursive, graph);
+		return process(args[1], opt);
 }
 
 bool
-process(string f, ProfileType p, MatchingType m, bool recursive, bool graph)
+process(string f, Options opt)
 {
 	bool hadError = false;
 	DirEntry d;
@@ -111,11 +118,14 @@ process(string f, ProfileType p, MatchingType m, bool recursive, bool graph)
 		Beatr.writefln(BEATR_VERBOSE, "Processing '%s'...", f);
 		try {
 			auto a = new Analyzer(f);
-			a.process();
+			if (std.math.isNaN(opt.sigma))
+				a.process();
+			else
+				a.process(opt.sigma);
 
-			auto k = a.bestKey(p, m);
+			auto k = a.bestKey(opt.p, opt.m);
 			auto scores = a.getScores();
-			if (graph)
+			if (opt.graph)
 				scores.printHistograms(15);
 			writefln("%s\t%s\t%.2s", f, k, scores.confidence);
 		} catch (LibAvException e) {
@@ -123,9 +133,9 @@ process(string f, ProfileType p, MatchingType m, bool recursive, bool graph)
 			stderr.writefln("%s\n", e.msg);
 		}
 	} else if (d.isDir)
-		foreach (name; dirEntries(f, recursive ? SpanMode.breadth :
+		foreach (name; dirEntries(f, opt.recursive ? SpanMode.breadth :
 								  SpanMode.shallow))
-			hadError |= process(name, p, m, recursive, graph);
+			hadError |= process(name, opt);
 	else
 		stderr.writefln("'%s' is neither a file nor a directory", f);
 

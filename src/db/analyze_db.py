@@ -110,7 +110,7 @@ for line in fin:
             if not quiet:
                 print("rel {} -> {}/{}".format(fld[0], key, foundkey), file=fout)
         elif verbose:
-            print("err {} -> {} found, not {}".format(fld[0], key, foundkey), file=fout)
+            print("err {} -> {} found, not {}".format(fld[0], foundkey, key), file=fout)
 
 print("{}/{}:".format(match + dominant + relative + parallel, total)
       + " {} match, {} dom, {} rel, {} par".format(match, dominant, relative, parallel),
