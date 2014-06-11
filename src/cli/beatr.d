@@ -13,11 +13,11 @@ import util.beatr;
 import chroma.chromaprofile;
 
 struct Options {
-	double sigma;
 	MatchingType m;
 	ProfileType p;
 	bool recursive;
-	bool graph;
+	bool sgraph;
+	bool cgraph;
 }
 
 int
@@ -36,7 +36,9 @@ main(string args[])
 			case "cadence":      opt.m = MatchingType.CADENCE; break;
 			case "all":          opt.m = MatchingType.ALL; break;
 			case "classic":      opt.m = MatchingType.CLASSIC; break;
-			default: break;
+			default:
+				stderr.writefln("Unknown matching type '%s'", s);
+				break;
 			}
 		}
 	}
@@ -50,7 +52,9 @@ main(string args[])
 		case "scale_both":       opt.p = ProfileType.SCALE_BOTH; break;
 		case "chord":            opt.p = ProfileType.CHORD; break;
 		case "chord_normalized": opt.p = ProfileType.CHORD_NORMALIZED; break;
-		default: break;
+		default:
+			stderr.writefln("Unknown profile type '%s'", val);
+			break;
 		}
 	}
 
@@ -58,6 +62,7 @@ main(string args[])
 	{
 		writefln("usage: %s [options] input", args[0]);
 		writeln("\tOptions:");
+		writeln("\t\t-c|--cgraph\tPrint an histogram of the chroma profiles");
 		writeln("\t\t-d|--debug\tAdd even more messages");
 		writeln("\t\t-g|--graph\tPrint an histogram of the notes from the "
 				 "input");
@@ -72,23 +77,27 @@ main(string args[])
 		writeln("\t\t-q|--quiet\tOnly print the result");
 		writeln("\t\t-r|--recursive\tRecursively analyze every file in "
 				 "'input'");
-		writeln("\t\t-s|--sigma\tSelect a sigma value for the gaussian");
-		writeln("\t\t\tprofiles to process DFT samples");
+		writeln("\t\t--fftsigma\tSelect a sigma value for the FFT "
+				"interpolation");
+		writeln("\t\t--fftimode\tSelect a FFT interpolation mode: 'fixed' "
+				" or 'adaptive'");
 		writeln("\t\t-v|--verbose\tAdd more messages");
 	}
 
 	try {
 		getopt(
 			args,
-			"debug|d", &verboseCallback,
-			"graph|g", &opt.graph,
+			"cgraph|c", &opt.cgraph,
+			"debug|d", &setOptions,
+			"graph|g", &opt.sgraph,
 			"help|h", &printHelp,
 			"mtype|m", &matchingCallback,
 			"profile|p", &profileCallback,
-			"quiet|q", &verboseCallback,
+			"quiet|q", &setOptions,
 			"recursive|r", &opt.recursive,
-			"sigma|s", &opt.sigma,
-			"verbose|v", &verboseCallback);
+			"fftsigma", &setOptions2,
+			"fftimode", &setOptions2,
+			"verbose|v", &setOptions);
 	} catch (Exception e) {
 		stderr.writefln("error: %s", e.msg);
 		return 3;
@@ -115,19 +124,17 @@ process(string f, Options opt)
 	}
 
 	if (d.isFile) {
-		Beatr.writefln(BEATR_VERBOSE, "Processing '%s'...", f);
+		Beatr.writefln(Lvl.VERBOSE, "Processing '%s'...", f);
 		try {
 			auto a = new Analyzer(f);
-			if (std.math.isNaN(opt.sigma))
-				a.process();
-			else
-				a.process(opt.sigma);
+			a.process();
 
 			auto k = a.bestKey(opt.p, opt.m);
-			auto scores = a.getScores();
-			if (opt.graph)
-				scores.printHistograms(15);
-			writefln("%s\t%s\t%.2s", f, k, scores.confidence);
+			if (opt.cgraph)
+				a.bands.printHistograms(25);
+			if (opt.sgraph)
+				a.scores.printHistograms(25);
+			writefln("%s\t%s\t%.2s", f, k, a.scores.confidence);
 		} catch (LibAvException e) {
 			hadError = true;
 			stderr.writefln("%s\n", e.msg);
@@ -143,19 +150,46 @@ process(string f, Options opt)
 }
 
 void
-verboseCallback(string opt)
+setOptions(string opt)
 {
 	switch (opt) {
 	case "verbose|v":
-		Beatr.setVerboseLevel(BEATR_VERBOSE);
+		Beatr.verboseLevel = Lvl.VERBOSE;
 		break;
 	case "debug|d":
-		Beatr.setVerboseLevel(BEATR_DEBUG);
+		Beatr.verboseLevel = Lvl.DEBUG;
 		break;
 	case "quiet|q":
-		Beatr.setVerboseLevel(BEATR_NORMAL);
+		Beatr.verboseLevel = Lvl.NORMAL;
 		break;
 	default:
+		stderr.writefln("Unknown option '%s'", opt);
+		break;
+	}
+}
+
+void
+setOptions2(string opt, string value)
+{
+	switch (opt) {
+	case "fftsigma":
+		Beatr.fftSigma = to!(typeof(Beatr.fftSigma))(value);
+		break;
+	case "fftimode":
+		switch (value) {
+		case "adaptive":
+			Beatr.fftInterpolationMode = FFTInterpolationMode.ADAPTIVE;
+			break;
+		case "fixed":
+			Beatr.fftInterpolationMode = FFTInterpolationMode.FIXED;
+			break;
+		default:
+			stderr.writefln("Unknown FFT Interpolation Mode '%s'", value);
+			break;
+		}
+		break;
+	default:
+		stderr.writefln("Unknown option '%s'", opt);
 		break;
 	}
 }

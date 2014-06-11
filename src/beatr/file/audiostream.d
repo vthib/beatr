@@ -99,7 +99,7 @@ private:
 		avcodec_close(ctx);
 
 		if (avresample_available(resamplectx))
-			Beatr.writefln(BEATR_WARNING, "Still some "
+			Beatr.writefln(Lvl.WARNING, "Still some "
 						   "resampled samples available");
 		avresample_close(resamplectx);
 		avresample_free(&resamplectx);
@@ -123,7 +123,7 @@ private:
         if ((ret = avcodec_open2(ctx, avc, null)) < 0)
             throw new LibAvException("avcodec_open2 error", ret);
 
-        Beatr.writefln(BEATR_DEBUG, "sample rate: %s, duration: %s, "
+        Beatr.writefln(Lvl.DEBUG, "sample rate: %s, duration: %s, "
 					   "channels: %s", ctx.sample_rate,
 					   af.duration / AV_TIME_BASE, ctx.channels);
 
@@ -195,7 +195,7 @@ private:
 		int got_frame;
 		int ret;
 
-		Beatr.writefln(BEATR_DEBUG, "adding decompressed frames...");
+		Beatr.writefln(Lvl.DEBUG, "adding decompressed frames...");
 
 		if (endOfFile)
 			return;
@@ -228,7 +228,7 @@ private:
 
 			if ((ret = avcodec_decode_audio4(ctx, frame, &got_frame,
 											 &pkt)) < 0) {
-				Beatr.writefln(BEATR_WARNING, "Error while decoding: %s",
+				Beatr.writefln(Lvl.WARNING, "Error while decoding: %s",
 							   LibAvException.errorToString(ret));
 				return;
 			}

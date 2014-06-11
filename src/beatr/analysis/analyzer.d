@@ -20,7 +20,7 @@ class Analyzer
 private:
 	ChromaBands b;
 	double[beatrSampleRate] norms;
-	Scores scores;
+	Scores sc;
 	AudioFile af;
 
 public:
@@ -32,7 +32,7 @@ public:
 	}
 
 	/++ Process the audio file +/
-	void process(in double sigma = 0.)
+	void process()
 	in {
 		assert(af !is null);
 	}
@@ -42,7 +42,7 @@ public:
 		foreach(frame; stream)
 			processSample(frame);
 
-		b.addFftSample(norms, sigma);
+		b.addFftSample(norms);
 	}
 
 	/++ Returns the best key estimate of the sample processed +/
@@ -50,17 +50,22 @@ public:
 				 MatchingType mt = MatchingType.CLASSIC)
 	{
 
-		Beatr.writefln(BEATR_VERBOSE, "Using profile %s and matching %s",
+		Beatr.writefln(Lvl.VERBOSE, "Using profile %s and matching %s",
 					   pt, mt);
 
-		scores = new Scores(b, new ChromaProfile(pt), mt);
+		sc = new Scores(b, new ChromaProfile(pt), mt);
 
-		return scores.bestKey();
+		return sc.bestKey();
 	}
 
-	@property auto getScores() nothrow
+	@property auto scores() nothrow
 	{
-		return this.scores;
+		return this.sc;
+	}
+
+	@property auto bands() nothrow
+	{
+		return this.b;
 	}
 
 private:

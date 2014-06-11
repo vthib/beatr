@@ -2,35 +2,70 @@ import io = std.stdio;
 import cio = std.c.stdio;
 import std.c.stdlib;
 
-@system:
+nothrow:
+@safe:
+
+public:
 
 /++ different levels of debugging +/
-enum {
-	BEATR_WARNING = -1,
-	BEATR_NORMAL,
-	BEATR_VERBOSE,
-	BEATR_DEBUG
+enum Lvl {
+	WARNING = -1,
+	NORMAL = 0,
+	VERBOSE = 1,
+	DEBUG = 2
+};
+
+enum FFTInterpolationMode {
+	FIXED,
+	ADAPTIVE,
 };
 
 /++ Provides a way to print debug messages according
  + to a verbose level +/
 class Beatr
 {
-	static int verbLevel = BEATR_NORMAL;
+private:
+	static auto verbLevel = Lvl.NORMAL;
+
+	static double fftSig = 1.0;
+	static auto fftIMode = FFTInterpolationMode.ADAPTIVE;
 
 public:
+	/***** Verbose utilities *****/
 
-	static void setVerboseLevel(in int v) nothrow
+	/++ set the verbose level to a particular value +/
+	@property static auto verboseLevel(in Lvl v)
 	{
-		verbLevel = v;
+		return verbLevel = v;
 	}
 
-	@property static int verboseLevel() nothrow
+	/++ retrieve the verbose level +/
+    /* XXX: necessary? */
+	@property static int verboseLevel()
 	{
 		return verbLevel;
 	}
+	unittest
+	{
+		auto v = verbLevel;
+		assert(v == this.verboseLevel);
 
-	static void writefln(T...)(int v, T args) nothrow
+		this.verboseLevel = Lvl.WARNING;
+		assert(verbLevel == Lvl.WARNING);
+		assert(this.verboseLevel == Lvl.WARNING);
+
+		this.verboseLevel = Lvl.DEBUG;
+		assert(verbLevel == Lvl.DEBUG);
+		assert(this.verboseLevel == Lvl.DEBUG);
+
+		verbLevel = v;
+	}
+
+	/++ Call writefln(args) only if 'v' is a verbose level
+	 + lesser than the current verbose level.
+	 + If v is negative, print to stderr instead of stdout
+	 +/
+	static void writefln(T...)(in Lvl v, T args) @system
 	{
 		if (verbLevel >= v) {
 			try {
@@ -44,4 +79,25 @@ public:
 			}
 		}
 	}
+
+	/***** FFT Interpolation utilities *****/
+
+	@property static auto fftSigma() { return fftSig; }
+
+	@property static auto fftSigma(in double s)
+	{
+		return fftSig = s;
+	}
+
+
+	@property static auto fftInterpolationMode()
+	{
+		return fftIMode;
+	}
+
+	@property static auto fftInterpolationMode(in FFTInterpolationMode m)
+	{
+		return fftIMode = m;
+	}
+
 }

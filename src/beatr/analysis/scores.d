@@ -133,7 +133,7 @@ private:
 		/* adjust the scores from the matching type */
 		adjustScores(scores, m);
 
-		Beatr.writefln(BEATR_DEBUG, "Scores for each note: %s", scores);
+		Beatr.writefln(Lvl.DEBUG, "Scores for each note: %s", scores);
 	}
 
 	/* compute a score multiplying each band with its profile coeff */
