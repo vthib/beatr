@@ -145,18 +145,32 @@ private:
 	}
 	body
 	{
-		double s = 0.;
-
-		foreach(j, c; bands)
-			s += c*profile[j % 12];
-
-		double sum = 0.;
+		double pmean = 0.;
 		foreach (p; profile)
-			sum += p;
+			pmean += p;
+		pmean /= profile.length;
 
-		s /= bands.length;
-		s /= sum;
-		return s;
+		double bmean = 0.;
+		foreach (b; bands)
+			bmean += b;
+		bmean /= bands.length;
+
+		double bDiff, pDiff;
+		double cov = 0., bVariance = 0., pVariance = 0.;
+		foreach(j, c; bands) {
+			bDiff = c - bmean;
+			bVariance += bDiff*bDiff;
+
+			pDiff = profile[j % 12] - pmean;
+			pVariance += pDiff*pDiff;
+
+		    cov += bDiff*pDiff;
+		}
+
+		if (bVariance > 0 && pVariance > 0)
+			cov /= std.math.sqrt(bVariance * pVariance);
+
+		return cov;
 	}
 
 

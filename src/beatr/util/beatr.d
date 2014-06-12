@@ -36,8 +36,8 @@ private:
 	static auto fftIMode = FFTInterpolationMode.ADAPTIVE;
 
 	/* scales to analyze */
-	static ubyte sOffset = 3;
-	static ubyte sNumbers = 5;
+	static ubyte sOffset = 1;
+	static ubyte sNumbers = 6;
 
 	/* XXX: not working, because of static methods? */
 	invariant() {
