@@ -77,11 +77,15 @@ main(string args[])
 		writeln("\t\t-q|--quiet\tOnly print the result");
 		writeln("\t\t-r|--recursive\tRecursively analyze every file in "
 				 "'input'");
+		writeln("\t\t-v|--verbose\tAdd more messages");
+
 		writeln("\t\t--fftsigma\tSelect a sigma value for the FFT "
 				"interpolation");
 		writeln("\t\t--fftimode\tSelect a FFT interpolation mode: 'fixed' "
 				" or 'adaptive'");
-		writeln("\t\t-v|--verbose\tAdd more messages");
+
+		writeln("\t\t--scales_number\tNumber of scales to analyze");
+		writeln("\t\t--scales_offset\tStarting scale to analyze");
 	}
 
 	try {
@@ -97,6 +101,8 @@ main(string args[])
 			"recursive|r", &opt.recursive,
 			"fftsigma", &setOptions2,
 			"fftimode", &setOptions2,
+			"scales_offset", &setOptions2,
+			"scales_number", &setOptions2,
 			"verbose|v", &setOptions);
 	} catch (Exception e) {
 		stderr.writefln("error: %s", e.msg);
@@ -187,6 +193,12 @@ setOptions2(string opt, string value)
 			stderr.writefln("Unknown FFT Interpolation Mode '%s'", value);
 			break;
 		}
+		break;
+	case "scales_offset":
+		Beatr.scaleOffset = to!ubyte(value);
+		break;
+	case "scales_number":
+		Beatr.scaleNumbers = to!ubyte(value);
 		break;
 	default:
 		stderr.writefln("Unknown option '%s'", opt);

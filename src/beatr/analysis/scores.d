@@ -150,7 +150,13 @@ private:
 		foreach(j, c; bands)
 			s += c*profile[j % 12];
 
-		return s / bands.length;
+		double sum = 0.;
+		foreach (p; profile)
+			sum += p;
+
+		s /= bands.length;
+		s /= sum;
+		return s;
 	}
 
 

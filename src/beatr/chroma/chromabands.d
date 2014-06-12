@@ -14,17 +14,27 @@ class ChromaBands
 {
 private:
 	/* Number of scales in our chroma bands */
-	enum NB_SCALES = 10;
+	immutable ubyte nbscales;
+	immutable ubyte offset;
 
 	/* 12 semitons times number of scales = number of notes considered */
-	double[NB_SCALES * 12] bands; /++ the chroma bands +/
+	double[] bands; /++ the chroma bands +/
 
 	enum freqs = genFreqs(); /++ the frequencies for each note +/
 
 public:
-	this() @safe
-	{
-		bands[] = 0.0;
+	this(T)(in T n, in T o) @safe
+	in {
+		assert(1 <= n && n <= 10);
+		assert(o <= 10);
+		assert(o + n - 1 <= 10);
+	}
+	body {
+		nbscales = cast(ubyte) n;
+		offset = cast(ubyte) o;
+
+		bands = new double[nbscales * 12];
+		bands[] = 0.;
 	}
 
 	@property auto getBands() const nothrow @safe
@@ -39,19 +49,23 @@ public:
 	/++ Use an array representing a FFT analysis to fill the chroma bands
 	 + Params: s = an array of a FFT analysis.
 	 +/
-	void addFftSample(in double[] s) //XXX@safe
+	void addFftSample(in double[] s) //@safe
 	body {
 		/* indexes of each note in the FFT array */
-		auto chromaidx = freqs.map!(f => cast(int) (f * s.length /
-													beatrSampleRate));
+		auto fscales = freqs[offset*12 .. ((offset + nbscales) * 12)];
+		auto chromaidx = fscales.map!(f => cast(int) (f * s.length /
+													  beatrSampleRate));
 
 		Beatr.writefln(Lvl.DEBUG, "using mode '%s' and sigma '%s'",
 					   Beatr.fftInterpolationMode, Beatr.fftSigma);
+		Beatr.writefln(Lvl.DEBUG, "Analyzing between C%s and C%s",
+					   Beatr.scaleOffset,
+					   Beatr.scaleOffset + Beatr.scaleNumbers);
 
 		size_t begin;
 		size_t end;
 
-		foreach(i, f; freqs) {
+		foreach(i, f; fscales) {
 			/* center of the gaussian is the note frequency */
 			auto mu = f * s.length / beatrSampleRate;
 
@@ -77,12 +91,10 @@ public:
 
 				/* idem as before between the adjacent notes */
 				begin = (i == 0) ? chromaidx[i] : chromaidx[i-1];
-				end = (i == freqs.length - 1) ? chromaidx[i] : chromaidx[i+1];
+				end = (i == fscales.length - 1) ? chromaidx[i] : chromaidx[i+1];
 
 				foreach (j; begin .. (end + 1))
 					bands[i] += s[j] * gaussian(mu, sigma, j);
-				/* XXX: normalize better */
-				bands[i] /= end + 1 - begin;
 
 				break;
 			}
@@ -130,7 +142,7 @@ public:
 		/* print the scales numbers */
 		foreach(i; 0 .. bands.length) {
 			if (i % 12 == 0)
-				write(i / 12);
+				write(i / 12 + offset);
 			else
 				write(' ');
 		}
@@ -139,18 +151,18 @@ public:
 
 private:
 	static double
-	gaussian(in double mu, in double sigma, in ulong x) //pure //XXX @safe
+	gaussian(in double mu, in double sigma, in ulong x) pure @safe
 	{
 		if (sigma == 0.)
 			return (x == (cast(ulong) mu));
 		else
-			return exp(-((x - mu)*(x-mu))/(2*sigma*sigma));
+			return (1./(sigma*std.math.sqrt(2*std.math.PI)))*exp(-((x - mu)*(x-mu))/(2*sigma*sigma));
 	}
 
 	/++ Generate an array of the frequencies for each note +/
 	static double[] genFreqs() pure @safe
 	{
-		double[] freqs = new double[NB_SCALES * 12];
+		double[] freqs = new double[10 * 12];
 
 		/* pow cannot be used in CTFE, so use a literal value instead */
 		immutable double nextNote = 1.05946309435929;

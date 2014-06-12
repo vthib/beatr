@@ -28,7 +28,7 @@ public:
 	{
 		af = new AudioFile(as);
 		norms[] = 0.0; /* set all to 0, as by default it is NaN */
-		b = new ChromaBands();
+		b = new ChromaBands(Beatr.scaleNumbers, Beatr.scaleOffset);
 	}
 
 	/++ Process the audio file +/
