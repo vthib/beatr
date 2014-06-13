@@ -134,7 +134,8 @@ def analyzeFile(file, prefix, map, stats):
 
         if fnorm not in map:
             print("{} not in database".format(fnorm))
-            sys.exit(4)
+            return
+            #sys.exit(4)
 
         key = map[fnorm]
 

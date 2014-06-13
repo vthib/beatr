@@ -53,7 +53,7 @@ public:
 		Beatr.writefln(Lvl.VERBOSE, "Using profile %s and matching %s",
 					   pt, mt);
 
-		sc = new Scores(b, new ChromaProfile(pt), mt);
+		sc = new Scores(b, new ChromaProfile(pt), CorrelationMethod.COSINE, mt);
 
 		return sc.bestKey();
 	}

@@ -7,10 +7,14 @@ import std.stdio;
 import std.conv : to;
 import std.array;
 
+enum CorrelationMethod {
+	PEARSON,
+	COSINE,
+};
+
 /++ Describe how the adjust the score for each key after using a
  + ChromaProfile
  +/
-public:
 enum MatchingType {
 	CLASSIC      = 0, /++ Just use the score from the ChromaProfile +/
 	ADD_SUBDOM   = 0x01, /++ Add the score of the subdominant to each key +/ 
@@ -38,9 +42,10 @@ public:
 	 +         p = the profile to use against our chroma bands
 	 +         m = the post-processing algorithm of the scores
 	 +/
-	this(in ChromaBands b, in ChromaProfile p, in MatchingType m)
+	this(in ChromaBands b, in ChromaProfile p, in CorrelationMethod cm,
+		 in MatchingType m)
 	{
-		compute(b, p, m);
+		compute(b, p, cm, m);
 	}
 
 	Note bestKey()
@@ -120,15 +125,16 @@ private:
 		marginScore = double.nan;
 	}
 
-	void compute(in ChromaBands b, in ChromaProfile p, in MatchingType m)
+	void compute(in ChromaBands b, in ChromaProfile p, in CorrelationMethod cm,
+				 in MatchingType m)
 	{
 		reset();
 
 		/* compute score from the profile */
 		foreach (i; 0 .. 12)
-			scores[i] = computeKeyScore(b, p[0][i]);
+			scores[i] = computeKeyScore(b, p[0][i], cm);
 		foreach (i; 12 .. 24)
-			scores[i] = computeKeyScore(b, p[1][i - 12]);
+			scores[i] = computeKeyScore(b, p[1][i - 12], cm);
 
 		/* adjust the scores from the matching type */
 		adjustScores(scores, m);
@@ -138,25 +144,40 @@ private:
 
 	/* compute a score multiplying each band with its profile coeff */
 	static double
-	computeKeyScore(inout double[] bands, inout double[] profile) pure nothrow
+	computeKeyScore(inout double[] bands, inout double[] profile,
+					in CorrelationMethod cm) pure nothrow
 	in
 	{
 		assert(profile.length == 12);
 	}
 	body
 	{
+		final switch(cm) {
+		case CorrelationMethod.PEARSON:
+			return pearson(bands, profile);
+		case CorrelationMethod.COSINE:
+			return cosine(bands, profile);
+		}
+	}
+
+	static double
+	pearson(inout double[] bands, inout double[] profile) pure nothrow
+	{
+		/* mean of the profile vector */
 		double pmean = 0.;
 		foreach (p; profile)
 			pmean += p;
 		pmean /= profile.length;
 
+		/* mean of the bands vector */
 		double bmean = 0.;
 		foreach (b; bands)
 			bmean += b;
 		bmean /= bands.length;
 
+		/* result = E((x-xbar)*(y-ybar))/(sigma_x*sigma_y) */
 		double bDiff, pDiff;
-		double cov = 0., bVariance = 0., pVariance = 0.;
+		double corr = 0., bVariance = 0., pVariance = 0.;
 		foreach(j, c; bands) {
 			bDiff = c - bmean;
 			bVariance += bDiff*bDiff;
@@ -164,15 +185,31 @@ private:
 			pDiff = profile[j % 12] - pmean;
 			pVariance += pDiff*pDiff;
 
-		    cov += bDiff*pDiff;
+		    corr += bDiff*pDiff;
 		}
 
 		if (bVariance > 0 && pVariance > 0)
-			cov /= std.math.sqrt(bVariance * pVariance);
+			corr /= std.math.sqrt(bVariance * pVariance);
 
-		return cov;
+		return corr;
 	}
 
+	static double
+	cosine(inout double[] bands, inout double[] profile) pure nothrow
+	{
+		/* result = bands.profile/(|bands|*|profile|) */
+		double cos = 0., bNorm = 0., pNorm = 0.;
+		foreach(i, b; bands) {
+			cos += b * profile[i % 12];
+			bNorm += b * b;
+			pNorm += profile[i % 12] * profile[i % 12];
+		}
+
+		if (bNorm > 0. && pNorm > 0.)
+			return cos / std.math.sqrt(bNorm * pNorm);
+		else
+			return 0;
+	}
 
 	static void adjustScores(double[] scores, MatchingType m) pure
 	{
@@ -203,4 +240,7 @@ private:
 			}
 		}
 	}
+
+private:
+
 }
