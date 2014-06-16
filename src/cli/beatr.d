@@ -81,8 +81,8 @@ main(string args[])
 
 		writeln("\t\t--fftsigma\tSelect a sigma value for the FFT "
 				"interpolation");
-		writeln("\t\t--fftimode\tSelect a FFT interpolation mode: 'fixed' "
-				" or 'adaptive'");
+		writeln("\t\t--fftimode\tSelect a FFT interpolation mode: 'triangle', "
+				"'rectangle', 'cosine' or 'gaussian'");
 
 		writeln("\t\t--scales_number\tNumber of scales to analyze");
 		writeln("\t\t--scales_offset\tStarting scale to analyze");
@@ -183,11 +183,17 @@ setOptions2(string opt, string value)
 		break;
 	case "fftimode":
 		switch (value) {
-		case "adaptive":
-			Beatr.fftInterpolationMode = FFTInterpolationMode.ADAPTIVE;
+		case "triangle":
+			Beatr.fftInterpolationMode = FFTInterpolationMode.TRIANGLE;
 			break;
-		case "fixed":
-			Beatr.fftInterpolationMode = FFTInterpolationMode.FIXED;
+		case "rectangle":
+			Beatr.fftInterpolationMode = FFTInterpolationMode.RECTANGLE;
+			break;
+		case "cosine":
+			Beatr.fftInterpolationMode = FFTInterpolationMode.COSINE;
+			break;
+		case "gaussian":
+			Beatr.fftInterpolationMode = FFTInterpolationMode.GAUSSIAN;
 			break;
 		default:
 			stderr.writefln("Unknown FFT Interpolation Mode '%s'", value);

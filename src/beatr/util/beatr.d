@@ -20,8 +20,10 @@ enum Lvl {
 };
 
 enum FFTInterpolationMode {
-	FIXED,
-	ADAPTIVE,
+	TRIANGLE,
+	RECTANGLE,
+	GAUSSIAN,
+	COSINE
 };
 
 /++ Provides a way to print debug messages according
@@ -32,8 +34,8 @@ private:
 	static auto verbLevel = Lvl.NORMAL;
 
 	/* fft interpolation variables */
-	static double fftSig = 1.0;
-	static auto fftIMode = FFTInterpolationMode.ADAPTIVE;
+	static double fftSig = 0.4;
+	static auto fftIMode = FFTInterpolationMode.GAUSSIAN;
 
 	/* scales to analyze */
 	static ubyte sOffset = 1;
@@ -99,12 +101,14 @@ public:
 	/***** FFT Interpolation utilities *****/
 
 	/++ The standard deviation of the gaussian function used to
-	 + interpolate chroma values from the DFT vectors
-	 + The gaussian is centered on the frequency of the note,
-	 + the standard deviation is used to add neighbouring values.
-	 + If the value is 0, a dirac function is used instead of a gaussian
+	 + interpolate chroma values from the DFT vectors.
+	 + The window used is equal to fftSigma * (1 - sqrt(2, 12))
+	 + Thus, if fftSigma is 1, every bin between the previous note
+	 + and the next one is considered.
+	 + For a value of 0.5, the values considered are between -50 cents
+	 + and +50 cents
 	 +
-	 + Default is 1
+	 + Default is 0.4
 	 +/
 	@property static auto fftSigma() { return fftSig; }
 
@@ -130,10 +134,14 @@ public:
 	}
 
 	/++ The mode of interpolation to transform a DFT vector to chroma values
-	 + FIXED: use the same standard deviation for every note
-	 + ADAPTIVE: use as standard deviation half the min distance to a neighbour
-	 +   note, and multiply by fftSigma
-	 + Default is ADAPTIVE
+	 + The window is taken as fftSigma * (1 - sqrt(2, 12)).
+	 + RECTANGLE: Every value in the window has the same coefficient
+	 + TRIANGLE: Use a triangle window equal to 0 left and right and 1 on the
+	 + note frequency
+	 + COSINE: Use a cosine function centered on the note frequency
+	 + GAUSSIAN: Idem with a gaussian function
+	 +
+	 + Default is GAUSSIAN
 	 +/
 	@property static auto fftInterpolationMode()
 	{
@@ -149,10 +157,10 @@ public:
 		auto m = fftIMode;
 		assert(m == this.fftInterpolationMode);
 
-		this.fftInterpolationMode = FFTInterpolationMode.FIXED;
-		assert(this.fftInterpolationMode ==
-			   FFTInterpolationMode.FIXED);
-		assert(fftIMode == FFTInterpolationMode.FIXED);
+		enum mode = FFTInterpolationMode.TRIANGLE;
+		this.fftInterpolationMode = mode;
+		assert(this.fftInterpolationMode == mode);
+		assert(fftIMode == mode);
 
 		fftIMode = m;
 	}

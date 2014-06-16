@@ -44,15 +44,15 @@ public:
 	}
 
 	/++ return the english name of the note +/
-	static string name(T)(in T i, in T minor = -1) nothrow pure
+	static string name(T)(in T i, in T minor = T.max) nothrow pure
 	in
 	{
 		assert(0 <= i && i < 12);
-		assert(-1 <= minor && minor < 2);
+		assert(minor == T.max || (0 <= minor && minor < 2));
 	}
 	body
 	{
-		if (minor == -1)
+		if (minor == T.max)
 			return notes[i];
 		else
 			return notes[i] ~ (minor == 1 ? "min" : "maj");

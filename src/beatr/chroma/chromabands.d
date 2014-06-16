@@ -4,7 +4,7 @@ import util.beatr;
 import std.algorithm : map;
 import std.stdio;
 import std.conv: to;
-import std.math : exp;
+import std.math;
 
 /++
  + Chroma bands represents an histogram of the intensity of each note.
@@ -53,8 +53,6 @@ public:
 	body {
 		/* indexes of each note in the FFT array */
 		auto fscales = freqs[offset*12 .. ((offset + nbscales) * 12)];
-		auto chromaidx = fscales.map!(f => cast(int) (f * s.length /
-													  beatrSampleRate));
 
 		Beatr.writefln(Lvl.DEBUG, "using mode '%s' and sigma '%s'",
 					   Beatr.fftInterpolationMode, Beatr.fftSigma);
@@ -65,39 +63,48 @@ public:
 		size_t begin;
 		size_t end;
 
+		/* Q is equal to sigma*(sqrt(2, 12) - 1)
+		 * Thus mu_(i) * Q = mu_(i+1)*sigma */
+		immutable Q = Beatr.fftSigma * 0.05946309435929;
+
 		foreach(i, f; fscales) {
 			/* center of the gaussian is the note frequency */
 			auto mu = f * s.length / beatrSampleRate;
 
-			final switch (Beatr.fftInterpolationMode) {
-			case FFTInterpolationMode.FIXED:
-				/* we compute from -3*sigma to +3*sigma to get 99.5% of the value */
-				auto left = mu - 3*Beatr.fftSigma;
-				begin = (left < 0.) ? 0 : to!ulong(left);
-				end = to!ulong(mu + 3*Beatr.fftSigma + 1.);
-
-				/* for every significant abscissa of the gaussian, add the
-				   FFT value times the gaussian value */
-				foreach (j; begin .. end)
-					bands[i] += s[j] * gaussian(mu, Beatr.fftSigma, j);
-
-				break;
-			case FFTInterpolationMode.ADAPTIVE:
-				/* get the shortest distance from our note index to
-				 * a adjacent note */
-				auto d = (i == 0) ? chromaidx[i+1] - chromaidx[i]
-					              : chromaidx[i]   - chromaidx[i - 1];
-				auto sigma = d/2 * Beatr.fftSigma;
-
-				/* idem as before between the adjacent notes */
-				begin = (i == 0) ? chromaidx[i] : chromaidx[i-1];
-				end = (i == fscales.length - 1) ? chromaidx[i] : chromaidx[i+1];
-
-				foreach (j; begin .. (end + 1))
-					bands[i] += s[j] * gaussian(mu, sigma, j);
-
-				break;
+			if (Q == 0.) {
+				bands[i] = s[to!ulong(mu)];
+				continue;
 			}
+
+			/* Leftmost bin from which we start to aggregate results */
+			auto left = mu*(1 - Q);
+			begin = (left < 0.) ? 0 : to!ulong(left);
+			// XXX bound check for end
+			end = to!ulong(mu*(1 + Q));
+
+			/* for every significant abscissa of the gaussian, add the
+			   FFT value times the gaussian value */
+			double sum = 0.;
+			double coeff;
+			foreach (j; begin .. end) {
+				final switch (Beatr.fftInterpolationMode) {
+				case FFTInterpolationMode.TRIANGLE:
+					coeff = triangle(mu, left, mu*(1+Q), j);
+					break;
+				case FFTInterpolationMode.RECTANGLE:
+					coeff = 1;
+					break;
+				case FFTInterpolationMode.COSINE:
+					coeff = cosine(mu, left, mu*(1+Q), j);
+					break;
+				case FFTInterpolationMode.GAUSSIAN:
+					coeff = gaussian(mu, mu*Q/3, j);
+					break;
+				}
+				sum += coeff;
+				bands[i] += s[j] * coeff;
+			}
+			bands[i] /= sum;
 		}
 	}
 
@@ -151,13 +158,26 @@ public:
 
 private:
 	static double
+	triangle(in double mu, in double l, in double r, in ulong x) pure @safe
+	{
+		if (x < mu)
+			return (x - l)/(mu - l);
+		else
+			return (r - x)/(r - mu);
+	}
+
+	static double
 	gaussian(in double mu, in double sigma, in ulong x) pure @safe
 	{
-		if (sigma == 0.)
-			return (x == (cast(ulong) mu));
-		else
-			return (1./(sigma*std.math.sqrt(2*std.math.PI)))*exp(-((x - mu)*(x-mu))/(2*sigma*sigma));
+		return exp(-((x - mu)*(x-mu))/(2*sigma*sigma));
 	}
+
+	static double
+	cosine(in double mu, in double l, in double r, in size_t j) pure @safe
+	{
+		return 1 - cos(2*PI * ((j - l)/(r - l)));
+	}
+
 
 	/++ Generate an array of the frequencies for each note +/
 	static double[] genFreqs() pure @safe
