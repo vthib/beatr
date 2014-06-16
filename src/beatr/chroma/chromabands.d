@@ -95,7 +95,7 @@ public:
 					coeff = 1;
 					break;
 				case FFTInterpolationMode.COSINE:
-					coeff = cosine(mu, left, mu*(1+Q), j);
+					coeff = cosine(left, mu*(1+Q), j);
 					break;
 				case FFTInterpolationMode.GAUSSIAN:
 					coeff = gaussian(mu, mu*Q/3, j);
@@ -107,6 +107,7 @@ public:
 			bands[i] /= sum;
 		}
 	}
+	/* XXX unittest? */
 
 	/++ print an histogram of the bands
 	 + Params: height = the height of the histograms
@@ -155,25 +156,50 @@ public:
 		}
 		writeln();
 	}
+	/* XXX unittest? */
 
 private:
 	static double
 	triangle(in double mu, in double l, in double r, in ulong x) pure @safe
+	in
+	{
+		assert(l <= x && x <= r);
+		assert(l < mu && mu < r);
+	}
+	body
 	{
 		if (x < mu)
 			return (x - l)/(mu - l);
 		else
 			return (r - x)/(r - mu);
 	}
+	unittest
+	{
+		import std.math : approxEqual;
+
+		assert(approxEqual(triangle(5, 3, 7, 3), 0));
+		assert(approxEqual(triangle(5, 3, 7, 4), 0.5));
+		assert(approxEqual(triangle(5, 3, 7, 5), 1));
+		assert(approxEqual(triangle(5, 3, 7, 6), 0.5));
+		assert(approxEqual(triangle(5, 3, 7, 7), 0));
+	}
 
 	static double
 	gaussian(in double mu, in double sigma, in ulong x) pure @safe
+	in {
+		assert(sigma != 0.);
+	}
+	body
 	{
 		return exp(-((x - mu)*(x-mu))/(2*sigma*sigma));
 	}
 
 	static double
-	cosine(in double mu, in double l, in double r, in size_t j) pure @safe
+	cosine(in double l, in double r, in size_t j) pure @safe
+	in {
+		assert(l < r);
+	}
+	body
 	{
 		return 1 - cos(2*PI * ((j - l)/(r - l)));
 	}
@@ -192,5 +218,14 @@ private:
 			freqs[i] = freqs[i-1] * nextNote;
 
 		return freqs;
+	}
+	unittest
+	{
+		import std.math : approxEqual;
+
+		auto freqs = genFreqs();
+
+		assert(approxEqual(freqs[9 + 12 * 4], 440)); /* A4 */
+		assert(approxEqual(2*freqs[23], freqs[23 + 12]));
 	}
 }

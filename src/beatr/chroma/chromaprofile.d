@@ -9,13 +9,16 @@ import std.exception;
  + Values are coefficients rating the corresponding note in the scale +/
 alias double[12][12][2] profile;
 
+/++ The different profile types available +/
 enum ProfileType {
-	KRUMHANSL = 0,
-	SCALE = 1,
-	SCALE_HARM = 2,
-	SCALE_BOTH = 3,
-	CHORD = 4,
-	CHORD_NORMALIZED = 5,
+	KRUMHANSL = 0, /++ Profile based on Krumhansl's works +/
+	SCALE = 1, /++ 1 if the note is in the scale, 0 otherwise +/
+	SCALE_HARM = 2, /++ Idem but with the harmonic scale for minor +/
+	SCALE_BOTH = 3, /++ A mean of the two previous profiles +/
+	CHORD = 4, /++ A profile counting the occurence of every note in
+				+ 4 chords: tonic, sub-dominant, dominant and relative +/
+	CHORD_NORMALIZED = 5, /++ Idem but renormalized between the tonic
+						   + and the dominant for minor +/
 };
 
 /++ An interface representing chroma profiles for each possible key +/
@@ -32,6 +35,20 @@ class ChromaProfile
 		foreach (i, ref tab; p[1])
 			foreach (j, ref elem; tab)
 				elem = pfs[pt].min[(12 - i + j) % 12];
+	}
+	unittest
+	{
+		import std.algorithm : equal;
+
+		enum type = ProfileType.CHORD;
+		auto cp = new ChromaProfile(type);
+		double[3] a = [1, 2, 3];
+		assert(equal(cp[0][0][], pfs[type].maj[]));
+		assert(equal(cp[0][4][], pfs[type].maj[($ - 4) .. $]
+					 ~ pfs[type].maj[0 .. ($ - 4)]));
+		assert(equal(cp[1][0][], pfs[type].min[]));
+		assert(equal(cp[1][8][], pfs[type].min[($ - 8) .. $]
+					 ~ pfs[type].min[0 .. ($ - 8)]));
 	}
 
 	alias p this;
@@ -65,3 +82,7 @@ enum pfs = [
 	pf([3, 0, 1, 0, 2, 1, 0, 2, 0, 2, 0, 1],
 	   [3, 0, 1, 2, 0, 1, 0, 2, 1, 0, 1.5, 0.5]),
 	];
+unittest
+{
+	assert(pfs.length == ProfileType.max + 1);
+}

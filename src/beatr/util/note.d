@@ -15,6 +15,7 @@ private:
 
 	invariant() {
 		assert(0 <= k && k < 12);
+		assert(-1 <= minor && minor <= 1);
 	}
 
 public:
@@ -52,10 +53,21 @@ public:
 	}
 	body
 	{
+		/* XXX duplication of this code between static and non static method */
 		if (minor == T.max)
 			return notes[i];
 		else
 			return notes[i] ~ (minor == 1 ? "min" : "maj");
+	}
+	unittest
+	{
+		assert(new Note(4).name == "E");
+		assert(new Note(7, 0).name == "Gmaj");
+		assert(new Note(10, 1).name == "Bbmin");
+
+		assert(Note.name(4) == "E");
+		assert(Note.name(7, 0) == "Gmaj");
+		assert(Note.name(10, 1) == "Bbmin");
 	}
 
 	/++ return the english name of the note +/

@@ -33,7 +33,7 @@ class LibAvException : Exception
 	}
 
 	/++ returns a string describing a libav error +/
-	static string errorToString(int r) pure //nothrow
+	static string errorToString(int r) pure // nothrow
 	{
 		char[512] buf;
 		av_strerror(r, buf.ptr, buf.length);

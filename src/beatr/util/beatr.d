@@ -97,6 +97,7 @@ public:
 			}
 		}
 	}
+	/* XXX unittest? */
 
 	/***** FFT Interpolation utilities *****/
 
