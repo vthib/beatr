@@ -46,6 +46,9 @@ public:
 	/* XXX: if too much add, bands can overflow
 	 * solution: track max at all time, divide all when reach threshold? */
 
+	static T min(T)(T a, T b) { return a < b ? a : b; }
+	static T max(T)(T a, T b) { return a > b ? a : b; }
+
 	/++ Use an array representing a FFT analysis to fill the chroma bands
 	 + Params: s = an array of a FFT analysis.
 	 +/
@@ -78,15 +81,20 @@ public:
 
 			/* Leftmost bin from which we start to aggregate results */
 			auto left = mu*(1 - Q);
-			begin = (left < 0.) ? 0 : to!ulong(left);
+			begin = (left < 0.) ? 0 : min(to!ulong(left), to!ulong(mu));
 			// XXX bound check for end
-			end = to!ulong(mu*(1 + Q));
+			end = max(to!ulong(mu*(1 + Q)), to!ulong(mu) + 1);
+			auto right = mu*(1+Q);
 
 			/* for every significant abscissa of the gaussian, add the
 			   FFT value times the gaussian value */
 			double sum = 0.;
 			double coeff;
-			foreach (j; begin .. end) {
+
+			import util.note;
+			foreach (j; begin .. (end+1)) {
+				if (j < left || j > right)
+					continue;
 				final switch (Beatr.fftInterpolationMode) {
 				case FFTInterpolationMode.TRIANGLE:
 					coeff = triangle(mu, left, mu*(1+Q), j);
@@ -104,7 +112,8 @@ public:
 				sum += coeff;
 				bands[i] += s[j] * coeff;
 			}
-			bands[i] /= sum;
+			if (sum != 0)
+				bands[i] /= sum;
 		}
 	}
 	/* XXX unittest? */

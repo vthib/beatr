@@ -10,6 +10,7 @@ import fftw.fftw3;
 
 import std.exception : enforce;
 import std.algorithm : map;
+import std.math : sqrt;
 
 /++
  + Main class of Beatr.
@@ -74,7 +75,6 @@ private:
 		fftw_cleanup();
 	}
 
-
 	/++ Process the input sample for a future key estimate +/
 	void processSample(inout ref beatrSample s)
 	in {
@@ -100,11 +100,9 @@ private:
 
 		fftw_execute(plan);
 
-		/* retrieve the norm of each complex output */
-		auto n = obuf.map!((a => std.math.sqrt(a.re*a.re + a.im*a.im) / s.length));
-
 		/* add it to our norms field */
 		foreach (i, ref o; this.norms)
-			o += n[i];
+			o += sqrt(obuf[i].re * obuf[i].re + obuf[i].im * obuf[i].im)
+				/ s.length;
 	}
 }

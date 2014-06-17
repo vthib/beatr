@@ -2,6 +2,7 @@
 
 import sys
 import os
+import subprocess
 from subprocess import check_output
 import locale
 import getopt
@@ -117,10 +118,12 @@ def db2dict(file):
     return map
 
 def getBeatrKey(file, args):
-    output = check_output(["../cli/beatr"] + args + [file])
-
-    return output.decode(encoding).split('\t')[1]
-
+    try:
+        output = check_output(["../cli/beatr"] + args + [file])
+        return output.decode(encoding).split('\t')[1]
+    except subprocess.CalledProcessError as err:
+        print("error: {}".format(err))
+        sys.exit(5)
 
 def analyzeFile(file, prefix, map, stats):
     if os.path.isdir(prefix + "/" + file):

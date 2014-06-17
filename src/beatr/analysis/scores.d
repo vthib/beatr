@@ -193,6 +193,18 @@ private:
 
 		return corr;
 	}
+	unittest
+	{
+		import std.math : approxEqual;
+
+		double[] a = [3., 5., 1.];
+		auto ma = a.map!(a => -a).array;
+		double[] b = [1., 1., 1.];
+
+		assert(approxEqual(pearson(a, a), 1));
+		assert(approxEqual(pearson(a, ma), -1));
+		assert(approxEqual(pearson(a, b), 0));
+	}
 
 	static double
 	cosine(inout double[] bands, inout double[] profile) pure nothrow
@@ -210,6 +222,18 @@ private:
 		else
 			return 0;
 	}
+	unittest
+	{
+		import std.math : approxEqual;
+
+		double[] a = [5., 2., -1., 8., 7., 0., 2.];
+		auto ma = a.map!(a => -a).array;
+		double[] b = [3., -4, 2, -0.5, 0., 3., -0.5];
+
+		assert(approxEqual(cosine(a, a), 1));
+		assert(approxEqual(cosine(a, ma), -1));
+		assert(approxEqual(cosine(a, b), 0));
+	}
 
 	static void adjustScores(double[] scores, MatchingType m) pure
 	{
@@ -221,7 +245,7 @@ private:
 			foreach (i; 0 .. 12)
 				scores[i] += save[12 + ((i + 9) % 12)];
 			foreach (i; 12 .. 24)
-				scores[i] += save[((i - 9) % 12)];
+				scores[i] += save[((i - 3) % 12)];
 		}
 		/* add the score of the dominant to each */
 		if (m & MatchingType.ADD_DOMINANT) {
@@ -240,7 +264,53 @@ private:
 			}
 		}
 	}
+	unittest
+	{
+		import std.algorithm : equal;
+		import std.math : approxEqual;
 
-private:
+		double[] s = [1., 2., 4., 8., 16., 32., 64.,
+                      128., 256., 512., 1024., 2048.,
+					  0., 1., 2., 4., 8., 16., 32.,
+                      64, 128., 256., 512., 1024.];
+		double[] dom = s[7  .. 12] ~ s[0  ..  7] ~ s[19 .. 24] ~ s[12 .. 19];
+		double[] rel = s[21 .. 24] ~ s[12 .. 21] ~ s[9  .. 12] ~ s[0  ..  9];
+		double[] sub = s[5  .. 12] ~ s[0  ..  5] ~ s[17 .. 24] ~ s[12 .. 17];
+		auto t = s.dup;
 
+		auto res = s.dup;
+		t[] = s[];
+		adjustScores(res, MatchingType.CLASSIC);
+		assert(equal!approxEqual(res, t));
+
+		res = s.dup;
+		t[] = s[] + dom[];
+		adjustScores(res, MatchingType.ADD_DOMINANT);
+		assert(equal!approxEqual(res, t));
+
+		res = s.dup;
+		t[] = s[] + sub[];
+		adjustScores(res, MatchingType.ADD_SUBDOM);
+		assert(equal!approxEqual(res, t));
+
+		res = s.dup;
+		t[] = s[] + rel[];
+		adjustScores(res, MatchingType.ADD_RELATIVE);
+		assert(equal!approxEqual(res, t));
+
+		res = s.dup;
+		t[] = s[] + dom[];
+		adjustScores(res, MatchingType.DOMINANT);
+		assert(equal!approxEqual(res, t));
+
+		res = s.dup;
+		t[] = s[] + dom[] + sub[];
+		adjustScores(res, MatchingType.CADENCE);
+		assert(equal!approxEqual(res, t));
+
+		res = s.dup;
+		t[] = s[] + dom[] + sub[] + rel[];
+		adjustScores(res, MatchingType.ALL);
+		assert(equal!approxEqual(res, t));
+	}
 }

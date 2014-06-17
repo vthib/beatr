@@ -22,6 +22,7 @@ class AudioStream
 private:
 	short[] d; /++ buffer containing the decompressed data +/
 	ulong offset; /++ current position in the buffer +/
+	ulong dend; /++ current end of valid data in the buffer +/
 	AudioFile af; /++ the audio file we are decompressing +/
 	AVFrame* frame; /++ a frame, kept if already decompressed but buffer full +/
 	bool endOfFile; /++ No more data is available from the audio file +/
@@ -29,7 +30,8 @@ private:
 	AVAudioResampleContext *resamplectx;
 
 	invariant() {
-		assert(offset >= 0 && offset <= d.length);
+		assert(0 <= dend && dend <= d.length);
+		assert(offset >= 0 && offset <= dend);
 		assert(af !is null);
 	}
 
@@ -49,36 +51,31 @@ public:
 			/* XXX: experiment with this value */
 			/* allocates for the buffer 10 seconds of samples */
 			d = new short[beatrSampleRate*10];
-
-			offset = d.length; /* indicates the buffer unusable */
 		} version (full_decomp) {
 			d = new short[beatrSampleRate *
 						  (af.duration / AV_TIME_BASE + 10)];
-
-			offset = d.length; /* indicates the buffer unusable */
-
-			addFrames();
-			offset = 0;
-			assert(endOfFile, "file not decompressed entirely");
 		}
+
+		dend = d.length;
+		offset = dend; /* indicates the buffer unusable */
 	}
 
 	/++++ Range Functions +++++/
 
 	@property bool empty() const
 	{
-		return endOfFile && (offset + beatrSampleRate > d.length);
+		return endOfFile && (offset + beatrSampleRate > dend);
 	}
 
 	@property beatrSample front()
 	{
 		/* if not enough data left in the buffer, fill it again */
-		if (offset + beatrSampleRate > d.length)
+		if (offset + beatrSampleRate > dend)
 			addFrames();
 
 		/* XXX: fill with blank if not a multiple of beatrSampleRate? */
-		if (offset + beatrSampleRate > d.length) {
-			assert(false, "should never happend?");
+		if (offset + beatrSampleRate > dend) {
+			assert(false, "should never happen?");
 			return null;
 		}
 
@@ -87,10 +84,11 @@ public:
 
 	void popFront()
 	{
-		if (offset + beatrSampleRate > d.length)
-			addFrames();
-
 		offset += beatrSampleRate;
+
+		/* refill the data if necessary so that empty() will work */
+		if (offset + beatrSampleRate > dend)
+			addFrames();
 	}
 
 private:
@@ -128,6 +126,7 @@ private:
 					   af.duration / AV_TIME_BASE, ctx.channels);
 
 		/* open resampler */
+		/* resample to 1 channel, 44100, 16bit planar */
 		resamplectx = avresample_alloc_context();
 		av_opt_set_int(resamplectx, "in_channels", ctx.channels, 0);
 		av_opt_set_int(resamplectx, "in_channel_layout",
@@ -156,7 +155,7 @@ private:
 	{
 		int linesize;
 
-		if (offset + frame.nb_samples > d.length)
+		if (offset + frame.nb_samples > dend)
 			return false; /* buffer full */
 
 		/* computes the size of the whole frame */
@@ -180,6 +179,7 @@ private:
 											  out_linesize, size,
 											  &(frame.data[0]), in_linesize,
 											  frame.nb_samples);
+
 		memcpy(d.ptr + offset, output, out_samples * 2);
 		offset += out_samples;
 		av_freep(&output);
@@ -201,23 +201,19 @@ private:
 			return;
 
 		/* copy the data left to the beginning of the buffer */
-		offset = d.length - offset;
-		d[0 .. offset] = d[(d.length - offset) .. d.length];
+		offset = dend - offset;
+		d[0 .. offset] = d[(dend - offset) .. dend];
+		dend = d.length;
 
 		/* XXX: always 0? if this is the case, can clean these instructions */
 		assert(offset == 0, "offset equal length when adding frames");
 
-		scope(exit) {
-			endOfFile = true;
-			d.length = offset;
-			/* put the offset back at the beginning */
-			offset = 0;
-		}
-
 		/* while we have frames and we copy them successfully in the buffer */
 		while (!got_frame || copyFrame()) {
-			if (!af.getFrame(&pkt))
-				return;
+			if (!af.getFrame(&pkt)) {
+				endOfFile = true;
+				break;
+			}
 
             /* allocates the frame */
 			if (frame is null) {
@@ -230,10 +226,14 @@ private:
 											 &pkt)) < 0) {
 				Beatr.writefln(Lvl.WARNING, "Error while decoding: %s",
 							   LibAvException.errorToString(ret));
-				return;
+				break;
 			}
 			if (got_frame)
 				av_free_packet(&pkt);
         }
+
+		/* put the offset back at the beginning */
+		dend = offset;
+		offset = 0;
 	}
 }
