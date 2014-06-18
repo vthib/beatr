@@ -151,7 +151,7 @@ private:
 	{
 		assert(frame !is null);
 	}
-	body
+	body /* XXX handle error returns from libav functions */
 	{
 		int linesize;
 
@@ -195,7 +195,7 @@ private:
 		int got_frame;
 		int ret;
 
-		Beatr.writefln(Lvl.DEBUG, "adding decompressed frames...");
+		Beatr.writefln(Lvl.DEBUG, "Adding decompressed frames...");
 
 		if (endOfFile)
 			return;
@@ -205,9 +205,7 @@ private:
 		d[0 .. offset] = d[(dend - offset) .. dend];
 		dend = d.length;
 
-		/* XXX: always 0? if this is the case, can clean these instructions */
-		assert(offset == 0, "offset equal length when adding frames");
-
+		got_frame = (frame !is null);
 		/* while we have frames and we copy them successfully in the buffer */
 		while (!got_frame || copyFrame()) {
 			if (!af.getFrame(&pkt)) {
@@ -226,10 +224,8 @@ private:
 											 &pkt)) < 0) {
 				Beatr.writefln(Lvl.WARNING, "Error while decoding: %s",
 							   LibAvException.errorToString(ret));
-				break;
 			}
-			if (got_frame)
-				av_free_packet(&pkt);
+			av_free_packet(&pkt);
         }
 
 		/* put the offset back at the beginning */
