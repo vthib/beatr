@@ -8,9 +8,9 @@ OBJ=$(SRC:.d=.o)
 
 DC=dmd
 #DFLAGS=-unittest -debug -gc -fPIC -version=full_decomp
-#DFLAGS=-unittest -debug -gc -fPIC -version=stream_decomp
+DFLAGS=-unittest -debug -gc -fPIC -version=stream_decomp
 #DFLAGS=-O -inline -release -noboundscheck -fPIC -version=full_decomp
-DFLAGS=-O -inline -release -noboundscheck -fPIC -version=stream_decomp
+#DFLAGS=-O -inline -release -noboundscheck -fPIC -version=stream_decomp
 IFLAGS=-I$(shell pwd) -I$(shell pwd)/../3rdptylib
 LDFLAGS=-L-L$(3RDDIR) -L-ldavcodec -L-ldavformat -L-ldfftw3 -L-ldavresample -L-ldavutil
 

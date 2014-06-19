@@ -29,7 +29,8 @@ public:
 	{
 		af = new AudioFile(as);
 		norms[] = 0.0; /* set all to 0, as by default it is NaN */
-		b = new ChromaBands(Beatr.scaleNumbers, Beatr.scaleOffset);
+		b = new ChromaBands(Beatr.scaleNumbers, Beatr.scaleOffset,
+							af.duration);
 	}
 
 	/++ Process the audio file +/
@@ -40,10 +41,12 @@ public:
 	body {
 		auto stream = new AudioStream(af);
 
-		foreach(frame; stream)
+		foreach(frame; stream) {
 			processSample(frame);
 
-		b.addFftSample(norms);
+			b.addFftSample(norms);
+			norms[] = 0.;
+		}
 	}
 
 	/++ Returns the best key estimate of the sample processed +/

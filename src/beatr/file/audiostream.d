@@ -195,8 +195,6 @@ private:
 		int got_frame;
 		int ret;
 
-		Beatr.writefln(Lvl.DEBUG, "Adding decompressed frames...");
-
 		if (endOfFile)
 			return;
 

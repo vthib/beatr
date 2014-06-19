@@ -16,25 +16,31 @@ private:
 	/* Number of scales in our chroma bands */
 	immutable ubyte nbscales;
 	immutable ubyte offset;
+	immutable uint duration;
 
-	/* 12 semitons times number of scales = number of notes considered */
-	double[] bands; /++ the chroma bands +/
+	/* 1st dim: division of time (one band for every 2 second) */
+	/* 2nd dim: 12 semitons * number of scales = number of notes considered */
+	double[][] bands; /++ the chroma bands +/
+	size_t curf; /++ number of frame added +/
 
 	enum freqs = genFreqs(); /++ the frequencies for each note +/
 
 public:
-	this(T)(in T n, in T o) @safe
+	this(in ubyte numscales, in ubyte offsetscales, in uint dur) @safe
 	in {
-		assert(1 <= n && n <= 10);
-		assert(o <= 10);
-		assert(o + n - 1 <= 10);
+		assert(1 <= numscales && numscales <= 10);
+		assert(offsetscales <= 10);
+		assert(offsetscales + numscales - 1 <= 10);
 	}
 	body {
-		nbscales = cast(ubyte) n;
-		offset = cast(ubyte) o;
+		nbscales = numscales;
+		offset = offsetscales;
+		duration = dur;
 
-		bands = new double[nbscales * 12];
-		bands[] = 0.;
+		bands = new double[][](dur/2 + 1, nbscales * 12);
+		curf = 0;
+		foreach (ref b; bands)
+			b[] = 0.;
 	}
 
 	@property auto getBands() const nothrow @safe
@@ -43,8 +49,19 @@ public:
 	}
 	alias getBands this;
 
-	/* XXX: if too much add, bands can overflow
-	 * solution: track max at all time, divide all when reach threshold? */
+	@property auto normalize() const nothrow @safe
+	{
+		double[] n = new double[12];
+
+		n[] = 0.;
+		foreach(b; bands)
+			foreach(i, v; b)
+				n[i % 12] += v;
+		foreach(ref a; n)
+			a /= nbscales;
+
+		return n;
+	}
 
 	static T min(T)(T a, T b) { return a < b ? a : b; }
 	static T max(T)(T a, T b) { return a > b ? a : b; }
@@ -56,6 +73,8 @@ public:
 	body {
 		/* indexes of each note in the FFT array */
 		auto fscales = freqs[offset*12 .. ((offset + nbscales) * 12)];
+		double[] b = new double[nbscales * 12];
+		b[] = 0.;
 
 		Beatr.writefln(Lvl.DEBUG, "using mode '%s' and sigma '%s'",
 					   Beatr.fftInterpolationMode, Beatr.fftSigma);
@@ -75,7 +94,7 @@ public:
 			auto mu = f * s.length / beatrSampleRate;
 
 			if (Q == 0.) {
-				bands[i] = s[to!ulong(mu)];
+				b[i] = s[to!ulong(mu)];
 				continue;
 			}
 
@@ -110,11 +129,13 @@ public:
 					break;
 				}
 				sum += coeff;
-				bands[i] += s[j] * coeff;
+				b[i] += s[j] * coeff;
 			}
 			if (sum != 0)
-				bands[i] /= sum;
+				b[i] /= sum;
 		}
+
+		bands[curf++ / 2][] += b[];
 	}
 	/* XXX unittest? */
 
@@ -124,16 +145,23 @@ public:
 	void printHistograms(in uint height) const
 	{
 		double m = 0;
-		foreach(b; bands)
-			if (b >= m)
-				m = b;
+		double[] b = new double[nbscales * 12];
+
+		b[] = 0.;
+		foreach (t; bands)
+			foreach (i, v; t)
+				b[i] += v;
+
+		foreach(v; b)
+			if (v >= m)
+				m = v;
 
 		auto step = m/height;
 
 		/* print the histograms */
 		foreach(i; 0 .. (height + 1)) {
-			foreach(b; bands) {
-				if (b >= (height - i) * step)
+			foreach(v; b) {
+				if (v >= (height - i) * step)
 					write('X');
 				else
 					write(' ');
@@ -142,7 +170,7 @@ public:
 		}
 
 		/* print the notes names */
-		foreach(i; 0 .. bands.length) {
+		foreach(i; 0 .. b.length) {
 			switch (i % 12) {
 			case 0: write('C'); break;
 			case 2: write('D'); break;
@@ -157,7 +185,7 @@ public:
 		writeln();
 
 		/* print the scales numbers */
-		foreach(i; 0 .. bands.length) {
+		foreach(i; 0 .. b.length) {
 			if (i % 12 == 0)
 				write(i / 12 + offset);
 			else
@@ -166,6 +194,51 @@ public:
 		writeln();
 	}
 	/* XXX unittest? */
+
+	/++ print a Chromagram
+	 +/
+	void printChromagram() const
+	{
+		auto b = new double[12][bands.length];
+		foreach(ref t; b)
+			t[] = 0.;
+		foreach(i, t; bands)
+			foreach(j, v; t)
+				b[i][j % 12] += v;
+
+		double max = 0.;
+		foreach (t; b)
+			foreach (a; t)
+				if (a > max) max = a;
+
+		foreach (j; 0 .. 12) {
+			switch (j) {
+			case  0: write("C "); break;
+			case  2: write("D "); break;
+			case  4: write("E "); break;
+			case  5: write("F "); break;
+			case  7: write("G "); break;
+			case  9: write("A "); break;
+			case 11: write("B "); break;
+			default: write("  "); break;
+			}
+			foreach (i; 0 .. b.length) {
+				if (b[i][j] < max/6)
+					write(" ");
+				else if (b[i][j] < max/3)
+					write("-");
+				else if (b[i][j] < max/2)
+					write("1");
+				else if (b[i][j] < 2*max/3)
+					write("x");
+				else if (b[i][j] < 5*max/6)
+					write("Q");
+				else
+					write("#");
+			}
+			writeln();
+		}
+	}
 
 private:
 	static double

@@ -125,11 +125,12 @@ private:
 		marginScore = double.nan;
 	}
 
-	void compute(in ChromaBands b, in ChromaProfile p, in CorrelationMethod cm,
-				 in MatchingType m)
+	void compute(in ChromaBands bands, in ChromaProfile p,
+				 in CorrelationMethod cm, in MatchingType m)
 	{
 		reset();
 
+		auto b = bands.normalize;
 		/* compute score from the profile */
 		foreach (i; 0 .. 12)
 			scores[i] = computeKeyScore(b, p[0][i], cm);
@@ -139,7 +140,7 @@ private:
 		/* adjust the scores from the matching type */
 		adjustScores(scores, m);
 
-		Beatr.writefln(Lvl.DEBUG, "Scores for each note: %s", scores);
+		Beatr.writefln(Lvl.VERBOSE, "Scores for each note: %s", scores);
 	}
 
 	/* compute a score multiplying each band with its profile coeff */

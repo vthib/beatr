@@ -5,8 +5,9 @@ import std.exception;
 import std.getopt;
 import std.algorithm;
 import std.file;
-import exc.libavexception;
+import std.array;
 
+import exc.libavexception;
 import analysis.analyzer;
 import analysis.scores;
 import util.beatr;
@@ -18,6 +19,7 @@ struct Options {
 	bool recursive;
 	bool sgraph;
 	bool cgraph;
+	bool chromagram;
 }
 
 int
@@ -63,6 +65,7 @@ main(string args[])
 		writefln("usage: %s [options] input", args[0]);
 		writeln("\tOptions:");
 		writeln("\t\t-c|--cgraph\tPrint an histogram of the chroma profiles");
+		writeln("\t\t--chromagram\tPrint a chromagram");
 		writeln("\t\t-d|--debug\tAdd even more messages");
 		writeln("\t\t-g|--graph\tPrint an histogram of the notes from the "
 				 "input");
@@ -84,14 +87,15 @@ main(string args[])
 		writeln("\t\t--fftimode\tSelect a FFT interpolation mode: 'triangle', "
 				"'rectangle', 'cosine' or 'gaussian'");
 
-		writeln("\t\t--scales_number\tNumber of scales to analyze");
-		writeln("\t\t--scales_offset\tStarting scale to analyze");
+		writeln("\t\t--scales N:M\tAnalyze scales between the N-th one and "
+				"the M-th one");
 	}
 
 	try {
 		getopt(
 			args,
 			"cgraph|c", &opt.cgraph,
+			"chromagram|cg", &opt.chromagram,
 			"debug|d", &setOptions,
 			"graph|g", &opt.sgraph,
 			"help|h", &printHelp,
@@ -101,8 +105,8 @@ main(string args[])
 			"recursive|r", &opt.recursive,
 			"fftsigma", &setOptions2,
 			"fftimode", &setOptions2,
-			"scales_offset", &setOptions2,
-			"scales_number", &setOptions2,
+			"scales", &setOptions2,
+			"scales", &setOptions2,
 			"verbose|v", &setOptions);
 	} catch (Exception e) {
 		stderr.writefln("error: %s", e.msg);
@@ -140,6 +144,8 @@ process(string f, Options opt)
 				a.bands.printHistograms(25);
 			if (opt.sgraph)
 				a.scores.printHistograms(25);
+			if (opt.chromagram)
+				a.bands.printChromagram();
 			writefln("%s\t%s\t%.2s", f, k, a.scores.confidence);
 		} catch (LibAvException e) {
 			hadError = true;
@@ -200,8 +206,21 @@ setOptions2(string opt, string value)
 			break;
 		}
 		break;
-	case "scales_offset":
-		Beatr.scaleOffset = to!ubyte(value);
+	case "scales":
+		try {
+			auto nums = splitter(value, ':').array;
+			enforce(nums.length == 2);
+
+			ubyte start = to!ubyte(nums[0]);
+			ubyte end = to!ubyte(nums[1]);
+			enforce(end > start);
+
+			Beatr.scaleOffset = start;
+			Beatr.scaleNumbers = cast(ubyte) (end - start);
+		} catch (Exception e) {
+			stderr.writefln("--scales requires argument in form 'N:M' with M > N");
+			break;
+		}
 		break;
 	case "scales_number":
 		Beatr.scaleNumbers = to!ubyte(value);
