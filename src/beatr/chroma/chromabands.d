@@ -90,7 +90,7 @@ public:
 		immutable Q = Beatr.fftSigma * 0.05946309435929;
 
 		foreach(i, f; fscales) {
-			/* center of the gaussian is the note frequency */
+			/* center of the window is the note frequency */
 			auto mu = f * s.length / beatrSampleRate;
 
 			if (Q == 0.) {
@@ -105,8 +105,9 @@ public:
 			end = max(to!ulong(mu*(1 + Q)), to!ulong(mu) + 1);
 			auto right = mu*(1+Q);
 
-			/* for every significant abscissa of the gaussian, add the
-			   FFT value times the gaussian value */
+			/* for every significant abscissa ([mu(1-Q); mu(1+Q)], compute
+			   the correlation coeff, add coeff * value, and in the end
+			   divide by the sum of the coefficients */
 			double sum = 0.;
 			double coeff;
 
@@ -275,6 +276,15 @@ private:
 	{
 		return exp(-((x - mu)*(x-mu))/(2*sigma*sigma));
 	}
+	unittest
+	{
+		import std.math : approxEqual;
+
+		assert(approxEqual(gaussian(3., 1., 3), 1));
+		immutable double a = sqrt(log(4));
+		assert(approxEqual(gaussian(3. - a, 1., 3), 0.5));
+		assert(approxEqual(gaussian(3., 1., 50), 0.));
+	}
 
 	static double
 	cosine(in double l, in double r, in size_t j) pure @safe
@@ -284,6 +294,17 @@ private:
 	body
 	{
 		return 1 - cos(2*PI * ((j - l)/(r - l)));
+	}
+	unittest
+	{
+		import std.math : approxEqual;
+
+		assert(approxEqual(cosine(1., 3., 1), 0.));
+		assert(approxEqual(cosine(1., 3., 2), 2.));
+		assert(approxEqual(cosine(1., 3., 3), 0.));
+
+		assert(approxEqual(cosine(1., 5., 2), 1.));
+		assert(approxEqual(cosine(1., 5., 4), 1.));
 	}
 
 

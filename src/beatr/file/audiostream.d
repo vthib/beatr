@@ -47,13 +47,13 @@ public:
 			av_samples_get_buffer_size(null, ctx.channels,
 									   1, ctx.sample_fmt, 1);
 
-		version(stream_decomp) {
+		version (full_decomp) {
+			d = new short[beatrSampleRate *
+						  (af.duration / AV_TIME_BASE + 10)];
+		} else {
 			/* XXX: experiment with this value */
 			/* allocates for the buffer 10 seconds of samples */
 			d = new short[beatrSampleRate*10];
-		} version (full_decomp) {
-			d = new short[beatrSampleRate *
-						  (af.duration / AV_TIME_BASE + 10)];
 		}
 
 		dend = d.length;

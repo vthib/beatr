@@ -6,7 +6,7 @@ BEATRDIR=..
 BEATRLIB=$(BEATRDIR)/libbeatr.so
 
 DC=dmd
-DFLAGS=-unittest -gc
+DFLAGS?=-gc
 IFLAGS=-I$(BEATRDIR) -I../../3rdptylib
 LDFLAGS=-L-L$(BEATRDIR) -L-lbeatr
 
