@@ -26,7 +26,7 @@ private:
 	enum freqs = genFreqs(); /++ the frequencies for each note +/
 
 public:
-	this(in ubyte numscales, in ubyte offsetscales, in uint dur) @safe
+	this(in ubyte numscales, in ubyte offsetscales, in uint dur)
 	in {
 		assert(1 <= numscales && numscales <= 10);
 		assert(offsetscales <= 10);
@@ -37,10 +37,18 @@ public:
 		offset = offsetscales;
 		duration = dur;
 
-		bands = new double[][](dur/2 + 1, nbscales * 12);
 		curf = 0;
-		foreach (ref b; bands)
-			b[] = 0.;
+		version(with_duration) {
+			bands = new double[][](dur/2 + 1, nbscales * 12);
+			foreach (ref b; bands)
+				b[] = 0.;
+		}
+
+		Beatr.writefln(Lvl.DEBUG, "using mode '%s' and sigma '%s'",
+					   Beatr.fftInterpolationMode, Beatr.fftSigma);
+		Beatr.writefln(Lvl.DEBUG, "Analyzing between C%s and C%s",
+					   Beatr.scaleOffset,
+					   Beatr.scaleOffset + Beatr.scaleNumbers);
 	}
 
 	@property auto getBands() const nothrow @safe
@@ -75,12 +83,6 @@ public:
 		auto fscales = freqs[offset*12 .. ((offset + nbscales) * 12)];
 		double[] b = new double[nbscales * 12];
 		b[] = 0.;
-
-		Beatr.writefln(Lvl.DEBUG, "using mode '%s' and sigma '%s'",
-					   Beatr.fftInterpolationMode, Beatr.fftSigma);
-		Beatr.writefln(Lvl.DEBUG, "Analyzing between C%s and C%s",
-					   Beatr.scaleOffset,
-					   Beatr.scaleOffset + Beatr.scaleNumbers);
 
 		size_t begin;
 		size_t end;
@@ -136,7 +138,14 @@ public:
 				b[i] /= sum;
 		}
 
-		bands[curf++ / 2][] += b[];
+		version(with_duration) {
+			bands[curf++ / 2][] += b[];
+		} else {
+			if (curf++ % 2 == 0)
+				bands ~= b;
+			else
+				bands[$ - 1][] += b[];
+		}
 	}
 	/* XXX unittest? */
 

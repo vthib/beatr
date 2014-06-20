@@ -4,6 +4,7 @@ import libavcodec.avcodec;
 import libavformat.avformat;
 
 import exc.libavexception;
+import util.beatr;
 
 /++
  + Represents an audio file, and wraps the AVFormatContext object
@@ -30,10 +31,9 @@ public:
 			throw new LibAvException("avformat_open_input error", ret);
 
 		/* analyse the file */
-		/* XXX: full decomp needs this (needs to know duration) */
 		ret = avformat_find_stream_info(ctx, null);
 		if (ret < 0)
-			throw new LibAvException("avformat_find_stream_info error", ret);
+					throw new LibAvException("avformat_find_stream_info error", ret);
 
 		/* find the audio stream */
 		audioStream = uint.max;
@@ -41,8 +41,11 @@ public:
 		/* XXX: first one or last one? */
 		foreach (i; 0 .. ctx.nb_streams) {
 			if (ctx.streams[i].codec.codec_type
-				== AVMediaType.AVMEDIA_TYPE_AUDIO)
+				== AVMediaType.AVMEDIA_TYPE_AUDIO) {
+				if (audioStream != uint.max)
+					Beatr.writefln(Lvl.WARNING, "Several audio stream found!");
 				audioStream = i;
+			}
 		}
 
 		if (audioStream == uint.max)

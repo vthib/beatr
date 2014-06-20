@@ -54,6 +54,7 @@ main(string args[])
 		case "scale_both":       opt.p = ProfileType.SCALE_BOTH; break;
 		case "chord":            opt.p = ProfileType.CHORD; break;
 		case "chord_normalized": opt.p = ProfileType.CHORD_NORMALIZED; break;
+		case "chord_krumhansl":  opt.p = ProfileType.CHORD_KRUMHANSL; break;
 		default:
 			stderr.writefln("Unknown profile type '%s'", val);
 			break;
@@ -76,7 +77,8 @@ main(string args[])
 		writeln("\t\t\t\t'add_dom', 'add_subdom' and 'add_rel'");
 		writeln("\t\t-p|--profile\tUse the specified profile");
 		writeln("\t\t\tIt can be 'krumhansl', 'scale', 'scale_harm',");
-		writeln("\t\t\t'scale_both', 'chord' or 'chord_normalized'");
+		writeln("\t\t\t'scale_both', 'chord', 'chord_normalized'");
+		writeln("\t\t\tor 'chord_krumhansl'");
 		writeln("\t\t-q|--quiet\tOnly print the result");
 		writeln("\t\t-r|--recursive\tRecursively analyze every file in "
 				 "'input'");
@@ -89,6 +91,8 @@ main(string args[])
 
 		writeln("\t\t--scales N:M\tAnalyze scales between the N-th one and "
 				"the M-th one");
+		writeln("\t\t--bufsize\tSize of the buffer used to decode the audio "
+				"stream in seconds");
 	}
 
 	try {
@@ -106,7 +110,7 @@ main(string args[])
 			"fftsigma", &setOptions2,
 			"fftimode", &setOptions2,
 			"scales", &setOptions2,
-			"scales", &setOptions2,
+			"bufsize", &setOptions2,
 			"verbose|v", &setOptions);
 	} catch (Exception e) {
 		stderr.writefln("error: %s", e.msg);
@@ -222,8 +226,8 @@ setOptions2(string opt, string value)
 			break;
 		}
 		break;
-	case "scales_number":
-		Beatr.scaleNumbers = to!ubyte(value);
+	case "bufsize":
+		Beatr.framesBufSize = to!(typeof(Beatr.framesBufSize))(value);
 		break;
 	default:
 		stderr.writefln("Unknown option '%s'", opt);

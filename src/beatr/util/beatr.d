@@ -26,6 +26,7 @@ enum FFTInterpolationMode {
 	COSINE
 };
 
+/* XXX Make Options thread-independent */
 /++ Provides a way to print debug messages according
  + to a verbose level +/
 class Beatr
@@ -40,6 +41,9 @@ private:
 	/* scales to analyze */
 	static ubyte sOffset = 1;
 	static ubyte sNumbers = 6;
+
+	/++ numbers of frames in the decompression buffer +/
+	static size_t nbFramesBuf = 10;
 
 	/* XXX: not working, because of static methods? */
 	invariant() {
@@ -58,7 +62,6 @@ public:
 	}
 
 	/++ retrieve the verbose level +/
-    /* XXX: necessary? */
 	@property static auto verboseLevel()
 	{
 		return verbLevel;
@@ -169,7 +172,7 @@ public:
 	/***** Scales to analyze ******/
 
 	/++ Returns the offset indicating the first scale to analyze
-	 + Default is XXX
+	 + Default is 1
 	 +/
 	@property static auto scaleOffset() { return sOffset; }
 
@@ -194,7 +197,7 @@ public:
 	}
 
 	/++ Returns the number of scales to analyze
-	 + Default is XXX
+	 + Default is 6
 	 +/
 	@property static auto scaleNumbers() { return sNumbers; }
 
@@ -217,5 +220,27 @@ public:
 		assertThrown!AssertError(this.scaleNumbers = 11);
 
 		sNumbers = n;
+	}
+
+	/++ Returns the number of frames in the buffer used to
+	 + decode the audio stream
+	 + Default is 10
+	 +/
+	@property static auto framesBufSize() { return nbFramesBuf; }
+
+	@property static auto framesBufSize(in size_t n)
+	{
+		return nbFramesBuf = n;
+	}
+	unittest
+	{
+		auto n = nbFramesBuf;
+		assert(n == this.framesBufSize);
+
+		this.framesBufSize = 5;
+		assert(this.framesBufSize == 5);
+		assert(nbFramesBuf == 5);
+
+		nbFramesBuf = n;
 	}
 }

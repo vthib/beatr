@@ -52,31 +52,38 @@ public:
 						  (af.duration / AV_TIME_BASE + 10)];
 		} else {
 			/* XXX: experiment with this value */
-			/* allocates for the buffer 10 seconds of samples */
-			d = new short[beatrSampleRate*10];
+			/* allocates for the buffer nbFramesBuf seconds of samples */
+			d = new short[beatrSampleRate * Beatr.framesBufSize];
 		}
 
 		dend = d.length;
 		offset = dend; /* indicates the buffer unusable */
+
+		addFrames();
 	}
 
 	/++++ Range Functions +++++/
 
 	@property bool empty() const
 	{
-		return endOfFile && (offset + beatrSampleRate > dend);
+		return endOfFile && (offset == dend);
 	}
 
 	@property beatrSample front()
 	{
 		/* if not enough data left in the buffer, fill it again */
-		if (offset + beatrSampleRate > dend)
-			addFrames();
-
-		/* XXX: fill with blank if not a multiple of beatrSampleRate? */
 		if (offset + beatrSampleRate > dend) {
-			assert(false, "should never happen?");
-			return null;
+			/* we still have less than a frame left. We return it
+			   followed by zeroes */
+			typeof(d) end = new typeof(d[0])[beatrSampleRate];
+			end[0 .. (dend - offset)] = d[offset .. dend];
+			end[(dend - offset) .. $] = 0;
+
+			/* After popping, offset will be equal to dend,
+			   keeping the invariant true */
+			dend = offset + beatrSampleRate;
+
+			return end;
 		}
 
 		return d[offset .. (offset + beatrSampleRate)];
@@ -87,7 +94,7 @@ public:
 		offset += beatrSampleRate;
 
 		/* refill the data if necessary so that empty() will work */
-		if (offset + beatrSampleRate > dend)
+		if (offset + beatrSampleRate > dend && !endOfFile)
 			addFrames();
 	}
 
@@ -197,6 +204,8 @@ private:
 
 		if (endOfFile)
 			return;
+
+		Beatr.writefln(Lvl.DEBUG, "Adding decompressed frames...");
 
 		/* copy the data left to the beginning of the buffer */
 		offset = dend - offset;
