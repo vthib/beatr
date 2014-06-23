@@ -101,11 +101,6 @@ public:
 	/++ Returns a histogram of the bands
 	 + Params: height = the height of the histograms
 	 +/
-/*	void printHistograms(in uint height) const
-	{
-		printHistograms(height, stdout.lockingTextWriter);
-	}
-*/
 	void printHistograms(in uint height) const
 	{
 		printHistograms(height, stdout.lockingTextWriter);
@@ -151,7 +146,7 @@ public:
 	}
 	unittest
 	{
-		Appender!string app = appender!string();
+		auto app = appender!string();
 		auto sc = new Scores();
 
 		sc.scores[] = [1, 5, 3, 2, 0, 3, 4, 4, 3, 2, 5, 0,

@@ -1,10 +1,15 @@
 import util.types;
 import util.beatr;
 
-import std.algorithm : map;
+import std.algorithm : map, max, min;
 import std.stdio;
 import std.conv: to;
 import std.math;
+
+version(unittest) {
+	import std.array;
+	import std.string;
+}
 
 /++
  + Chroma bands represents an histogram of the intensity of each note.
@@ -26,7 +31,7 @@ private:
 	enum freqs = genFreqs(); /++ the frequencies for each note +/
 
 public:
-	this(in ubyte numscales, in ubyte offsetscales, in uint dur)
+	this(in ubyte numscales, in ubyte offsetscales, in uint dur = 0)
 	in {
 		assert(1 <= numscales && numscales <= 10);
 		assert(offsetscales <= 10);
@@ -55,9 +60,18 @@ public:
 	{
 		return bands;
 	}
+	unittest
+	{
+		import std.algorithm : equal;
+
+		auto cb = new ChromaBands(10, 0);
+		cb.bands ~= [1, 2, 3];
+		cb.bands ~= [4, 5];
+		assert(equal(cb.getBands, [[1, 2, 3], [4, 5]]));
+	}
 	alias getBands this;
 
-	@property auto normalize() const nothrow @safe
+	auto normalize() const nothrow @safe
 	{
 		double[] n = new double[12];
 
@@ -65,14 +79,31 @@ public:
 		foreach(b; bands)
 			foreach(i, v; b)
 				n[i % 12] += v;
+		auto s = nbscales * bands.length;
 		foreach(ref a; n)
-			a /= nbscales;
+			a /= s;
 
 		return n;
 	}
+	unittest
+	{
+		import std.algorithm : equal;
+		import std.math : approxEqual;
 
-	static T min(T)(T a, T b) { return a < b ? a : b; }
-	static T max(T)(T a, T b) { return a > b ? a : b; }
+		auto cb = new ChromaBands(10, 0);
+		cb.bands ~= [1, 2, 3];
+		cb.bands ~= [4, 5];
+		assert(equal!approxEqual(cb.normalize, [0.25, 0.35, 0.15, 0., 0., 0.,
+												0., 0., 0., 0., 0., 0.]));
+
+		cb = new ChromaBands(2, 0);
+		cb.bands ~= [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+					 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+		cb.bands ~= [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+					 8, 8, 8, 3, 8, 8, 2, 8, 8, 0, 8, 8];
+		assert(equal!approxEqual(cb.normalize, [6.5, 6.5, 6.5, 5.25, 6.5, 6.5,
+												5., 6.5, 6.5, 4.5, 6.5, 6.5]));
+	}
 
 	/++ Use an array representing a FFT analysis to fill the chroma bands
 	 + Params: s = an array of a FFT analysis.
@@ -154,6 +185,11 @@ public:
 	 +/
 	void printHistograms(in uint height) const
 	{
+		printHistograms(height, stdout.lockingTextWriter);
+	}
+
+	void printHistograms(Writer)(in uint height, Writer w) const
+	{
 		double m = 0;
 		double[] b = new double[nbscales * 12];
 
@@ -172,42 +208,71 @@ public:
 		foreach(i; 0 .. (height + 1)) {
 			foreach(v; b) {
 				if (v >= (height - i) * step)
-					write('X');
+					w.put('X');
 				else
-					write(' ');
+					w.put(' ');
 			}
-			writeln();
+			w.put('\n');
 		}
 
 		/* print the notes names */
 		foreach(i; 0 .. b.length) {
 			switch (i % 12) {
-			case 0: write('C'); break;
-			case 2: write('D'); break;
-			case 4: write('E'); break;
-			case 5: write('F'); break;
-			case 7: write('G'); break;
-			case 9: write('A'); break;
-			case 11: write('B'); break;
-			default: write(' '); break;
+			case 0: w.put('C'); break;
+			case 2: w.put('D'); break;
+			case 4: w.put('E'); break;
+			case 5: w.put('F'); break;
+			case 7: w.put('G'); break;
+			case 9: w.put('A'); break;
+			case 11: w.put('B'); break;
+			default: w.put(' '); break;
 			}
 		}
-		writeln();
+		w.put('\n');
 
 		/* print the scales numbers */
 		foreach(i; 0 .. b.length) {
 			if (i % 12 == 0)
-				write(i / 12 + offset);
+				w.put(to!string(i / 12 + offset));
 			else
-				write(' ');
+				w.put(' ');
 		}
-		writeln();
+		w.put('\n');
 	}
-	/* XXX unittest? */
+	unittest
+	{
+		auto app = appender!string();
+		auto cb = new ChromaBands(2, 0);
+
+		/* double Cmaj chord */
+		cb.bands ~= [4, 0, 0, 0, 2, 0, 0, 3, 0, 0, 0, 0,
+					 4, 0, 0, 0, 2, 0, 0, 3, 0, 0, 0, 0];
+		/* single Ebmin chord */
+		cb.bands ~= [0, 0, 0, 4, 0, 0, 2, 0, 0, 0, 3, 0,
+					 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+		/* high Gmin harmonic scale */
+		cb.bands ~= [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+					 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0];
+
+		cb.printHistograms(5, app);
+		assert(-1 != app.data.indexOf(q"EOS
+            X           
+X  X        X      X    
+X  X   X  X X      X    
+X  XX XX  X X   X  X    
+X  XX XX  X X XXX XX XX 
+EOS"
+				   ));
+	}
 
 	/++ print a Chromagram
 	 +/
 	void printChromagram() const
+	{
+		printChromagram(stdout.lockingTextWriter);
+	}
+
+	void printChromagram(Writer)(Writer w) const
 	{
 		auto b = new double[12][bands.length];
 		foreach(ref t; b)
@@ -223,31 +288,51 @@ public:
 
 		foreach (j; 0 .. 12) {
 			switch (j) {
-			case  0: write("C "); break;
-			case  2: write("D "); break;
-			case  4: write("E "); break;
-			case  5: write("F "); break;
-			case  7: write("G "); break;
-			case  9: write("A "); break;
-			case 11: write("B "); break;
-			default: write("  "); break;
+			case  0: w.put("C "); break;
+			case  2: w.put("D "); break;
+			case  4: w.put("E "); break;
+			case  5: w.put("F "); break;
+			case  7: w.put("G "); break;
+			case  9: w.put("A "); break;
+			case 11: w.put("B "); break;
+			default: w.put("  "); break;
 			}
 			foreach (i; 0 .. b.length) {
 				if (b[i][j] < max/6)
-					write(" ");
-				else if (b[i][j] < max/3)
-					write("-");
-				else if (b[i][j] < max/2)
-					write("1");
-				else if (b[i][j] < 2*max/3)
-					write("x");
+					w.put(" ");
+				else if (b[i][j] <= max/3)
+					w.put("-");
+				else if (b[i][j] <= max/2)
+					w.put("1");
+				else if (b[i][j] <= 2*max/3)
+					w.put("x");
 				else if (b[i][j] < 5*max/6)
-					write("Q");
+					w.put("Q");
 				else
-					write("#");
+					w.put("#");
 			}
-			writeln();
+			w.put('\n');
 		}
+	}
+	unittest
+	{
+		auto app = appender!string();
+		auto cb = new ChromaBands(2, 0);
+
+		/* double Cmaj chord */
+		cb.bands ~= [3, 0, 0, 0, 1, 0, 0, 2, 0, 0, 0, 0,
+					 2, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0];
+		/* single Ebmin chord */
+		cb.bands ~= [0, 0, 0, 4, 0, 0, 2, 0, 0, 0, 3, 0,
+					 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+		/* high Gmin harmonic scale */
+		cb.bands ~= [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+					 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0];
+
+		cb.printChromagram(app);
+		assert(-1 != app.data.indexOf(
+				   "C # -\n     \nD   -\n   Q-\nE 1  \nF    \n"
+				   "   1-\nG x -\n     \nA   -\n   x-\nB    \n"));
 	}
 
 private:
