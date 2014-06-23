@@ -923,6 +923,22 @@ void %s_cleanup_threads();
 		}
 	}
 
+	/* X_export_wisdom_to_filename */
+	pragma(mangle, format(q{%s_export_wisdom_to_filename}, p))
+	mixin(format(q{
+void %s_export_wisdom_to_filename(const char *filename);
+}, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				auto name = std.c.stdio.tmpnam(null);
+				%s_export_wisdom_to_filename(name);
+				std.c.stdio.remove(name);
+				%s_cleanup();
+			}, p, p));
+		}
+	}
+
 	/* X_export_wisdom_to_file */
 	pragma(mangle, format(q{%s_export_wisdom_to_file}, p))
 	mixin(format(q{
@@ -978,6 +994,23 @@ int %s_import_system_wisdom();
 			mixin(format(q{
 				%s_import_system_wisdom();
 			}, p));
+		}
+	}
+
+	/* X_import_wisdom_from_filename */
+	pragma(mangle, format(q{%s_import_wisdom_from_filename}, p))
+	mixin(format(q{
+int %s_import_wisdom_from_filename(const char *filename);
+}, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				with(std.c.stdio) {
+					auto name = tmpnam(null);
+					%s_import_wisdom_from_filename(name);
+					%s_cleanup();
+				}
+			}, p, p));
 		}
 	}
 

@@ -1,11 +1,11 @@
 import io = std.stdio;
 import cio = std.c.stdio;
 import std.c.stdlib;
+import std.path : expandTilde;
 
 import std.exception;
 import core.exception;
 
-nothrow:
 version(Unittest) {}
 else {  @safe: }
 
@@ -45,6 +45,9 @@ private:
 	/++ numbers of frames in the decompression buffer +/
 	static size_t nbFramesBuf = 10;
 
+	/++ Directory where config files are stored +/
+	static string config = null;
+
 	/* XXX: not working, because of static methods? */
 	invariant() {
 		assert(fftSig >= 0.);
@@ -56,13 +59,13 @@ public:
 	/***** Verbose utilities *****/
 
 	/++ set the verbose level to a particular value +/
-	@property static auto verboseLevel(in Lvl v)
+	@property static auto verboseLevel(in Lvl v) nothrow
 	{
 		return verbLevel = v;
 	}
 
 	/++ retrieve the verbose level +/
-	@property static auto verboseLevel()
+	@property static auto verboseLevel() nothrow
 	{
 		return verbLevel;
 	}
@@ -86,7 +89,7 @@ public:
 	 + lesser than the current verbose level.
 	 + If v is negative, print to stderr instead of stdout
 	 +/
-	static void writefln(T...)(in Lvl v, T args) @system
+	static void writefln(T...)(in Lvl v, T args) @system nothrow
 	{
 		if (verbLevel >= v) {
 			try {
@@ -114,9 +117,9 @@ public:
 	 +
 	 + Default is 0.4
 	 +/
-	@property static auto fftSigma() { return fftSig; }
+	@property static auto fftSigma() nothrow { return fftSig; }
 
-	@property static auto fftSigma(in double s)
+	@property static auto fftSigma(in double s) nothrow
 	in { assert(s >= 0.); }
     body
 	{
@@ -147,12 +150,13 @@ public:
 	 +
 	 + Default is GAUSSIAN
 	 +/
-	@property static auto fftInterpolationMode()
+	@property static auto fftInterpolationMode() nothrow
 	{
 		return fftIMode;
 	}
 
-	@property static auto fftInterpolationMode(in FFTInterpolationMode m)
+	@property static auto
+	fftInterpolationMode(in FFTInterpolationMode m) nothrow
 	{
 		return fftIMode = m;
 	}
@@ -174,9 +178,9 @@ public:
 	/++ Returns the offset indicating the first scale to analyze
 	 + Default is 1
 	 +/
-	@property static auto scaleOffset() { return sOffset; }
+	@property static auto scaleOffset() nothrow { return sOffset; }
 
-	@property static auto scaleOffset(in ubyte o)
+	@property static auto scaleOffset(in ubyte o) nothrow
 	in { assert(o <= 10); }
     body
 	{
@@ -199,9 +203,9 @@ public:
 	/++ Returns the number of scales to analyze
 	 + Default is 6
 	 +/
-	@property static auto scaleNumbers() { return sNumbers; }
+	@property static auto scaleNumbers() nothrow { return sNumbers; }
 
-	@property static auto scaleNumbers(in ubyte n)
+	@property static auto scaleNumbers(in ubyte n) nothrow
 	in { assert(1 <= n && n <= 10); }
     body
 	{
@@ -226,9 +230,12 @@ public:
 	 + decode the audio stream
 	 + Default is 10
 	 +/
-	@property static auto framesBufSize() { return nbFramesBuf; }
+	@property static auto framesBufSize() nothrow
+	{
+		return nbFramesBuf;
+	}
 
-	@property static auto framesBufSize(in size_t n)
+	@property static auto framesBufSize(in size_t n) nothrow
 	{
 		return nbFramesBuf = n;
 	}
@@ -242,5 +249,36 @@ public:
 		assert(nbFramesBuf == 5);
 
 		nbFramesBuf = n;
+	}
+
+	/++ Returns the directory where config files are stored (wisdom, ...)
+	 + Default is "~/.beatr"
+	 +/
+	@property static auto configDir() nothrow
+	{
+		if (config is null) {
+			try {
+				config = expandTilde("~/.beatr");
+			} catch (Exception e) {
+				cio.printf("error expanding tilde in config directory name");
+			}
+		}
+		return config;
+	}
+
+	@property static auto configDir(in string c) nothrow
+	{
+		return config = c;
+	}
+	unittest
+	{
+		auto c = config;
+		assert(c == this.configDir);
+
+		this.configDir = "/etc/beatr";
+		assert(this.configDir == "/etc/beatr");
+		assert(config == "/etc/beatr");
+
+		config = c;
 	}
 }

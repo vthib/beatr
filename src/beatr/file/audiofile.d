@@ -24,7 +24,8 @@ public:
 		int ret;
 
 		av_register_all();
-		
+		av_log_set_level(AV_LOG_ERROR);
+
 		/* open file */
 		ret = avformat_open_input(&ctx, file.toStringz, null, null);
 		if (ret < 0)
