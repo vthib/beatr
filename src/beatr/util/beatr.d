@@ -49,10 +49,12 @@ private:
 	static string config = null;
 
 	/* XXX: not working, because of static methods? */
-	invariant() {
-		assert(fftSig >= 0.);
-		assert(scaleOffset <= 9);
-		assert(1 <= scaleNumbers && scaleNumbers <= 10);
+	version(none) {
+		invariant() {
+			assert(fftSig >= 0.);
+			assert(scaleOffset <= 9);
+			assert(1 <= scaleNumbers && scaleNumbers <= 10);
+		}
 	}
 
 public:
@@ -272,8 +274,8 @@ public:
 	}
 	unittest
 	{
-		auto c = config;
-		assert(c == this.configDir);
+		auto c = this.configDir;
+		assert(c == config);
 
 		this.configDir = "/etc/beatr";
 		assert(this.configDir == "/etc/beatr");

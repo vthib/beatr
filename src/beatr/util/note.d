@@ -25,14 +25,26 @@ public:
 		minor = m;
 	}
 
-	@property auto get() const nothrow
+	@property auto note() const nothrow
 	{
 		return k;
 	}
 	unittest
 	{
 		int k = 3;
-		assert(k == new Note(k).get);
+		assert(k == new Note(k).note);
+	}
+
+	/++ Returns 1 for minor, 0 for major and -1 if neither +/
+	@property auto mode() const nothrow
+	{
+		return minor;
+	}
+	unittest
+	{
+		assert(-1 == new Note(2).mode);
+		assert(0 == new Note(5, 0).mode);
+		assert(1 == new Note(7, 1).mode);
 	}
 
 	/++ return the english name of the note +/
@@ -90,6 +102,13 @@ public:
 		assert("Ebmin" == n.name);
 		assert("Eb" == Note.name(k));
 		assert("Ebmin" == n.toString());
+	}
+
+	override bool opEquals(Object o) const
+	{
+		auto n = cast(const Note) o;
+
+		return (n && n.note == k && n.mode == minor);
 	}
 
 	/* the note is caracterized by its number */

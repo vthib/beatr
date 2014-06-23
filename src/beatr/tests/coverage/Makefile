@@ -20,7 +20,7 @@ LDFLAGS=-L-L$(3RDDIR) -L-ldavcodec -L-ldavformat -L-ldfftw3 -L-ldavresample -L-l
 all: $(TARGET)
 
 copy:
-	cp $(BEATRSRC) src
+	cp -u $(BEATRSRC) src
 
 $(BOBJ): %.o : copy
 	dmd $(DFLAGS) $(IFLAGS) -of$@ -c src/$*.d
