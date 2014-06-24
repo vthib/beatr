@@ -1,29 +1,46 @@
-SRC=$(shell find $(DIRS) -type f -name '*.d' -print)
+SRC=unittesting.d test_mfiles.d
 OBJ=$(SRC:.d=.o)
-TARGETS=$(SRC:.d=)
+TARGET=$(OBJ:.o=)
 
-BEATRDIR=..
-BEATRLIB=$(BEATRDIR)/libbeatr.so
+BEATRPATH=..
+BEATRDIR=$(BEATRPATH)/util $(BEATRPATH)/exc $(BEATRPATH)/file $(BEATRPATH)/analysis $(BEATRPATH)/chroma
+BEATRSRC=$(shell find $(BEATRDIR) -name '*.d')
+BSRC=$(shell for i in $(BEATRSRC); do echo src/`basename $$i`; done)
+BOBJ=$(BSRC:src/%.d=%.o)
+
+3RDDIR=$(shell pwd)/../../3rdptylib
+3RDLIBS=$(3RDDIR)/libdavcodec.so $(3RDDIR)/libdavformat.so $(3RDDIR)/libdavutil.so $(3RDDIR)/libdfftw3.so
 
 DC=dmd
-DFLAGS?=-gc
-IFLAGS=-I$(BEATRDIR) -I../../3rdptylib
-LDFLAGS=-L-L$(BEATRDIR) -L-lbeatr
+DFLAGS?=-unittest -cov
+IFLAGS=-I$(shell pwd)/$(BEATRPATH) -I$(3RDDIR)
+LDFLAGS=-L-L$(3RDDIR) -L-ldavcodec -L-ldavformat -L-ldfftw3 -L-ldavresample -L-ldavutil -L-lavutil -L-lavcodec -L-lavformat -L-lfftw3 -L-lavresample
 
-.PHONY=clean test
-all:$(TARGETS)
+.PHONY=clean test copy
+all: $(TARGET)
 
-$(TARGETS): % : %.o $(BEATRLIB)
-	$(DC) $(DFLAGS) $(LDFLAGS) -defaultlib=libphobos2.so -of$@ -L-rpath=$(shell pwd)/$(BEATRDIR) $<
+copy:
+	cp -u $(BEATRSRC) src
+
+$(BOBJ): %.o : copy
+	dmd $(DFLAGS) $(IFLAGS) -of$@ -c src/$*.d
 
 $(OBJ): %.o : %.d
 	$(DC) $(DFLAGS) $(IFLAGS) -of$@ -c $<
 
-$(BEATRLIB):
-	cd $(BEATRDIR) && $(MAKE)
+$(TARGET): % : %.o $(BOBJ)
+	$(DC) $(DFLAGS) $(LDFLAGS) -defaultlib=libphobos2.so -L-rpath=$(3RDDIR) -of$@ $^
 
 clean:
-	rm -rf $(OBJ) $(TARGETS)
+	rm -rf $(OBJ) $(TARGET) $(BOBJ) src *.lst
+	mkdir src
 
-test: $(TARGETS)
-	$(shell for i in $(TARGETS); do echo $$i; done)
+test: $(TARGET)
+	./unittesting
+	./test_mfiles
+
+unittest: unittesting
+	./unittesting
+
+coverage: test_mfiles
+	./test_mfiles
