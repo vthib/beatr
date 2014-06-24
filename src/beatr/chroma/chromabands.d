@@ -28,6 +28,8 @@ private:
 	double[][] bands; /++ the chroma bands +/
 	size_t curf; /++ number of frame added +/
 
+	/* pow cannot be used in CTFE, so use a literal value instead */
+	enum nextNote = 1.05946309435929; /* sqrt(2, 12) */
 	enum freqs = genFreqs(); /++ the frequencies for each note +/
 
 public:
@@ -74,14 +76,23 @@ public:
 	auto normalize() const nothrow @safe
 	{
 		double[] n = new double[12];
+		immutable auto firstoffset = (offset == 0) ? 9 : 0;
 
 		n[] = 0.;
 		foreach(b; bands)
-			foreach(i, v; b)
-				n[i % 12] += v;
-		auto s = nbscales * bands.length;
-		foreach(ref a; n)
-			a /= s;
+			foreach(i; firstoffset .. b.length)
+				n[i % 12] += b[i];
+
+		/* coefficient to get back to the same dimension */
+		auto s = new size_t[12];
+		s[] = nbscales * bands.length;
+		foreach(i; 0 .. firstoffset)
+			s[i] = (nbscales - 1) * bands.length;
+		foreach(i; firstoffset .. s.length)
+			s[i] = nbscales * bands.length;
+
+		foreach(i, ref a; n)
+			a /= s[i];
 
 		return n;
 	}
@@ -90,19 +101,28 @@ public:
 		import std.algorithm : equal;
 		import std.math : approxEqual;
 
-		auto cb = new ChromaBands(10, 0);
+		auto cb = new ChromaBands(10, 1);
 		cb.bands ~= [1, 2, 3];
 		cb.bands ~= [4, 5];
 		assert(equal!approxEqual(cb.normalize, [0.25, 0.35, 0.15, 0., 0., 0.,
 												0., 0., 0., 0., 0., 0.]));
 
-		cb = new ChromaBands(2, 0);
+		cb = new ChromaBands(2, 1);
 		cb.bands ~= [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
 					 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
 		cb.bands ~= [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
 					 8, 8, 8, 3, 8, 8, 2, 8, 8, 0, 8, 8];
 		assert(equal!approxEqual(cb.normalize, [6.5, 6.5, 6.5, 5.25, 6.5, 6.5,
 												5., 6.5, 6.5, 4.5, 6.5, 6.5]));
+
+		/* test that it starts from A0, not C0 */
+		cb = new ChromaBands(2, 0);
+		cb.bands ~= [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+					 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+		cb.bands ~= [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+					 8, 8, 8, 3, 8, 8, 2, 8, 8, 0, 8, 8];
+		assert(equal!approxEqual(cb.normalize, [10., 9.5, 9., 6., 8., 7.5,
+												4., 6.5, 6., 4.5, 6.5, 6.5]));
 	}
 
 	/++ Use an array representing a FFT analysis to fill the chroma bands
@@ -112,15 +132,18 @@ public:
 	body {
 		/* indexes of each note in the FFT array */
 		auto fscales = freqs[offset*12 .. ((offset + nbscales) * 12)];
+
+		/* bands of the sample */
 		double[] b = new double[nbscales * 12];
 		b[] = 0.;
 
+		/* boundaries of the window */
 		size_t begin;
 		size_t end;
 
 		/* Q is equal to sigma*(sqrt(2, 12) - 1)
 		 * Thus mu_(i) * Q = mu_(i+1)*sigma */
-		immutable Q = Beatr.fftSigma * 0.05946309435929;
+		immutable Q = Beatr.fftSigma * (nextNote - 1);
 
 		foreach(i, f; fscales) {
 			/* center of the window is the note frequency */
@@ -191,12 +214,14 @@ public:
 	void printHistograms(Writer)(in uint height, Writer w) const
 	{
 		double m = 0;
-		double[] b = new double[nbscales * 12];
+		/* start from A0 and not C0 if offset == 0*/
+		immutable firstoffset = (offset == 0) ? 9 : 0;
+		double[] b = new double[nbscales * 12 - firstoffset];
 
 		b[] = 0.;
 		foreach (t; bands)
-			foreach (i, v; t)
-				b[i] += v;
+			foreach (i; firstoffset .. t.length)
+				b[i - firstoffset] += t[i];
 
 		foreach(v; b)
 			if (v >= m)
@@ -205,7 +230,7 @@ public:
 		auto step = m/height;
 
 		/* print the histograms */
-		foreach(i; 0 .. (height + 1)) {
+		foreach(i; 0 .. height) {
 			foreach(v; b) {
 				if (v >= (height - i) * step)
 					w.put('X');
@@ -216,7 +241,7 @@ public:
 		}
 
 		/* print the notes names */
-		foreach(i; 0 .. b.length) {
+		foreach(i; firstoffset .. (b.length + firstoffset)) {
 			switch (i % 12) {
 			case 0: w.put('C'); break;
 			case 2: w.put('D'); break;
@@ -231,8 +256,8 @@ public:
 		w.put('\n');
 
 		/* print the scales numbers */
-		foreach(i; 0 .. b.length) {
-			if (i % 12 == 0)
+		foreach(i; firstoffset .. (b.length + firstoffset)) {
+			if (i % 12 == 0 || i == firstoffset)
 				w.put(to!string(i / 12 + offset));
 			else
 				w.put(' ');
@@ -241,8 +266,9 @@ public:
 	}
 	unittest
 	{
+		/***** test correct behaviour of function *****/
 		auto app = appender!string();
-		auto cb = new ChromaBands(2, 0);
+		auto cb = new ChromaBands(2, 1);
 
 		/* double Cmaj chord */
 		cb.bands ~= [4, 0, 0, 0, 2, 0, 0, 3, 0, 0, 0, 0,
@@ -261,6 +287,34 @@ X  X        X      X
 X  X   X  X X      X    
 X  XX XX  X X   X  X    
 X  XX XX  X X XXX XX XX 
+C D EF G A BC D EF G A B
+1           2           
+EOS"
+				   ));
+
+		/***** test that it starts from A0, not C0 *****/
+		app = appender!string();
+		cb = new ChromaBands(2, 0);
+
+		/* double Cmaj chord */
+		cb.bands ~= [4, 0, 0, 0, 2, 0, 0, 3, 0, 0, 0, 0,
+					 4, 0, 0, 0, 2, 0, 0, 3, 0, 0, 0, 0];
+		/* single Ebmin chord */
+		cb.bands ~= [0, 0, 0, 4, 0, 0, 2, 0, 0, 0, 3, 0,
+					 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+		/* high Gmin harmonic scale */
+		cb.bands ~= [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+					 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0];
+
+		cb.printHistograms(5, app);
+		assert(-1 != app.data.indexOf(q"EOS
+   X           
+   X      X    
+ X X      X    
+ X X   X  X    
+ X X XXX XX XX 
+A BC D EF G A B
+0  1           
 EOS"
 				   ));
 	}
@@ -274,12 +328,14 @@ EOS"
 
 	void printChromagram(Writer)(Writer w) const
 	{
+		/* start from A0 and not C0 if offset == 0*/
+		immutable firstoffset = (offset == 0) ? 9 : 0;
 		auto b = new double[12][bands.length];
 		foreach(ref t; b)
 			t[] = 0.;
 		foreach(i, t; bands)
-			foreach(j, v; t)
-				b[i][j % 12] += v;
+			foreach(j; firstoffset .. t.length)
+				b[i][j % 12] += t[j];
 
 		double max = 0.;
 		foreach (t; b)
@@ -316,8 +372,9 @@ EOS"
 	}
 	unittest
 	{
+		/* test correct behaviour of function */
 		auto app = appender!string();
-		auto cb = new ChromaBands(2, 0);
+		auto cb = new ChromaBands(2, 1);
 
 		/* double Cmaj chord */
 		cb.bands ~= [3, 0, 0, 0, 1, 0, 0, 2, 0, 0, 0, 0,
@@ -333,6 +390,22 @@ EOS"
 		assert(-1 != app.data.indexOf(
 				   "C # -\n     \nD   -\n   Q-\nE 1  \nF    \n"
 				   "   1-\nG x -\n     \nA   -\n   x-\nB    \n"));
+
+		/* test that it starts from A0 not C0 */
+		app = appender!string();
+		cb = new ChromaBands(1, 0);
+
+		/* double Cmaj chord */
+		cb.bands ~= [3, 0, 0, 0, 1, 0, 0, 2, 0, 0, 0, 0];
+		/* single Ebmin chord */
+		cb.bands ~= [0, 0, 0, 4, 0, 0, 2, 0, 0, 0, 3, 0];
+		/* high Gmin harmonic scale */
+		cb.bands ~= [1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0];
+
+		cb.printChromagram(app);
+		assert(-1 != app.data.indexOf(
+				   "C    \n     \nD    \n     \nE    \nF    \n"
+				   "     \nG    \n     \nA   -\n   #-\nB    \n"));
 	}
 
 private:
@@ -406,9 +479,6 @@ private:
 	static double[] genFreqs() pure @safe
 	{
 		double[] freqs = new double[10 * 12];
-
-		/* pow cannot be used in CTFE, so use a literal value instead */
-		immutable double nextNote = 1.05946309435929;
 
 		freqs[0] = 16.352; /* C0 */
 		for(uint i = 1; i < freqs.length; i++)
