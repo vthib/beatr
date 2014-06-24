@@ -12,6 +12,7 @@ import analysis.analyzer;
 import analysis.scores;
 import util.beatr;
 import chroma.chromaprofile;
+import util.window;
 
 struct Options {
 	MatchingType m;
@@ -87,7 +88,7 @@ main(string args[])
 		writeln("\t\t--fftsigma\tSelect a sigma value for the FFT "
 				"interpolation");
 		writeln("\t\t--fftimode\tSelect a FFT interpolation mode: 'triangle', "
-				"'rectangle', 'cosine' or 'gaussian'");
+				"'rectangle', 'hann' or 'gaussian'");
 
 		writeln("\t\t--scales N:M\tAnalyze scales between the N-th one and "
 				"the M-th one");
@@ -194,16 +195,19 @@ setOptions2(string opt, string value)
 	case "fftimode":
 		switch (value) {
 		case "triangle":
-			Beatr.fftInterpolationMode = FFTInterpolationMode.TRIANGLE;
+			Beatr.fftInterpolationMode = WindowType.TRIANGLE;
 			break;
 		case "rectangle":
-			Beatr.fftInterpolationMode = FFTInterpolationMode.RECTANGLE;
+			Beatr.fftInterpolationMode = WindowType.RECTANGLE;
 			break;
-		case "cosine":
-			Beatr.fftInterpolationMode = FFTInterpolationMode.COSINE;
+		case "hann":
+			Beatr.fftInterpolationMode = WindowType.HANN;
+			break;
+		case "flattop":
+			Beatr.fftInterpolationMode = WindowType.FLATTOP;
 			break;
 		case "gaussian":
-			Beatr.fftInterpolationMode = FFTInterpolationMode.GAUSSIAN;
+			Beatr.fftInterpolationMode = WindowType.GAUSSIAN;
 			break;
 		default:
 			stderr.writefln("Unknown FFT Interpolation Mode '%s'", value);

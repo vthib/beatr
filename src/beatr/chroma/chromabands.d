@@ -1,5 +1,6 @@
 import util.types;
 import util.beatr;
+import util.window;
 
 import std.algorithm : map, max, min;
 import std.stdio;
@@ -159,7 +160,7 @@ public:
 			begin = (left < 0.) ? 0 : min(to!ulong(left), to!ulong(mu));
 			// XXX bound check for end
 			end = max(to!ulong(mu*(1 + Q)), to!ulong(mu) + 1);
-			auto right = mu*(1+Q);
+			auto right = mu*(1 + Q);
 
 			/* for every significant abscissa ([mu(1-Q); mu(1+Q)], compute
 			   the correlation coeff, add coeff * value, and in the end
@@ -171,20 +172,8 @@ public:
 			foreach (j; begin .. (end+1)) {
 				if (j < left || j > right)
 					continue;
-				final switch (Beatr.fftInterpolationMode) {
-				case FFTInterpolationMode.TRIANGLE:
-					coeff = triangle(mu, left, mu*(1+Q), j);
-					break;
-				case FFTInterpolationMode.RECTANGLE:
-					coeff = 1;
-					break;
-				case FFTInterpolationMode.COSINE:
-					coeff = cosine(left, mu*(1+Q), j);
-					break;
-				case FFTInterpolationMode.GAUSSIAN:
-					coeff = gaussian(mu, mu*Q/3, j);
-					break;
-				}
+				coeff = window!double(Beatr.fftInterpolationMode, left,
+									  right, mu, j, Q);
 				sum += coeff;
 				b[i] += s[j] * coeff;
 			}
@@ -409,72 +398,6 @@ EOS"
 	}
 
 private:
-	static double
-	triangle(in double mu, in double l, in double r, in ulong x) pure @safe
-	in
-	{
-		assert(l <= x && x <= r);
-		assert(l < mu && mu < r);
-	}
-	body
-	{
-		if (x < mu)
-			return (x - l)/(mu - l);
-		else
-			return (r - x)/(r - mu);
-	}
-	unittest
-	{
-		import std.math : approxEqual;
-
-		assert(approxEqual(triangle(5, 3, 7, 3), 0));
-		assert(approxEqual(triangle(5, 3, 7, 4), 0.5));
-		assert(approxEqual(triangle(5, 3, 7, 5), 1));
-		assert(approxEqual(triangle(5, 3, 7, 6), 0.5));
-		assert(approxEqual(triangle(5, 3, 7, 7), 0));
-	}
-
-	static double
-	gaussian(in double mu, in double sigma, in ulong x) pure @safe
-	in {
-		assert(sigma != 0.);
-	}
-	body
-	{
-		return exp(-((x - mu)*(x-mu))/(2*sigma*sigma));
-	}
-	unittest
-	{
-		import std.math : approxEqual;
-
-		assert(approxEqual(gaussian(3., 1., 3), 1));
-		immutable double a = sqrt(log(4));
-		assert(approxEqual(gaussian(3. - a, 1., 3), 0.5));
-		assert(approxEqual(gaussian(3., 1., 50), 0.));
-	}
-
-	static double
-	cosine(in double l, in double r, in size_t j) pure @safe
-	in {
-		assert(l < r);
-	}
-	body
-	{
-		return 1 - cos(2*PI * ((j - l)/(r - l)));
-	}
-	unittest
-	{
-		import std.math : approxEqual;
-
-		assert(approxEqual(cosine(1., 3., 1), 0.));
-		assert(approxEqual(cosine(1., 3., 2), 2.));
-		assert(approxEqual(cosine(1., 3., 3), 0.));
-
-		assert(approxEqual(cosine(1., 5., 2), 1.));
-		assert(approxEqual(cosine(1., 5., 4), 1.));
-	}
-
-
 	/++ Generate an array of the frequencies for each note +/
 	static double[] genFreqs() pure @safe
 	{

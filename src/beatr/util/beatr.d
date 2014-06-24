@@ -6,6 +6,8 @@ import std.path : expandTilde;
 import std.exception;
 import core.exception;
 
+import util.window;
+
 version(Unittest) {}
 else {  @safe: }
 
@@ -19,13 +21,6 @@ enum Lvl {
 	DEBUG = 2
 };
 
-enum FFTInterpolationMode {
-	TRIANGLE,
-	RECTANGLE,
-	GAUSSIAN,
-	COSINE
-};
-
 /* XXX Make Options thread-independent */
 /++ Provides a way to print debug messages according
  + to a verbose level +/
@@ -36,7 +31,7 @@ private:
 
 	/* fft interpolation variables */
 	static double fftSig = 0.4;
-	static auto fftIMode = FFTInterpolationMode.GAUSSIAN;
+	static auto fftIMode = WindowType.GAUSSIAN;
 
 	/* scales to analyze */
 	static ubyte sOffset = 1;
@@ -158,7 +153,7 @@ public:
 	}
 
 	@property static auto
-	fftInterpolationMode(in FFTInterpolationMode m) nothrow
+	fftInterpolationMode(in WindowType m) nothrow
 	{
 		return fftIMode = m;
 	}
@@ -167,7 +162,7 @@ public:
 		auto m = fftIMode;
 		assert(m == this.fftInterpolationMode);
 
-		enum mode = FFTInterpolationMode.TRIANGLE;
+		enum mode = WindowType.TRIANGLE;
 		this.fftInterpolationMode = mode;
 		assert(this.fftInterpolationMode == mode);
 		assert(fftIMode == mode);
