@@ -1,11 +1,12 @@
 module main;
 
-import std.stdio;
+import io = std.stdio;
 import std.exception;
 import std.getopt;
 import std.algorithm;
 import std.file;
 import std.array;
+import std.string: toLower;
 
 import exc.libavexception;
 import analysis.analyzer;
@@ -23,80 +24,124 @@ struct Options {
 	bool chromagram;
 }
 
+/* used to map options like "--profile" with a corresponding enum value */
+struct Info(T) {
+	string name;
+    T type;
+};
+
+Info!ProfileType[] profiles;
+Info!MatchingType[] matchings;
+Info!WindowType[] windows;
+
+/* fill the arrays mapping enum names to values */
+void
+initOptArrays()
+{
+	void
+		fillInfos(T)(ref Info!T[] a)
+	{
+		foreach (v; __traits(allMembers, T))
+			a ~= Info!T(v.toLower, __traits(getMember, T, v));
+	}
+
+	fillInfos(profiles);
+	fillInfos(matchings);
+	fillInfos(windows);
+}
+
 int
 main(string args[])
 {
 	Options opt;
 
+	initOptArrays();
+
 	void matchingCallback(string option, string val)
 	{
+		bool found;
+
+		opt.m = MatchingType.CLASSIC;
 		foreach (s; val.splitter(',')) {
-			switch (s) {
-			case "add_dom":      opt.m |= MatchingType.ADD_DOMINANT; break;
-			case "add_subdom":   opt.m |= MatchingType.ADD_SUBDOM; break;
-			case "add_relative": opt.m |= MatchingType.ADD_RELATIVE; break;
-			case "dominant":     opt.m = MatchingType.DOMINANT; break;
-			case "cadence":      opt.m = MatchingType.CADENCE; break;
-			case "all":          opt.m = MatchingType.ALL; break;
-			case "classic":      opt.m = MatchingType.CLASSIC; break;
-			default:
-				stderr.writefln("Unknown matching type '%s'", s);
-				break;
+			found = false;
+			foreach(m; matchings) {
+				if (val == m.name) {
+					opt.m |= m.type;
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				io.stderr.writefln("Unknown matching type '%s'", s);
+				return;
 			}
 		}
 	}
 
 	void profileCallback(string option, string val)
 	{
-		switch (val) {
-		case "krumhansl":        opt.p = ProfileType.KRUMHANSL; break;
-		case "scale":            opt.p = ProfileType.SCALE; break;
-		case "scale_harm":       opt.p = ProfileType.SCALE_HARM; break;
-		case "scale_both":       opt.p = ProfileType.SCALE_BOTH; break;
-		case "chord":            opt.p = ProfileType.CHORD; break;
-		case "chord_normalized": opt.p = ProfileType.CHORD_NORMALIZED; break;
-		case "chord_krumhansl":  opt.p = ProfileType.CHORD_KRUMHANSL; break;
-		default:
-			stderr.writefln("Unknown profile type '%s'", val);
-			break;
+		foreach(p; profiles) {
+			if (val == p.name) {
+				opt.p = p.type;
+				return;
+			}
 		}
+		io.stderr.writefln("Unknown profile type '%s'", val);
 	}
 
 	void printHelp()
 	{
-		writefln("usage: %s [options] input", args[0]);
-		writeln("\tOptions:");
-		writeln("\t\t-c|--cgraph\tPrint an histogram of the chroma profiles");
-		writeln("\t\t--chromagram\tPrint a chromagram");
-		writeln("\t\t-d|--debug\tAdd even more messages");
-		writeln("\t\t-g|--graph\tPrint an histogram of the notes from the "
+		void printArray(T)(Info!T[] a)
+		{
+			size_t i = 0;
+			foreach (j, v; a) {
+				if (i++ % 4 == 0)
+					io.write("\n\t\t\t");
+				io.writef("'%s'", v.name);
+				if (j != a.length - 1)
+					io.write(", ");
+			}
+			io.writeln();
+		}
+
+		io.writefln("usage: %s [options] input", args[0]);
+		io.writeln("\tOptions:");
+		io.writeln("\t\t-c|--cgraph\tPrint an histogram of the chroma "
+				   "profiles");
+		io.writeln("\t\t--chromagram\tPrint a chromagram");
+		io.writeln("\t\t-d|--debug\tAdd even more messages");
+		io.writeln("\t\t-g|--graph\tPrint an histogram of the notes from the "
 				 "input");
-		writeln("\t\t-h|--help\tPrint this help message");
-		writeln("\t\t-m|--mtype\tUse the specified matching algorithm");
-		writeln("\t\t\tIt can be 'classic', 'dominant', 'cadence', 'all'");
-		writeln("\t\t\tor any combination (separated with a command) of");
-		writeln("\t\t\t\t'add_dom', 'add_subdom' and 'add_rel'");
-		writeln("\t\t-p|--profile\tUse the specified profile");
-		writeln("\t\t\tIt can be 'krumhansl', 'scale', 'scale_harm',");
-		writeln("\t\t\t'scale_both', 'chord', 'chord_normalized'");
-		writeln("\t\t\tor 'chord_krumhansl'");
-		writeln("\t\t-q|--quiet\tOnly print the result");
-		writeln("\t\t-r|--recursive\tRecursively analyze every file in "
+		io.writeln("\t\t-h|--help\tPrint this help message");
+
+		/* print all the possible matching types */
+		io.writeln("\t\t-m|--mtype\tUse the specified matching algorithm.");
+		io.write("\t\t\tIf several are specified separated with a ',', then\n"
+				   "\t\t\tadd the combination of them. Possible choices are:");
+		printArray(matchings);
+
+		/* print all possible profile types */
+		io.write("\t\t-p|--profile\tUse the specified profile, amongst:");
+		printArray(profiles);
+
+		io.writeln("\t\t-q|--quiet\tOnly print the result");
+		io.writeln("\t\t-r|--recursive\tRecursively analyze every file in "
 				 "'input'");
-		writeln("\t\t-v|--verbose\tAdd more messages");
+		io.writeln("\t\t-v|--verbose\tAdd more messages");
 
-		writeln("\t\t--fftsigma\tSelect a sigma value for the FFT "
+		io.writeln("\t\t--fftsigma\tSelect a sigma value for the FFT "
 				"interpolation");
-		writeln("\t\t--fftimode\tSelect a FFT interpolation mode: 'triangle', "
-				"'rectangle', 'hann' or 'gaussian'");
+		/* print all possible window type for interpolation */
+		io.write("\t\t--fftimode\tSelect a FFT interpolation mode, amongst:");
+		printArray(windows);
 
-		writeln("\t\t--scales N:M\tAnalyze scales between the N-th one and "
+		io.writeln("\t\t--scales N:M\tAnalyze scales between the N-th one and "
 				"the M-th one");
-		writeln("\t\t--bufsize\tSize of the buffer used to decode the audio "
-				"stream in seconds");
+		io.writeln("\t\t--bufsize\tSize of the buffer used to decode the\n"
+				   "\t\t\taudio stream in seconds");
 
-		writeln("\t\t--fftsize\tSize of the fft transformation");
-		writeln("\t\t--fftoverlaps\tNumber of overlaps executed when the\n"
+		io.writeln("\t\t--fftsize\tSize of the fft transformation");
+		io.writeln("\t\t--fftoverlaps\tNumber of overlaps executed when the\n"
 				"\t\t\tfftsize is different than the audio stream size");
 	}
 
@@ -120,7 +165,7 @@ main(string args[])
 			"fftoverlaps", &setOptions2,
 			"verbose|v", &setOptions);
 	} catch (Exception e) {
-		stderr.writefln("error: %s", e.msg);
+		io.stderr.writefln("error: %s", e.msg);
 		return 3;
 	}
 
@@ -140,7 +185,7 @@ process(string f, Options opt)
 	try {
 		d = DirEntry(f);
 	} catch (FileException e) {
-		stderr.writefln("error: %s", e.msg);
+		io.stderr.writefln("error: %s", e.msg);
 		return true;
 	}
 
@@ -157,17 +202,17 @@ process(string f, Options opt)
 				a.scores.printHistograms(25);
 			if (opt.chromagram)
 				a.bands.printChromagram();
-			writefln("%s\t%s\t%.2s", f, k, a.scores.confidence);
+			io.writefln("%s\t%s\t%.2s", f, k, a.scores.confidence);
 		} catch (LibAvException e) {
 			hadError = true;
-			stderr.writefln("%s\n", e.msg);
+			io.stderr.writefln("%s\n", e.msg);
 		}
 	} else if (d.isDir)
 		foreach (name; dirEntries(f, opt.recursive ? SpanMode.breadth :
 								  SpanMode.shallow))
 			hadError |= process(name, opt);
 	else
-		stderr.writefln("'%s' is neither a file nor a directory", f);
+		io.stderr.writefln("'%s' is neither a file nor a directory", f);
 
 	return hadError;
 }
@@ -186,7 +231,7 @@ setOptions(string opt)
 		Beatr.verboseLevel = Lvl.NORMAL;
 		break;
 	default:
-		stderr.writefln("Unknown option '%s'", opt);
+		io.stderr.writefln("Unknown option '%s'", opt);
 		break;
 	}
 }
@@ -199,26 +244,13 @@ setOptions2(string opt, string value)
 		Beatr.fftSigma = to!(typeof(Beatr.fftSigma))(value);
 		break;
 	case "fftimode":
-		switch (value) {
-		case "triangle":
-			Beatr.fftInterpolationMode = WindowType.TRIANGLE;
-			break;
-		case "rectangle":
-			Beatr.fftInterpolationMode = WindowType.RECTANGLE;
-			break;
-		case "hann":
-			Beatr.fftInterpolationMode = WindowType.HANN;
-			break;
-		case "flattop":
-			Beatr.fftInterpolationMode = WindowType.FLATTOP;
-			break;
-		case "gaussian":
-			Beatr.fftInterpolationMode = WindowType.GAUSSIAN;
-			break;
-		default:
-			stderr.writefln("Unknown FFT Interpolation Mode '%s'", value);
-			break;
+		foreach(w; windows) {
+			if (value == w.name) {
+				Beatr.fftInterpolationMode = w.type;
+				return;
+			}
 		}
+		io.stderr.writefln("Unknown FFT Interpolation Mode '%s'", value);
 		break;
 	case "scales":
 		try {
@@ -232,7 +264,7 @@ setOptions2(string opt, string value)
 			Beatr.scaleOffset = start;
 			Beatr.scaleNumbers = cast(ubyte) (end - start);
 		} catch (Exception e) {
-			stderr.writefln("--scales requires argument in form 'N:M' with M > N");
+			io.stderr.writefln("--scales requires argument in form 'N:M' with M > N");
 			break;
 		}
 		break;
@@ -246,7 +278,7 @@ setOptions2(string opt, string value)
 		Beatr.fftNbOverlaps= to!(typeof(Beatr.fftNbOverlaps))(value);
 		break;
 	default:
-		stderr.writefln("Unknown option '%s'", opt);
+		io.stderr.writefln("Unknown option '%s'", opt);
 		break;
 	}
 }
