@@ -43,6 +43,14 @@ private:
 	/++ Directory where config files are stored +/
 	static string config = null;
 
+	/++ Parameters to transform audio signal to fft bins +/
+	static int fftSize = 44100;
+	static uint nbOverlaps = 4;
+
+	/++ Sample rate of the resampled audio signal used by beatr +/
+	static uint samplerate = 44100;
+//	static uint samplerate = 16384;
+
 	/* XXX: not working, because of static methods? */
 	version(none) {
 		invariant() {
@@ -278,4 +286,78 @@ public:
 
 		config = c;
 	}
+
+	/++ Returns the size of the FFT transformation
+	 + Default is 44100
+	 +/
+	@property static auto fftTransformSize() nothrow
+	{
+		return fftSize;
+	}
+
+	@property static auto fftTransformSize(in int s) nothrow
+	{
+		return fftSize = s;
+	}
+	unittest
+	{
+		auto s = this.fftTransformSize;
+		assert(s == fftSize);
+
+		this.fftTransformSize = 16384;
+		assert(this.fftTransformSize == 16384);
+		assert(fftSize == 16384);
+
+		fftSize = s;
+	}
+
+	/++ Returns the number of overlaps to execute when the fftTransformSize
+	 + is smaller than the audio frame size
+	 + Default is 4
+	 +/
+	@property static auto fftNbOverlaps() nothrow
+	{
+		return nbOverlaps;
+	}
+
+	@property static auto fftNbOverlaps(in uint n) nothrow
+	{
+		return nbOverlaps = n;
+	}
+	unittest
+	{
+		auto n = this.fftNbOverlaps;
+		assert(n == nbOverlaps);
+
+		this.fftNbOverlaps = 16384;
+		assert(this.fftNbOverlaps == 16384);
+		assert(nbOverlaps == 16384);
+
+		nbOverlaps = n;
+	}
+
+	/++ Returns the sample rate of the resampled audio signal used
+	 + Default is 44100
+	 +/
+	@property static auto sampleRate() nothrow
+	{
+		return samplerate;
+	}
+
+	@property static auto sampleRate(in uint sr) nothrow
+	{
+		return samplerate = sr;
+	}
+	unittest
+	{
+		auto sr = this.sampleRate;
+		assert(sr == samplerate);
+
+		this.sampleRate = 16384;
+		assert(this.sampleRate == 16384);
+		assert(samplerate == 16384);
+
+		samplerate = sr;
+	}
+
 }

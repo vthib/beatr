@@ -98,13 +98,11 @@ unittest
 T
 flattop(T)(in T l, in T r, in T j) pure @safe
 {
-	enum coeffs = [1.93, 1.29, 0.388, 0.028];
+	enum a = [1., 1.93, 1.29, 0.388, 0.028];
 
-	auto ret = 1.;
-	foreach(i, a; coeffs)
-		ret += a * cos((i+1)*2*PI * ((j - l)/(r - l)));
-
-	return ret;
+	immutable auto x = (j - l)/(r - l);
+	return a[0] - a[1]*cos(2*PI*x) + a[2]*cos(4*PI*x)
+		- a[3]*cos(6*PI*x) + a[4]*cos(8*PI*x);
 }
 unittest
 {

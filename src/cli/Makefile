@@ -13,7 +13,7 @@ DFLAGS=-unittest -debug -gc
 IFLAGS=-I.. -I$(DIRBEATR) -I$(DIR3RDLIB)
 LDFLAGS=-L-L$(DIR3RDLIB) -L-lbeatr -L-L$(DIRBEATR)
 
-.PHONY=clean mrproper
+.PHONY=clean mrproper full
 all:$(TARGET)
 
 $(OBJ): %.o : %.d
@@ -30,3 +30,7 @@ clean:
 
 mrproper: clean
 	cd $(DIRBEATR); $(MAKE) clean
+
+full:
+	cd $(DIRBEATR); $(MAKE)
+	$(MAKE)

@@ -94,6 +94,10 @@ main(string args[])
 				"the M-th one");
 		writeln("\t\t--bufsize\tSize of the buffer used to decode the audio "
 				"stream in seconds");
+
+		writeln("\t\t--fftsize\tSize of the fft transformation");
+		writeln("\t\t--fftoverlaps\tNumber of overlaps executed when the\n"
+				"\t\t\tfftsize is different than the audio stream size");
 	}
 
 	try {
@@ -112,6 +116,8 @@ main(string args[])
 			"fftimode", &setOptions2,
 			"scales", &setOptions2,
 			"bufsize", &setOptions2,
+			"fftsize", &setOptions2,
+			"fftoverlaps", &setOptions2,
 			"verbose|v", &setOptions);
 	} catch (Exception e) {
 		stderr.writefln("error: %s", e.msg);
@@ -232,6 +238,12 @@ setOptions2(string opt, string value)
 		break;
 	case "bufsize":
 		Beatr.framesBufSize = to!(typeof(Beatr.framesBufSize))(value);
+		break;
+	case "fftsize":
+		Beatr.fftTransformSize = to!(typeof(Beatr.fftTransformSize))(value);
+		break;
+	case "fftoverlaps":
+		Beatr.fftNbOverlaps= to!(typeof(Beatr.fftNbOverlaps))(value);
 		break;
 	default:
 		stderr.writefln("Unknown option '%s'", opt);

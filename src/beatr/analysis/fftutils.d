@@ -3,6 +3,7 @@ import std.stdio;
 import std.file : mkdir, FileException;
 import std.string : toStringz;
 import core.stdc.errno : EEXIST;
+import std.exception : enforce;
 
 import fftw.fftw3;
 
@@ -33,10 +34,20 @@ void fftDestroy() nothrow
 }
 
 /++ transform an audio frame into a frequency-intensity vector +/
-double[] fftTransform(const(short[]) audio, int transformSize = -1)
+double[] fft2bins(const(short[]) audio, int transformSize = -1,
+				  uint nbOverlaps = 4)
 {
-	if (transformSize == -1)
+	if (transformSize == -1) {
 		transformSize = cast(int) audio.length;
+		nbOverlaps = 1;
+	} else {
+		enforce(audio.length >= transformSize, "Audio samples need to be "
+				"larger than FFT transform size");
+		if ((audio.length - transformSize) % nbOverlaps != 0)
+			Beatr.writefln(Lvl.WARNING, "Samples lost due to difference "
+						   "between frame length and FFT transform size "
+						   "not divisible by number of overlaps");
+	}
 
 	auto ibuf = new double[transformSize];
 	auto obuf = new cdouble[transformSize];
@@ -54,24 +65,27 @@ double[] fftTransform(const(short[]) audio, int transformSize = -1)
 	}
 	scope(exit) fftw_destroy_plan(plan);
 
-	/* copy the input into the ibuf buffer */
-	/* !!! This has to be _after_ the plan creation, as this function sets
-	   its argument to 0 */
-	/* XXX compute step if transformSize != audio.length */
-	enum step = 1;
-	uint idx = 0;
-	foreach (ref i; ibuf) {
-		i = audio[idx];
-		idx += step;
+	auto vec = new double[transformSize/2];
+	vec[] = 0.;
+
+	foreach(step; 0 .. nbOverlaps) {
+		/*copy the input into the ibuf buffer */
+		/* !!! This has to be _after_ the plan creation, as this function sets
+		   its argument to 0 */
+		size_t idx = step * (audio.length - transformSize)/nbOverlaps;
+		foreach (ref i; ibuf)
+			i = audio[idx++];
+
+		fftw_execute(plan);
+
+		/* add it to our norms field */
+		foreach (i, ref o; vec)
+			o += sqrt(obuf[i].re * obuf[i].re + obuf[i].im * obuf[i].im)
+				/ transformSize;
 	}
 
-	fftw_execute(plan);
-
-	auto vec = new double[transformSize];
-	/* add it to our norms field */
-	foreach (i, ref o; vec)
-		o = sqrt(obuf[i].re * obuf[i].re + obuf[i].im * obuf[i].im)
-			/ transformSize;
+	if (nbOverlaps != 1)
+		vec[] /= nbOverlaps;
 
 	return vec;
 }

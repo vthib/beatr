@@ -28,6 +28,7 @@ private:
 	bool endOfFile; /++ No more data is available from the audio file +/
 	AVCodecContext* ctx;
 	AVAudioResampleContext *resamplectx;
+	immutable uint samplerate;
 
 	invariant() {
 		assert(0 <= dend && dend <= d.length);
@@ -47,13 +48,15 @@ public:
 			av_samples_get_buffer_size(null, ctx.channels,
 									   1, ctx.sample_fmt, 1);
 
+		samplerate = Beatr.sampleRate;
+
 		version (full_decomp) {
-			d = new short[beatrSampleRate *
+			d = new short[samplerate *
 						  (af.duration / AV_TIME_BASE + 10)];
 		} else {
 			/* XXX: experiment with this value */
 			/* allocates for the buffer nbFramesBuf seconds of samples */
-			d = new short[beatrSampleRate * Beatr.framesBufSize];
+			d = new short[samplerate * Beatr.framesBufSize];
 		}
 
 		dend = d.length;
@@ -72,37 +75,35 @@ public:
 	@property beatrSample front()
 	{
 		/* if not enough data left in the buffer, fill it again */
-		if (offset + beatrSampleRate > dend) {
+		if (offset + samplerate > dend) {
 			/* we still have less than a frame left. We return it
 			   followed by zeroes */
-			typeof(d) end = new typeof(d[0])[beatrSampleRate];
+			typeof(d) end = new typeof(d[0])[samplerate];
 			end[0 .. (dend - offset)] = d[offset .. dend];
 			end[(dend - offset) .. $] = 0;
 
 			/* After popping, offset will be equal to dend,
 			   keeping the invariant true */
-			dend = offset + beatrSampleRate;
+			dend = offset + samplerate;
 
 			return end;
 		}
 
-		return d[offset .. (offset + beatrSampleRate)];
+		return d[offset .. (offset + samplerate)];
 	}
 
 	void popFront()
 	{
-		offset += beatrSampleRate;
+		offset += samplerate;
 
 		/* refill the data if necessary so that empty() will work */
-		if (offset + beatrSampleRate > dend && !endOfFile)
+		if (offset + samplerate > dend && !endOfFile)
 			addFrames();
 	}
 
 private:
 	~this()
 	{
-		avcodec_close(ctx);
-
 		if (avresample_available(resamplectx))
 			Beatr.writefln(Lvl.WARNING, "Still some "
 						   "resampled samples available");
@@ -142,7 +143,7 @@ private:
 					   av_get_default_channel_layout(1), 0);
 		av_opt_set_int(resamplectx, "out_channels", 1, 0);
 		av_opt_set_int(resamplectx, "in_sample_rate", ctx.sample_rate, 0);
-		av_opt_set_int(resamplectx, "out_sample_rate", beatrSampleRate, 0);
+		av_opt_set_int(resamplectx, "out_sample_rate", samplerate, 0);
 		av_opt_set_int(resamplectx, "in_sample_fmt", ctx.sample_fmt, 0);
 		av_opt_set_int(resamplectx, "out_sample_fmt",
 					   AVSampleFormat.AV_SAMPLE_FMT_S16P, 0);

@@ -35,8 +35,13 @@ public:
 	body {
 		auto stream = new AudioStream(af);
 
+		Beatr.writefln(Lvl.VERBOSE, "Using fft transform size %s and %s "
+					   "overlaps", Beatr.fftTransformSize,
+					   Beatr.fftNbOverlaps);
+
 		foreach(frame; stream)
-			b.addFftSample(fftTransform(frame));
+			b.addFftSample(fft2bins(frame, Beatr.fftTransformSize,
+									Beatr.fftNbOverlaps));
 	}
 
 	/++ Returns the best key estimate of the sample processed +/

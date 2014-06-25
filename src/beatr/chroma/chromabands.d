@@ -6,6 +6,9 @@ import std.algorithm : map, max, min;
 import std.stdio;
 import std.conv: to;
 import std.math;
+import std.range;
+import std.exception : enforce;
+import std.string : format;
 
 version(unittest) {
 	import std.array;
@@ -36,12 +39,11 @@ private:
 public:
 	this(in ubyte numscales, in ubyte offsetscales, in uint dur = 0)
 	in {
-		assert(1 <= numscales && numscales <= 10);
+		assert(0 <= numscales && numscales <= 10);
 		assert(offsetscales <= 10);
 		assert(offsetscales + numscales - 1 <= 10);
 	}
 	body {
-		nbscales = numscales;
 		offset = offsetscales;
 		duration = dur;
 
@@ -51,6 +53,23 @@ public:
 			foreach (ref b; bands)
 				b[] = 0.;
 		}
+
+		if (freqs[offset + 12*numscales - 1]
+			>= Beatr.fftTransformSize/2) {
+			/* consider the last frequency admissible */
+			auto lastfreq = Beatr.fftTransformSize/2;
+			auto fs = assumeSorted(freqs);
+			/* we compute the index of the frequency of the highest note
+			   possible (length of the subarray inferior to lastfreq) */
+			int lastscale = to!int(fs.lowerBound(lastfreq).length / 12);
+			nbscales = to!ubyte((lastscale > offset) ? lastscale - offset : 0);
+
+			Beatr.writefln(Lvl.WARNING, "Maximum frequency considered greater "
+						   "than the Nyquist frequency of the fft "
+						   "transformation. Replacing number of scales with "
+						   "%s.", nbscales);
+		} else
+			nbscales = numscales;
 
 		Beatr.writefln(Lvl.DEBUG, "using mode '%s' and sigma '%s'",
 					   Beatr.fftInterpolationMode, Beatr.fftSigma);
@@ -67,7 +86,7 @@ public:
 	{
 		import std.algorithm : equal;
 
-		auto cb = new ChromaBands(10, 0);
+		auto cb = new ChromaBands(1, 1);
 		cb.bands ~= [1, 2, 3];
 		cb.bands ~= [4, 5];
 		assert(equal(cb.getBands, [[1, 2, 3], [4, 5]]));
@@ -102,10 +121,10 @@ public:
 		import std.algorithm : equal;
 		import std.math : approxEqual;
 
-		auto cb = new ChromaBands(10, 1);
+		auto cb = new ChromaBands(2, 1);
 		cb.bands ~= [1, 2, 3];
 		cb.bands ~= [4, 5];
-		assert(equal!approxEqual(cb.normalize, [0.25, 0.35, 0.15, 0., 0., 0.,
+		assert(equal!approxEqual(cb.normalize, [1.25, 1.75, 0.75, 0., 0., 0.,
 												0., 0., 0., 0., 0., 0.]));
 
 		cb = new ChromaBands(2, 1);
@@ -134,9 +153,12 @@ public:
 		/* indexes of each note in the FFT array */
 		auto fscales = freqs[offset*12 .. ((offset + nbscales) * 12)];
 
+		enforce(fscales[$ - 1] < s.length,
+				format("Sample provided (%s) too small for the frequencies "
+					   "considered (<= %s).", s.length, fscales[$ - 1]));
+
 		/* bands of the sample */
 		double[] b = new double[nbscales * 12];
-		b[] = 0.;
 
 		/* boundaries of the window */
 		size_t begin;
@@ -146,29 +168,31 @@ public:
 		 * Thus mu_(i) * Q = mu_(i+1)*sigma */
 		immutable Q = Beatr.fftSigma * (nextNote - 1);
 
+		double sum;
+		double coeff;
 		foreach(i, f; fscales) {
 			/* center of the window is the note frequency */
-			auto mu = f * s.length / beatrSampleRate;
+			auto mu = f * s.length / Beatr.sampleRate;
 
 			if (Q == 0.) {
 				b[i] = s[to!ulong(mu)];
 				continue;
-			}
+			} else
+				b[i] = 0.;
 
 			/* Leftmost bin from which we start to aggregate results */
 			auto left = mu*(1 - Q);
 			begin = (left < 0.) ? 0 : min(to!ulong(left), to!ulong(mu));
 			// XXX bound check for end
 			end = max(to!ulong(mu*(1 + Q)), to!ulong(mu) + 1);
+			end = min(end, s.length - 1);
 			auto right = mu*(1 + Q);
 
 			/* for every significant abscissa ([mu(1-Q); mu(1+Q)], compute
 			   the correlation coeff, add coeff * value, and in the end
 			   divide by the sum of the coefficients */
-			double sum = 0.;
-			double coeff;
+			sum = 0.;
 
-			import util.note;
 			foreach (j; begin .. (end+1)) {
 				if (j < left || j > right)
 					continue;
@@ -177,7 +201,8 @@ public:
 				sum += coeff;
 				b[i] += s[j] * coeff;
 			}
-			if (sum != 0)
+
+			if (sum != 0.)
 				b[i] /= sum;
 		}
 
