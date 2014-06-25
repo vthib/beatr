@@ -39,7 +39,7 @@ void
 initOptArrays()
 {
 	void
-		fillInfos(T)(ref Info!T[] a)
+	fillInfos(T)(ref Info!T[] a)
 	{
 		foreach (v; __traits(allMembers, T))
 			a ~= Info!T(v.toLower, __traits(getMember, T, v));
@@ -142,7 +142,9 @@ main(string args[])
 
 		io.writeln("\t\t--fftsize\tSize of the fft transformation");
 		io.writeln("\t\t--fftoverlaps\tNumber of overlaps executed when the\n"
-				"\t\t\tfftsize is different than the audio stream size");
+				   "\t\t\tfftsize is different than the audio stream size");
+		io.writeln("\t\t--samplerate\tSamplerate used internally to which the\n"
+				   "\t\t\taudio input is reduced");
 	}
 
 	try {
@@ -163,6 +165,7 @@ main(string args[])
 			"bufsize", &setOptions2,
 			"fftsize", &setOptions2,
 			"fftoverlaps", &setOptions2,
+			"samplerate", &setOptions2,
 			"verbose|v", &setOptions);
 	} catch (Exception e) {
 		io.stderr.writefln("error: %s", e.msg);
@@ -240,9 +243,6 @@ void
 setOptions2(string opt, string value)
 {
 	switch (opt) {
-	case "fftsigma":
-		Beatr.fftSigma = to!(typeof(Beatr.fftSigma))(value);
-		break;
 	case "fftimode":
 		foreach(w; windows) {
 			if (value == w.name) {
@@ -268,6 +268,9 @@ setOptions2(string opt, string value)
 			break;
 		}
 		break;
+	case "fftsigma":
+		Beatr.fftSigma = to!(typeof(Beatr.fftSigma))(value);
+		break;
 	case "bufsize":
 		Beatr.framesBufSize = to!(typeof(Beatr.framesBufSize))(value);
 		break;
@@ -276,6 +279,9 @@ setOptions2(string opt, string value)
 		break;
 	case "fftoverlaps":
 		Beatr.fftNbOverlaps= to!(typeof(Beatr.fftNbOverlaps))(value);
+		break;
+	case "samplerate":
+		Beatr.sampleRate = to!(typeof(Beatr.sampleRate))(value);
 		break;
 	default:
 		io.stderr.writefln("Unknown option '%s'", opt);

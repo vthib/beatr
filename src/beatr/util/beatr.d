@@ -49,7 +49,6 @@ private:
 
 	/++ Sample rate of the resampled audio signal used by beatr +/
 	static uint samplerate = 44100;
-//	static uint samplerate = 16384;
 
 	/* XXX: not working, because of static methods? */
 	version(none) {
