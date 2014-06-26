@@ -47,38 +47,41 @@ double[] fft2bins(const(short[]) audio, int transformSize = -1,
 						   "not divisible by number of overlaps");
 	}
 
-	auto ibuf = new double[transformSize];
-	auto obuf = new cdouble[transformSize];
+	auto ibuf = fftw_alloc_real(transformSize);
+	auto obuf = fftw_alloc_complex(transformSize);
+	scope(exit) {
+		fftw_free(ibuf);
+		fftw_free(obuf);
+	}
 
-	auto plan = fftw_plan_dft_r2c_1d(transformSize, ibuf.ptr, obuf.ptr,
+	auto plan = fftw_plan_dft_r2c_1d(transformSize, ibuf, obuf,
 									 FFTW_MEASURE | FFTW_DESTROY_INPUT
 									 | FFTW_WISDOM_ONLY);
 	if (plan is null) {
-		plan = fftw_plan_dft_r2c_1d(transformSize, ibuf.ptr, obuf.ptr,
+		plan = fftw_plan_dft_r2c_1d(transformSize, ibuf, obuf,
 									FFTW_MEASURE | FFTW_DESTROY_INPUT);
 		Beatr.writefln(Lvl.DEBUG, "no wisdom available: new wisdom exported "
 					   "to '%s'", Beatr.configDir ~ "/wisdom");
 		immutable auto filename = toStringz(Beatr.configDir ~ "/wisdom");
 		fftw_export_wisdom_to_filename(filename);
 	}
-	scope(exit) fftw_destroy_plan(plan);
+	scope(exit)
+		fftw_destroy_plan(plan);
 
 	auto vec = new double[transformSize/2];
 	vec[] = 0.;
 
 	foreach(step; 0 .. nbOverlaps) {
 		/*copy the input into the ibuf buffer */
-		/* !!! This has to be _after_ the plan creation, as this function sets
+		/* This has to be done _after_ the plan creation, as this function sets
 		   its argument to 0 */
 		size_t idx = step * (audio.length - transformSize)/nbOverlaps;
-		foreach (ref i; ibuf)
-			i = audio[idx++];
+		foreach (i; 0 .. transformSize)
+			ibuf[i] = audio[idx++];
 
 		fftw_execute(plan);
 
 		/* add it to our norms field */
-		/* XXX try without sqrt? it isn't really needed, the norm squared
-		 * works just as well */
 		foreach (i, ref o; vec)
 			o += sqrt(obuf[i].re * obuf[i].re + obuf[i].im * obuf[i].im)
 				/ transformSize;

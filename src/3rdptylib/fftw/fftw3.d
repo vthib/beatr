@@ -1118,6 +1118,34 @@ void %s_free(void *);
 		}
 	}
 
+	/* X_alloc_real */
+	pragma(mangle, format(q{%s_alloc_real}, p))
+	mixin(format(q{
+R *%s_alloc_real(size_t n);
+}, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				auto p = %s_alloc_real(10);
+				%s_free(p);
+			}, p, p));
+		}
+	}
+
+	/* X_alloc_complex */
+	pragma(mangle, format(q{%s_alloc_complex}, p))
+	mixin(format(q{
+T *%s_alloc_complex(size_t n);
+}, p));
+	version(fftwunittests) {
+		unittest {
+			mixin(format(q{
+				auto p = %s_alloc_complex(10);
+				%s_free(p);
+			}, p, p));
+		}
+	}
+
 	/* X_flops */
 	pragma(mangle, format(q{%s_flops}, p))
 	mixin(format(q{
@@ -1231,4 +1259,3 @@ enum : uint {
 	FFTW_ALLOW_PRUNING          = 1u << 20,
 	FFTW_WISDOM_ONLY            = 1u << 21
 }
-
