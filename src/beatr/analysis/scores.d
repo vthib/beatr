@@ -1,15 +1,15 @@
+import std.math : isNaN, sqrt;
+version(unittest) {
+	import std.math : approxEqual;
+	import std.algorithm : equal, map;
+	import std.array : array;
+	import std.string : appender, indexOf;
+}
+
 import chroma.chromabands;
 import chroma.chromaprofile;
 import util.note;
 import util.beatr;
-
-import std.stdio;
-import std.conv : to;
-import std.array;
-
-version(unittest) {
-	import std.string;
-}
 
 enum CorrelationMethod {
 	PEARSON,
@@ -79,7 +79,7 @@ public:
 
 	@property auto confidence()
 	{
-		if (std.math.isNaN(marginScore))
+		if (isNaN(marginScore))
 			bestKey();
 		return marginScore;
 	}
@@ -244,8 +244,6 @@ private:
 	}
 	unittest
 	{
-		import std.math : approxEqual;
-
 		double[] a = [5., 2., -1., 8., 7., 0., 2.];
 		double[] b = [3., -4, 2, -0.5, 0., 3., -0.5];
 
@@ -284,14 +282,12 @@ private:
 		}
 
 		if (bVariance > 0 && pVariance > 0)
-			corr /= std.math.sqrt(bVariance * pVariance);
+			corr /= sqrt(bVariance * pVariance);
 
 		return corr;
 	}
 	unittest
 	{
-		import std.math : approxEqual;
-
 		double[] a = [3., 5., 1.];
 		auto ma = a.map!(a => -a).array;
 		double[] b = [1., 1., 1.];
@@ -313,14 +309,12 @@ private:
 		}
 
 		if (bNorm > 0. && pNorm > 0.)
-			return cos / std.math.sqrt(bNorm * pNorm);
+			return cos / sqrt(bNorm * pNorm);
 		else
 			return 0;
 	}
 	unittest
 	{
-		import std.math : approxEqual;
-
 		double[] a = [5., 2., -1., 8., 7., 0., 2.];
 		auto ma = a.map!(a => -a).array;
 		double[] b = [3., -4, 2, -0.5, 0., 3., -0.5];
@@ -331,6 +325,8 @@ private:
 		assert(approxEqual(cosine([0., 0., 0.], [0., 0., 0.]), 0));
 	}
 
+	/* XXX experiment with different coefficients for each addition,
+	 * e.g. 0.5 for add_dominant, 0.3 for add_relative, ... */
 	static void adjustScores(double[] scores, MatchingType m) pure
 	{
 		size_t idx;
@@ -362,9 +358,6 @@ private:
 	}
 	unittest
 	{
-		import std.algorithm : equal;
-		import std.math : approxEqual;
-
 		double[] s = [1., 2., 4., 8., 16., 32., 64.,
                       128., 256., 512., 1024., 2048.,
 					  0., 1., 2., 4., 8., 16., 32.,

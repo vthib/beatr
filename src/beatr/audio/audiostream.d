@@ -1,12 +1,10 @@
 //@safe:
+import core.stdc.string : memcpy;
 
-import std.array;
-import std.stdio;
+import audio.audiofile;
+import audio.resampler;
 
-import file.audiofile;
-import file.resampler;
 import exc.libavexception;
-import util.types;
 import util.beatr;
 
 import libavcodec.avcodec;
@@ -83,7 +81,7 @@ public:
 		return endOfFile && (offset == dend);
 	}
 
-	@property beatrSample front()
+	@property short[] front()
 	{
 		/* if not enough data left in the buffer, fill it again */
 		if (offset + samplerate > dend) {

@@ -1,19 +1,15 @@
-import util.types;
-import util.beatr;
-import util.window;
-
-import std.algorithm : map, max, min;
-import std.stdio;
-import std.conv: to;
-import std.math;
-import std.range;
+import std.algorithm : max, min;
 import std.exception : enforce;
 import std.string : format;
-
+import std.range : assumeSorted;
+import std.conv: to;
+import std.stdio : stdout;
 version(unittest) {
-	import std.array;
-	import std.string;
+	import std.string : appender, indexOf;
 }
+
+import util.beatr;
+import util.window;
 
 /++
  + Chroma bands represents an histogram of the intensity of each note.

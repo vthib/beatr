@@ -3,7 +3,7 @@ OBJ=$(SRC:.d=.o)
 TARGET=$(OBJ:.o=)
 
 BEATRPATH=..
-BEATRDIR=$(BEATRPATH)/util $(BEATRPATH)/exc $(BEATRPATH)/file $(BEATRPATH)/analysis $(BEATRPATH)/chroma
+BEATRDIR=$(BEATRPATH)/util $(BEATRPATH)/exc $(BEATRPATH)/audio $(BEATRPATH)/analysis $(BEATRPATH)/chroma
 BEATRSRC=$(shell find $(BEATRDIR) -name '*.d')
 BSRC=$(shell for i in $(BEATRSRC); do echo src/`basename $$i`; done)
 BOBJ=$(BSRC:src/%.d=%.o)
@@ -37,12 +37,12 @@ clean:
 	rm -rf $(OBJ) $(TARGET) $(BOBJ) src *.lst
 	mkdir src
 
-test: $(TARGET)
+test: compile
 	./unittesting
 	./test_mfiles
 
-unittest: unittesting
+unittest: compile unittesting
 	./unittesting
 
-coverage: test_mfiles
+coverage: compile test_mfiles
 	./test_mfiles

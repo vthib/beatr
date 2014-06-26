@@ -1,14 +1,15 @@
 import io = std.stdio;
 import cio = std.c.stdio;
-import std.c.stdlib;
+import std.c.stdlib : exit;
 import std.path : expandTilde;
-
-import std.exception;
-import core.exception;
+version(unittest) {
+	import std.exception : assertThrown;
+	import core.exception : AssertError;
+}
 
 import util.window;
 
-version(Unittest) {}
+version(unittest) {}
 else {  @safe: }
 
 public:

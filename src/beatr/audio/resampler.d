@@ -4,7 +4,6 @@ import util.beatr;
 import libavcodec.avcodec;
 import libavresample.avresample;
 import libavutil.opt;
-import libavutil.samplefmt;
 
 class Resampler
 {

@@ -1,4 +1,4 @@
-import std.string;
+import std.string : toStringz;
 
 import libavcodec.avcodec;
 import libavformat.avformat;

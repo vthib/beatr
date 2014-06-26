@@ -1,5 +1,5 @@
 TARGET=libbeatr.so
-DIRS=util chroma exc file analysis
+DIRS=util chroma exc audio analysis
 SRC=$(shell find $(DIRS) -type f -name '*.d' -print)
 OBJ=$(SRC:.d=.o)
 

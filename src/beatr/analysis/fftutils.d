@@ -1,7 +1,5 @@
-import std.math : sqrt;
-import std.stdio;
 import std.file : mkdir, FileException;
-import std.string : toStringz;
+import std.math : sqrt;
 import core.stdc.errno : EEXIST;
 import std.exception : enforce;
 
@@ -79,6 +77,8 @@ double[] fft2bins(const(short[]) audio, int transformSize = -1,
 		fftw_execute(plan);
 
 		/* add it to our norms field */
+		/* XXX try without sqrt? it isn't really needed, the norm squared
+		 * works just as well */
 		foreach (i, ref o; vec)
 			o += sqrt(obuf[i].re * obuf[i].re + obuf[i].im * obuf[i].im)
 				/ transformSize;

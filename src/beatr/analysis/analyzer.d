@@ -1,10 +1,10 @@
 import chroma.chromaprofile;
 import chroma.chromabands;
-import file.audiostream;
-import file.audiofile;
-import util.beatr;
-import analysis.scores;
+import audio.audiofile;
+import audio.audiostream;
 import analysis.fftutils;
+import analysis.scores;
+import util.beatr;
 
 /++
  + Main class of Beatr.
