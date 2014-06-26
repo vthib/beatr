@@ -19,8 +19,8 @@ class AudioStream
 {
 private:
 	short[] d; /++ buffer containing the decompressed data +/
-	ulong offset; /++ current position in the buffer +/
-	ulong dend; /++ current end of valid data in the buffer +/
+	size_t offset; /++ current position in the buffer +/
+	size_t dend; /++ current end of valid data in the buffer +/
 	bool endOfFile; /++ No more data is available from the audio file +/
 
 	AudioFile af; /++ the audio file we are decompressing +/

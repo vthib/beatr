@@ -60,7 +60,7 @@ public:
 	{
 		/* find max and secondmax */
 		double max = 0.;
-		ulong imax;
+		size_t imax;
 		double secondmax = 0.;
 		foreach(j, s; scores) {
 			if (s > max) {
@@ -333,7 +333,7 @@ private:
 
 	static void adjustScores(double[] scores, MatchingType m) pure
 	{
-		ulong idx;
+		size_t idx;
 		auto save = scores.idup;
 
 		/* add the score of the relative to each */

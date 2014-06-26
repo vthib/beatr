@@ -175,16 +175,16 @@ public:
 			auto mu = f * s.length / Beatr.sampleRate;
 
 			if (Q == 0.) {
-				b[i] = s[to!ulong(mu)];
+				b[i] = s[to!(size_t)(mu)];
 				continue;
 			} else
 				b[i] = 0.;
 
 			/* Leftmost bin from which we start to aggregate results */
 			auto left = mu*(1 - Q);
-			begin = (left < 0.) ? 0 : min(to!ulong(left), to!ulong(mu));
+			begin = (left < 0.) ? 0 : to!size_t(min(left, mu));
 			// XXX bound check for end
-			end = max(to!ulong(mu*(1 + Q)), to!ulong(mu) + 1);
+			end = to!size_t(max(mu*(1 + Q), mu + 1));
 			end = min(end, s.length - 1);
 			auto right = mu*(1 + Q);
 

@@ -12,24 +12,26 @@ BOBJ=$(BSRC:src/%.d=%.o)
 3RDLIBS=$(3RDDIR)/libdavcodec.so $(3RDDIR)/libdavformat.so $(3RDDIR)/libdavutil.so $(3RDDIR)/libdfftw3.so
 
 DC=dmd
-DFLAGS?=-unittest -cov
+DFLAGS?=-unittest -cov -gc -debug
 IFLAGS=-I$(shell pwd)/$(BEATRPATH) -I$(3RDDIR)
 LDFLAGS=-L-L$(3RDDIR) -L-ldavcodec -L-ldavformat -L-ldfftw3 -L-ldavresample -L-ldavutil -L-lavutil -L-lavcodec -L-lavformat -L-lfftw3 -L-lavresample
 
-.PHONY=clean test copy
-all: $(TARGET)
+.PHONY=clean test copy compile
+all: compile
 
 copy:
 	cp -u $(BEATRSRC) src
 
-$(BOBJ): %.o : copy
-	dmd $(DFLAGS) $(IFLAGS) -of$@ -c src/$*.d
+$(BOBJ): %.o : src/%.d
+	dmd $(DFLAGS) $(IFLAGS) -of$@ -c $<
 
 $(OBJ): %.o : %.d
 	$(DC) $(DFLAGS) $(IFLAGS) -of$@ -c $<
 
 $(TARGET): % : %.o $(BOBJ)
 	$(DC) $(DFLAGS) $(LDFLAGS) -defaultlib=libphobos2.so -L-rpath=$(3RDDIR) -of$@ $^
+
+compile: copy $(TARGET)
 
 clean:
 	rm -rf $(OBJ) $(TARGET) $(BOBJ) src *.lst
