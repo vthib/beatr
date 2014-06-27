@@ -6,6 +6,8 @@ import std.conv: to;
 import std.stdio : stdout;
 version(unittest) {
 	import std.string : appender, indexOf;
+	import std.algorithm : equal;
+	import std.math : approxEqual;
 }
 
 import util.beatr;
@@ -21,7 +23,6 @@ private:
 	/* Number of scales in our chroma bands */
 	immutable ubyte nbscales;
 	immutable ubyte offset;
-	immutable uint duration;
 
 	/* 1st dim: division of time (one band for every 2 second) */
 	/* 2nd dim: 12 semitons * number of scales = number of notes considered */
@@ -33,27 +34,22 @@ private:
 	enum freqs = genFreqs(); /++ the frequencies for each note +/
 
 public:
-	this(in ubyte numscales, in ubyte offsetscales, in uint dur = 0)
+	this(in ubyte numscales, in ubyte offsetscales)
 	in {
 		assert(0 <= numscales && numscales <= 10);
 		assert(offsetscales <= 10);
-		assert(offsetscales + numscales - 1 <= 10);
+		assert(offsetscales + numscales <= 10);
 	}
 	body {
 		offset = offsetscales;
-		duration = dur;
 
 		curf = 0;
-		version(with_duration) {
-			bands = new double[][](dur/2 + 1, nbscales * 12);
-			foreach (ref b; bands)
-				b[] = 0.;
-		}
 
-		if (freqs[offset + 12*numscales - 1]
-			>= Beatr.fftTransformSize/2) {
+		/* this bound is independent of the fft transformation size */
+		if (numscales != 0 && freqs[12*(offset + numscales) - 1]
+			>= Beatr.sampleRate/2) {
 			/* consider the last frequency admissible */
-			auto lastfreq = Beatr.fftTransformSize/2;
+			auto lastfreq = Beatr.sampleRate/2;
 			auto fs = assumeSorted(freqs);
 			/* we compute the index of the frequency of the highest note
 			   possible (length of the subarray inferior to lastfreq) */
@@ -62,8 +58,8 @@ public:
 
 			Beatr.writefln(Lvl.WARNING, "Maximum frequency considered greater "
 						   "than the Nyquist frequency of the fft "
-						   "transformation. Replacing number of scales with "
-						   "%s.", nbscales);
+						   "transformation. Replacing number of scales %s with "
+						   "%s.", numscales, nbscales);
 		} else
 			nbscales = numscales;
 
@@ -73,6 +69,55 @@ public:
 					   Beatr.scaleOffset,
 					   Beatr.scaleOffset + Beatr.scaleNumbers);
 	}
+	unittest
+	{
+		auto save = Beatr.sampleRate;
+		auto lvl = Beatr.verboseLevel;
+		ChromaBands cb;
+
+		Beatr.verboseLevel = Lvl.SILENCE;
+
+		Beatr.sampleRate = 44100;
+		/* no issue here */
+		cb = new ChromaBands(10, 0);
+		assert(cb.nbscales == 10);
+		assert(cb.offset == 0);
+
+		/* max freq is 16384/2 == 8192 Hz, between B8 and C9 */
+		Beatr.sampleRate = 16384;
+
+		/* this should be shrinked back to 8 scales */
+		cb = new ChromaBands(9, 1);
+		assert(cb.nbscales == 8);
+		assert(cb.offset == 1);
+
+		/* max freq is 670 Hz, between D5 and F5 */
+		Beatr.sampleRate = 1340;
+
+		/* this should be shrinked back to 3 scales */
+		cb = new ChromaBands(5, 2);
+		assert(cb.nbscales == 3);
+		assert(cb.offset == 2);
+
+		/* this should not be shrunk */
+		cb = new ChromaBands(5, 0);
+		assert(cb.nbscales == 5);
+		assert(cb.offset == 0);
+
+		foreach (ubyte offset; 0..7) {
+			foreach (ubyte nbscales; 0..to!ubyte(10-offset)) {
+				cb = new ChromaBands(nbscales, offset);
+				if (nbscales + offset > 5)
+					assert(cb.nbscales == max(0, 5 - offset));
+				else
+					assert(cb.nbscales == nbscales);
+				assert(cb.offset == offset);
+			}
+		}
+
+		Beatr.verboseLevel = lvl;
+		Beatr.sampleRate = save;
+	}
 
 	@property auto getBands() const nothrow @safe
 	{
@@ -80,8 +125,6 @@ public:
 	}
 	unittest
 	{
-		import std.algorithm : equal;
-
 		auto cb = new ChromaBands(1, 1);
 		cb.bands ~= [1, 2, 3];
 		cb.bands ~= [4, 5];
@@ -114,9 +157,6 @@ public:
 	}
 	unittest
 	{
-		import std.algorithm : equal;
-		import std.math : approxEqual;
-
 		auto cb = new ChromaBands(2, 1);
 		cb.bands ~= [1, 2, 3];
 		cb.bands ~= [4, 5];
@@ -202,14 +242,10 @@ public:
 				b[i] /= sum;
 		}
 
-		version(with_duration) {
-			bands[curf++ / 2][] += b[];
-		} else {
-			if (curf++ % 2 == 0)
-				bands ~= b;
-			else
-				bands[$ - 1][] += b[];
-		}
+		if (curf++ % 2 == 0)
+			bands ~= b;
+		else
+			bands[$ - 1][] += b[];
 	}
 	/* XXX unittest? */
 
@@ -432,8 +468,6 @@ private:
 	}
 	unittest
 	{
-		import std.math : approxEqual;
-
 		auto freqs = genFreqs();
 
 		assert(approxEqual(freqs[9 + 12 * 4], 440)); /* A4 */

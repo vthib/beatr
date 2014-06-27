@@ -16,6 +16,7 @@ public:
 
 /++ different levels of debugging +/
 enum Lvl {
+	SILENCE = -2,
 	WARNING = -1,
 	NORMAL = 0,
 	VERBOSE = 1,

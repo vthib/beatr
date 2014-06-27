@@ -24,9 +24,13 @@ main()
 	foreach(i, d; mfiles)
 	{
 		try {
-			auto a = new Analyzer(d.name);
-			a.process();
-			auto key = a.bestKey();
+			auto a = new Analyzer();
+			a.processFile(d.name);
+			auto s = a.score();
+			s.printHistograms(10);
+			a.bands.printChromagram();
+			a.bands.printHistograms(10);
+			auto key = s.bestKey();
 			if (baseName(d.name).startsWith(key.name)) {
 				res[i] = true;
 				writefln("File '%s', key detected; %s", d.name, key);

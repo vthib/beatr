@@ -59,12 +59,6 @@ public:
 		return ctx.streams[audioStream].codec;
 	}
 
-	/* return the libAV format context */
-	@property const(AVFormatContext*) formatContext() const nothrow pure
-	{
-		return ctx;
-	}
-
 	/* return the duration in seconds */
 	@property uint duration() const nothrow pure
 	{
@@ -107,5 +101,5 @@ private:
 
 	/++ An AudioFile object can be used to access directly the members
 	 + of the AVFormatContext structure +/
-	alias formatContext this;
+	alias ctx this;
 }

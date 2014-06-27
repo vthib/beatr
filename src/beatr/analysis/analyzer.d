@@ -14,25 +14,19 @@ class Analyzer
 {
 private:
 	ChromaBands b;
-	Scores sc;
-	AudioFile af;
 
 public:
-	this(string as)
+	this()
 	{
-		af = new AudioFile(as);
-		b = new ChromaBands(Beatr.scaleNumbers, Beatr.scaleOffset,
-							af.duration);
+		b = new ChromaBands(Beatr.scaleNumbers, Beatr.scaleOffset);
 
 		fftInit();
 	}
 
 	/++ Process the audio file +/
-	void process()
-	in {
-		assert(af !is null);
-	}
-	body {
+	void processFile(string fname)
+	{
+		auto af = new AudioFile(fname);
 		auto stream = new AudioStream(af);
 
 		Beatr.writefln(Lvl.VERBOSE, "Using fft transform size %s and %s "
@@ -40,31 +34,43 @@ public:
 					   Beatr.fftNbOverlaps);
 
 		foreach(frame; stream)
-			b.addFftSample(fft2bins(frame, Beatr.fftTransformSize,
-									Beatr.fftNbOverlaps));
+			processFrame(frame);
 	}
 
-	/++ Returns the best key estimate of the sample processed +/
-	auto bestKey(ProfileType pt = ProfileType.KRUMHANSL,
-				 MatchingType mt = MatchingType.CLASSIC)
+	/++ process the given frame into chroma bands +/
+	void processFrame(short[] f)
 	{
-
-		Beatr.writefln(Lvl.VERBOSE, "Using profile %s and matching %s",
-					   pt, mt);
-
-		sc = new Scores(b, new ChromaProfile(pt), CorrelationMethod.COSINE, mt);
-
-		return sc.bestKey();
+		b.addFftSample(fft2bins(f, Beatr.fftTransformSize,
+								Beatr.fftNbOverlaps));
 	}
 
-	@property auto scores() nothrow
+	/++ Returns a score object based on the current chroma bands +/
+	auto score(ProfileType pt = ProfileType.KRUMHANSL,
+			   CorrelationMethod cm = CorrelationMethod.COSINE,
+			   MatchingType mt = MatchingType.CLASSIC)
 	{
-		return this.sc;
+		Beatr.writefln(Lvl.VERBOSE, "Using profile %s, correlation method %s "
+					   "and matching type %s", pt, cm, mt);
+
+		return new Scores(b, new ChromaProfile(pt), cm, mt);
 	}
 
 	@property auto bands() nothrow
 	{
 		return this.b;
+	}
+	unittest
+	{
+		import std.algorithm : equal;
+
+		auto a = new Analyzer();
+		assert(a.bands.getBands.length == 0);
+
+		auto frame = new short[Beatr.fftTransformSize];
+		a.processFrame(frame);
+		auto b = new double[][](1, Beatr.scaleNumbers*12);
+		b[0][] = 0.;
+		assert(equal(a.bands.getBands, b));
 	}
 
 private:
