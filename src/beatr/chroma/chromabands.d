@@ -367,29 +367,37 @@ EOS"
 
 	/++ print a Chromagram
 	 +/
-	void printChromagram() const
+	void printChromagram(bool full = false) const
 	{
-		printChromagram(stdout.lockingTextWriter);
+		printChromagram(stdout.lockingTextWriter, full);
 	}
 
-	void printChromagram(Writer)(Writer w) const
+	void printChromagram(Writer)(Writer w, bool full = false) const
 	{
-		/* start from A0 and not C0 if offset == 0*/
+		/* start from A0 and not C0 if offset == 0 */
 		immutable firstoffset = (offset == 0) ? 9 : 0;
-		auto b = new double[12][bands.length];
-		foreach(ref t; b)
-			t[] = 0.;
-		foreach(i, t; bands)
-			foreach(j; firstoffset .. t.length)
-				b[i][j % 12] += t[j];
+		const(double[])[] b;
+		if (full)
+			b = bands;
+		else {
+			auto b2 = new double[][](bands.length, 12);
+			foreach(ref t; b2)
+				t[] = 0.;
+			foreach(i, t; bands)
+				foreach(j; firstoffset .. t.length)
+					b2[i][full ? j : j % 12] += t[j];
+			b = b2;
+		}
 
 		double max = 0.;
 		foreach (t; b)
-			foreach (a; t)
-				if (a > max) max = a;
+			foreach (i; firstoffset .. t.length)
+				if (t[i] > max) max = t[i];
 
-		foreach (j; 0 .. 12) {
-			switch (j) {
+		immutable auto begin = full ? firstoffset : 0;
+		immutable auto end = full ? nbscales*12 : 12;
+		foreach (j; begin .. end) {
+			switch (j % 12) {
 			case  0: w.put("C "); break;
 			case  2: w.put("D "); break;
 			case  4: w.put("E "); break;
@@ -436,6 +444,14 @@ EOS"
 		assert(-1 != app.data.indexOf(
 				   "C # -\n     \nD   -\n   Q-\nE 1  \nF    \n"
 				   "   1-\nG x -\n     \nA   -\n   x-\nB    \n"));
+
+		app = appender!string();
+		cb.printChromagram(app, true);
+		assert(-1 != app.data.indexOf(
+				   "C Q  \n     \nD    \n   # \nE -  \nF    \n"
+				   "   1 \nG 1  \n     \nA    \n   Q \nB    \n"
+				   "C 1 -\n     \nD   -\n    -\nE -  \nF    \n"
+				   "    -\nG - -\n     \nA   -\n    -\nB    \n"));
 
 		/* test that it starts from A0 not C0 */
 		app = appender!string();

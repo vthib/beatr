@@ -24,6 +24,7 @@ struct Options {
 	bool sgraph;
 	bool cgraph;
 	bool chromagram;
+	size_t seconds;
 }
 
 /* used to map options like "--profile" with a corresponding enum value */
@@ -149,6 +150,8 @@ void printHelp(string programName)
 			   "\t\t\tfftsize is different than the audio stream size");
 	io.writeln("\t\t--samplerate\tSamplerate used internally to which the\n"
 			   "\t\t\taudio input is reduced");
+
+	io.writeln("\t\t--seconds\tOnly analyze first 'n' seconds from the input");
 }
 
 int
@@ -162,9 +165,10 @@ main(string args[])
 		getopt(
 			args,
 			"cgraph|c", &opt.cgraph,
-			"chromagram|cg", &opt.chromagram,
+			"chromagram", &opt.chromagram,
 			"debug|d", &setOptions,
 			"graph|g", &opt.sgraph,
+			"seconds", &opt.seconds,
 			"help|h", () => printHelp(args[0]),
 			"mtype|m", (string a, string b) => matchingCallback(opt, a, b),
 			"profile|p",
@@ -212,9 +216,12 @@ process(string f, Options opt)
 		Beatr.writefln(Lvl.VERBOSE, "Processing '%s'...", f);
 		try {
 			auto a = new Analyzer();
-			a.processFile(f);
+			if (opt.seconds != 0)
+				a.processFile(f, opt.seconds);
+			else
+				a.processFile(f);
 
-			auto s = a.score(opt.profile, opt.corr, opt.match); 
+			auto s = a.score(opt.profile, opt.corr, opt.match);
 			auto k = s.bestKey();
 			if (opt.cgraph)
 				a.bands.printHistograms(25);

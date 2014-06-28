@@ -23,8 +23,8 @@ public:
 		fftInit();
 	}
 
-	/++ Process the audio file +/
-	void processFile(string fname)
+	/++ Process the audio file, up to 'seconds' seconds +/
+	void processFile(string fname, size_t seconds = size_t.max)
 	{
 		auto af = new AudioFile(fname);
 		auto stream = new AudioStream(af);
@@ -33,8 +33,12 @@ public:
 					   "overlaps", Beatr.fftTransformSize,
 					   Beatr.fftNbOverlaps);
 
-		foreach(frame; stream)
+		size_t i = 0;
+		foreach(frame; stream) {
+			if (i++ >= seconds)
+				break;
 			processFrame(frame);
+		}
 	}
 
 	/++ process the given frame into chroma bands +/
