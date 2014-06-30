@@ -186,6 +186,7 @@ main(string args[])
 			"fftsize", &setOptions2,
 			"fftoverlaps", &setOptions2,
 			"samplerate", &setOptions2,
+			"mcoeffs", &setOptions2,
 			"verbose|v", &setOptions);
 	} catch (Exception e) {
 		io.stderr.writefln("error: %s", e.msg);
@@ -306,6 +307,9 @@ setOptions2(string opt, string value)
 		break;
 	case "samplerate":
 		Beatr.sampleRate = to!(typeof(Beatr.sampleRate))(value);
+		break;
+	case "mcoeffs":
+		Beatr.mCoefficients = to!(typeof(Beatr.mCoefficients))(value);
 		break;
 	default:
 		io.stderr.writefln("Unknown option '%s'", opt);

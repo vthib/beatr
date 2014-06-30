@@ -327,33 +327,40 @@ private:
 
 	/* XXX experiment with different coefficients for each addition,
 	 * e.g. 0.5 for add_dominant, 0.3 for add_relative, ... */
-	static void adjustScores(double[] scores, MatchingType m) pure
+	static void adjustScores(double[] scores, MatchingType m)
 	{
 		size_t idx;
 		auto save = scores.idup;
+		double c;
 
-		/* add the score of the relative to each */
-		if (m & MatchingType.ADD_RELATIVE) {
-			foreach (i; 0 .. 12)
-				scores[i] += save[12 + ((i + 9) % 12)];
-			foreach (i; 12 .. 24)
-				scores[i] += save[((i - 3) % 12)];
-		}
+		Beatr.writefln(Lvl.DEBUG, "Adjusting scores using matching type %s "
+					   "and coefficients %s", m, Beatr.mCoefficients);
+
 		/* add the score of the dominant to each */
 		if (m & MatchingType.ADD_DOMINANT) {
 			foreach (i; 0 .. 12) {
+				c = Beatr.mCoefficients[0];
 				idx = (i + 7) % 12;
-				scores[i] += save[idx];
-				scores[12 + i] += save[12 + idx];
+				scores[i] +=  c * save[idx];
+				scores[12 + i] += c * save[12 + idx];
 			}
 		}
-		/* add the score of the dominant to each */
+		/* add the score of the sub-dominant to each */
 		if (m & MatchingType.ADD_SUBDOM) {
 			foreach (i; 0 .. 12) {
+				c = Beatr.mCoefficients[1];
 				idx = (i + 5) % 12;
-				scores[i] += save[idx];
-				scores[12 + i] += save[12 + idx];
+				scores[i] += c * save[idx];
+				scores[12 + i] +=  c * save[12 + idx];
 			}
+		}
+		/* add the score of the relative to each */
+		if (m & MatchingType.ADD_RELATIVE) {
+			c = Beatr.mCoefficients[2];
+			foreach (i; 0 .. 12)
+				scores[i] += c * save[12 + ((i + 9) % 12)];
+			foreach (i; 12 .. 24)
+				scores[i] += c * save[((i - 3) % 12)];
 		}
 	}
 	unittest
@@ -366,6 +373,9 @@ private:
 		double[] rel = s[21 .. 24] ~ s[12 .. 21] ~ s[9  .. 12] ~ s[0  ..  9];
 		double[] sub = s[5  .. 12] ~ s[0  ..  5] ~ s[17 .. 24] ~ s[12 .. 17];
 		auto t = s.dup;
+
+		auto csave = Beatr.mCoefficients();
+		Beatr.mCoefficients = [1., 1., 1.];
 
 		auto res = s.dup;
 		t[] = s[];
@@ -401,5 +411,13 @@ private:
 		t[] = s[] + dom[] + sub[] + rel[];
 		adjustScores(res, MatchingType.ALL);
 		assert(equal!approxEqual(res, t));
+
+		Beatr.mCoefficients = [0.5, 0.3, 0.2];
+		res = s.dup;
+		t[] = s[] + 0.5*dom[] + 0.3*sub[] + 0.2*rel[];
+		adjustScores(res, MatchingType.ALL);
+		assert(equal!approxEqual(res, t));
+
+		Beatr.mCoefficients = csave;
 	}
 }

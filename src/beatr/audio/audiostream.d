@@ -50,9 +50,8 @@ public:
         if ((ret = avcodec_open2(ctx, avc, null)) < 0)
             throw new LibAvException("avcodec_open2 error", ret);
 
-        Beatr.writefln(Lvl.DEBUG, "sample rate: %s, duration: %s, "
-					   "channels: %s", ctx.sample_rate,
-					   af.duration / AV_TIME_BASE, ctx.channels);
+        Beatr.writefln(Lvl.DEBUG, "sample rate: %s, channels: %s",
+					   ctx.sample_rate, ctx.channels);
 
 		/* open the resampler */
 		samplerate = Beatr.sampleRate;
@@ -152,8 +151,6 @@ private:
 
 		if (endOfFile)
 			return;
-
-		Beatr.writefln(Lvl.DEBUG, "Adding decompressed frames...");
 
 		/* copy the data left to the beginning of the buffer */
 		offset = dend - offset;

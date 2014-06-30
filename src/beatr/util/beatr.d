@@ -3,8 +3,11 @@ import cio = std.c.stdio;
 import std.c.stdlib : exit;
 import std.path : expandTilde;
 version(unittest) {
+	import std.array;
 	import std.exception : assertThrown;
 	import core.exception : AssertError;
+	import std.algorithm : equal;
+	import std.math : approxEqual;
 }
 
 import util.window;
@@ -51,6 +54,9 @@ private:
 
 	/++ Sample rate of the resampled audio signal used by beatr +/
 	static uint samplerate = 44100;
+
+	/++ Coefficients used when adding dom/subdom/rel scores +/
+	static double[3] coeffs = [1., 1., 1.];
 
 	/* XXX: not working, because of static methods? */
 	version(none) {
@@ -361,4 +367,36 @@ public:
 		samplerate = sr;
 	}
 
+	/++ Returns the coefficients used with the matching algorithm
+	 + This is an array of 3 double, for respectively the dominant,
+	 + sub-dominant and relative scores
+	 + Default is [1., 1., 1.]
+	 +/
+	@property static auto mCoefficients() nothrow
+	{
+		return coeffs;
+	}
+
+	@property static auto mCoefficients(inout double[] ct) nothrow
+	{
+		foreach (i, c; ct) {
+			if (i >= 3)
+				break;
+			coeffs[i] = c;
+		}
+		return ct;
+	}
+	unittest
+	{
+		double[] c = this.mCoefficients;
+
+		assert(c == coeffs);
+
+		auto a = [0.5, 0.3, 0.2];
+		this.mCoefficients = a;
+		assert(this.mCoefficients == a);
+		assert(coeffs == a);
+
+		coeffs = c;
+	}
 }
