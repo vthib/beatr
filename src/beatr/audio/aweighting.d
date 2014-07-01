@@ -1,5 +1,5 @@
 import std.exception : assumeUnique;
-import std.math : log10;
+import std.math : log10, sqrt, pow;
 version(unittest) {
 	import std.math : approxEqual;
 	import core.exception : AssertError;
@@ -12,12 +12,12 @@ private:
 	immutable double[] weights;
 
 public:
-	this(double[] freqs)
+	this(in size_t size, in double scaling)
 	{
-		auto w = new double[freqs.length];
+		auto w = new double[size];
 
-		foreach(i, f; freqs)
-			w[i] = weightOfFreq(f);
+		foreach(i, ref a; w)
+			a = weightEnergy(i * scaling);
 
 		weights = assumeUnique(w);
 	}
@@ -33,54 +33,31 @@ public:
 	}
 	unittest
 	{
-		auto aw = new AWeighting([20, 2000]);
+		auto aw = new AWeighting(20., 2.);
 
-		assert(approxEqual(weightOfFreq(20), aw.weight(0)));
-		assert(approxEqual(weightOfFreq(2000), aw.weight(1)));
-		assertThrown!AssertError(aw.weight(2));
+		assert(approxEqual(weightEnergy(20.), aw.weight(10)));
+		assert(approxEqual(weightOfFreq(30.), aw.weight(15)));
+		assertThrown!AssertError(aw.weight(20));
 	}
 
+private:
+	/++ A-weighting db correction, returned as a multiplication coefficient
+	  + for the energy level +/
 	double weightEnergy(double f) pure nothrow
 	{
 		immutable auto f2 = f*f;
 		immutable auto f4 = f2*f2;
-		enum t = [[1.562339, 107.65265 * 107.65265, 737.86223 * 737.86223],
-				  [2.242881e16, 20.598997 * 20.598997, 12194.22 * 12194.22]];
 
 		double w = 1.;
-		auto div = (f2 + t[1][1])*(f2 + t[1][2]);
 
-		w *= (t[0][0] * f4)/((f2 + t[0][1])*(f2 + t[0][2]));
-		w *= (t[1][0] * f4)/(div * div);
+		w = (f2 + 20.6*20.6)*(f2+12200.*12200.);
+		w *= sqrt((f2 + 107.7*107.7)*(f2 + 737.9*737.9));
+		w = 12200. * 12200. * f4 / w;
 
-		return w;
-	}
-
-private:
-	/++ See
-	 + http://www.diracdelta.co.uk/science/source/a/w/aweighting/source.html
-	 +/
-	static double weightOfFreq(double f) pure nothrow
-	{
-		immutable auto f2 = f*f;
-		immutable auto f4 = f2*f2;
-		enum t = [[1.562339, 107.65265 * 107.65265, 737.86223 * 737.86223],
-				  [2.242881e16, 20.598997 * 20.598997, 12194.22 * 12194.22]];
-
-		double w = 0.;
-		auto div = (f2 + t[1][1])*(f2 + t[1][2]);
-
-		w += 10 * log10((t[0][0] * f4)/((f2 + t[0][1])*(f2 + t[0][2])));
-		w += 10 * log10((t[1][0] * f4)/(div * div));
-
-		return w;
+		return w * pow(10., 0.1);
 	}
 	unittest
 	{
-		assert(approxEqual(weightOfFreq(20), -50.5));
-		assert(approxEqual(weightOfFreq(630), -1.9));
-		assert(approxEqual(weightOfFreq(1000), 0));
-		assert(approxEqual(weightOfFreq(2000), 1.2));
-		assert(approxEqual(weightOfFreq(12500), -4.25));
+		assert(approxEqual(weightOfFreq(1000), 1.0));
 	}
 }

@@ -43,7 +43,8 @@ public:
 		assert(offsetscales + numscales <= 10);
 	}
 	body {
-		aw = new AWeighting(freqs);
+		aw = new AWeighting(Beatr.fftTransformSize/2,
+							Beatr.fftTransformSize / Beatr.sampleRate);
 		offset = offsetscales;
 
 		/* this bound is independent of the fft transformation size */
@@ -193,7 +194,8 @@ public:
 		double[] s = new double[sin.length];
 		s[] = sin[];
 		foreach (i, ref a; s)
-			a *= aw.weightEnergy((cast(double) i) * sampleSize / Beatr.sampleRate);
+			a *= aw.weight(i);
+
 		enforce(fscales[$ - 1] < s.length,
 				format("Sample provided (%s) too small for the frequencies "
 					   "considered (<= %s).", s.length, fscales[$ - 1]));
