@@ -2,7 +2,7 @@ import chroma.chromaprofile;
 import chroma.chromabands;
 import audio.audiofile;
 import audio.audiostream;
-import analysis.fftutils;
+import audio.fftutils;
 import analysis.scores;
 import util.beatr;
 
@@ -44,8 +44,9 @@ public:
 	/++ process the given frame into chroma bands +/
 	void processFrame(short[] f)
 	{
-		b.addFftSample(fft2bins(f, Beatr.fftTransformSize,
-								Beatr.fftNbOverlaps));
+		auto s = fft2bins(f, Beatr.fftTransformSize, Beatr.fftNbOverlaps);
+
+		b.addFftSample(s, Beatr.fftTransformSize);
 	}
 
 	/++ Returns a score object based on the current chroma bands +/

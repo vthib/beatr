@@ -4,6 +4,7 @@ import std.string : format;
 import std.range : assumeSorted;
 import std.conv: to;
 import std.stdio : stdout;
+
 version(unittest) {
 	import std.string : appender, indexOf;
 	import std.algorithm : equal;
@@ -12,14 +13,16 @@ version(unittest) {
 
 import util.beatr;
 import util.window;
+import audio.aweighting;
 
 /++
  + Chroma bands represents an histogram of the intensity of each note.
  +/
-public:
 class ChromaBands
 {
 private:
+	AWeighting aw;
+
 	/* Number of scales in our chroma bands */
 	immutable ubyte nbscales;
 	immutable ubyte offset;
@@ -27,7 +30,6 @@ private:
 	/* 1st dim: division of time (one band for every 2 second) */
 	/* 2nd dim: 12 semitons * number of scales = number of notes considered */
 	double[][] bands; /++ the chroma bands +/
-	size_t curf; /++ number of frame added +/
 
 	/* pow cannot be used in CTFE, so use a literal value instead */
 	enum nextNote = 1.05946309435929; /* sqrt(2, 12) */
@@ -41,9 +43,8 @@ public:
 		assert(offsetscales + numscales <= 10);
 	}
 	body {
+		aw = new AWeighting(freqs);
 		offset = offsetscales;
-
-		curf = 0;
 
 		/* this bound is independent of the fft transformation size */
 		if (numscales != 0 && freqs[12*(offset + numscales) - 1]
@@ -184,11 +185,15 @@ public:
 	/++ Use an array representing a FFT analysis to fill the chroma bands
 	 + Params: s = an array of a FFT analysis.
 	 +/
-	void addFftSample(in double[] s) //@safe
+	void addFftSample(in double[] sin, in int sampleSize) //@safe
 	body {
 		/* indexes of each note in the FFT array */
 		auto fscales = freqs[offset*12 .. ((offset + nbscales) * 12)];
 
+		double[] s = new double[sin.length];
+		s[] = sin[];
+		foreach (i, ref a; s)
+			a *= aw.weightEnergy((cast(double) i) * sampleSize / Beatr.sampleRate);
 		enforce(fscales[$ - 1] < s.length,
 				format("Sample provided (%s) too small for the frequencies "
 					   "considered (<= %s).", s.length, fscales[$ - 1]));
@@ -208,7 +213,7 @@ public:
 		double coeff;
 		foreach(i, f; fscales) {
 			/* center of the window is the note frequency */
-			auto mu = f * s.length / Beatr.sampleRate;
+			auto mu = f * sampleSize / Beatr.sampleRate;
 
 			if (Q == 0.) {
 				b[i] = s[to!(size_t)(mu)];
@@ -242,10 +247,7 @@ public:
 				b[i] /= sum;
 		}
 
-		if (curf++ % 2 == 0)
-			bands ~= b;
-		else
-			bands[$ - 1][] += b[];
+		bands ~= b;
 	}
 	/* XXX unittest? */
 

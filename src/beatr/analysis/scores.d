@@ -12,8 +12,8 @@ import util.note;
 import util.beatr;
 
 enum CorrelationMethod {
-	PEARSON,
 	COSINE,
+	PEARSON,
 };
 
 /++ Describe how the adjust the score for each key after using a
