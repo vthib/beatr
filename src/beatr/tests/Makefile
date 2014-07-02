@@ -6,7 +6,7 @@ BEATRPATH=..
 BEATRDIR=$(BEATRPATH)/util $(BEATRPATH)/exc $(BEATRPATH)/audio $(BEATRPATH)/analysis $(BEATRPATH)/chroma
 BEATRSRC=$(shell find $(BEATRDIR) -name '*.d')
 BSRC=$(shell for i in $(BEATRSRC); do echo src/`basename $$i`; done)
-BOBJ=$(BSRC:src/%.d=%.o)
+BOBJ=$(BSRC:src/%.d=obj/%.o)
 
 3RDDIR=$(shell pwd)/../../3rdptylib
 3RDLIBS=$(3RDDIR)/libdavcodec.so $(3RDDIR)/libdavformat.so $(3RDDIR)/libdavutil.so $(3RDDIR)/libdfftw3.so
@@ -22,7 +22,7 @@ all: compile
 copy:
 	cp -u $(BEATRSRC) src
 
-$(BOBJ): %.o : src/%.d
+$(BOBJ): obj/%.o : src/%.d
 	dmd $(DFLAGS) $(IFLAGS) -of$@ -c $<
 
 $(OBJ): %.o : %.d
@@ -34,8 +34,8 @@ $(TARGET): % : %.o $(BOBJ)
 compile: copy $(TARGET)
 
 clean:
-	rm -rf $(OBJ) $(TARGET) $(BOBJ) src *.lst
-	mkdir src
+	rm -rf $(TARGET) $(BOBJ) src obj *.lst
+	mkdir src obj
 
 test: compile
 	./unittesting

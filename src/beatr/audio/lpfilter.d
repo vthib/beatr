@@ -12,14 +12,33 @@ version(unittest) {
 
 import fftw.fftw3;
 
+/++ Implements a low-pass filter
+ + Based mostly on http://paulbourke.net/miscellaneous/filter/
+ +
+ + A desired frequency response is first created, then translated to the
+ + time domain. This impulse function is truncated into an array of size
+ + "order". This array is multiplied by a Hamming window function to limit
+ + artifacts.
+ +
+ + Application of the filter is done with the "filter" function, translating
+ + an input array into an output array. The filter has a delay of "order/2"
+ + inputs, giving its first results only after "order/2" inputs has been
+ + received. To output the last bytes, the third argument of the function has
+ + to be set to true
+ +/
 class LowPassFilter(size_t order)
 {
-	immutable double[order + 1] impulse;
-	immutable double gain;
-	double[order + 1] inBuf;
-	size_t idx;
-	bool bootstrapped;
+private:
+	immutable double[order + 1] impulse; /++ the impulse function +/
+	immutable double gain; /++ the sum of the impulse function coefficients +/
 
+	/++ the circular buffer used to keep delayed inputs +/
+	double[order + 1] inBuf;
+	size_t idx; /++ the current index in the buffer +/
+	bool bootstrapped; /++ Is the input buffer correctly initialized?
+						+ (ie has order/2 inputs been received?) +/
+
+public:
 	this(in int transformSize, in double cutOffFreq)
 	in
 	{
@@ -37,6 +56,7 @@ class LowPassFilter(size_t order)
 			g += a;
 		gain = g;
 
+		/* first order/2 inputs are 0 */
 		inBuf[] = 0.;
 		idx = order/2;
 		bootstrapped = false;
@@ -55,12 +75,21 @@ class LowPassFilter(size_t order)
 		assertThrown!AssertError(new LowPassFilter!10(20, -50.));
 	}
 
+	/++ Apply the filter on input, returning results in the "output" variable.
+	 + The "output" buffer has to have enough room:
+	 +  Between (input.length - order/2) and input.length if not flushing
+	 +  Up to input.length + order/2 if flushing
+	 + Set "flush" to true to retrieve the delayed inputs
+	 + Returns: the number of elements put in the "output" buffer
+	 +/
 	size_t filter(in double[] input, double[] output, bool flush = false)
 	{
 		size_t iidx = 0;
 		size_t outcnt = 0;
 
 		if (!bootstrapped) {
+			/* put input elements in the buffer as long as there are more
+			   than 1 place available */
 			while (idx != inBuf.length - 1) {
 				if (iidx >= input.length)
 					return 0;
@@ -70,6 +99,9 @@ class LowPassFilter(size_t order)
 			bootstrapped = true;
 		}
 
+		/* add the input (from the input array or 0 if flushing),
+		 * then convolutes the buffer with the impulse function.
+		 * Divide by gain to normalize */
 		while (iidx < input.length) {
 			addInput(input[iidx++]);
 			output[outcnt++] = convolution(inBuf, idx, impulse) / gain;
@@ -85,6 +117,7 @@ class LowPassFilter(size_t order)
 	}
 
 private:
+	/++ Add input in the buffer, then increments modulo (order+1) the index +/
 	void addInput(in double input) nothrow
 	{
 		inBuf[idx++] = input;
@@ -101,6 +134,8 @@ private:
 		assert(lpf.idx == 0 && lpf.inBuf[4] == 1);
 	}
 
+	/++ Computes the convolution of a with b, but starting in a from ai
+	 + ie, computes sum(i : 0 -> n, a[(ai + i) % n] * b[n - i] +/
 	static T convolution(T)(in T[] a, in size_t ai, in T[] b) nothrow pure
 	in
 	{
@@ -130,7 +165,8 @@ private:
 		assertThrown!AssertError(convolution(a, 1, [2., 3.]));
 	}
 
-	/++ Creates a time-domain vector equal to a reverse FFT of a lp filter +/
+	/++ Creates a time-domain vector equal to a reverse FFT of the desired
+	 + frequency response of an lp filter +/
 	double[] createImpulse(in int transformSize, in double cutOffFreq)
 	{
 		auto ibuf = new cdouble[transformSize];
@@ -141,6 +177,8 @@ private:
 		scope(exit)
 			fftw_destroy_plan(plan);
 
+		/* tau is a constant that means that the highest norm possible
+		 * after the transformation will be <= short.max */
 		immutable auto tau = short.max/((cutOffFreq + 1)*2);
 		double input;
 		foreach (i; 0 .. (transformSize/2)) {
@@ -151,12 +189,15 @@ private:
 
 		fftw_execute(plan);
 
+		/* copy the impulse function in an array, translating
+		 * it to make it causal */
 		double[] impulse = new double[order+1];
 		foreach (i; order/2 .. (order+1))
 			impulse[i] = obuf[i - order/2];
 		foreach (i; 0 .. order/2)
 			impulse[i] = obuf[transformSize - order/2 + i];
 
+		/* multiply with an Hamming function */
 		foreach (i, ref a; impulse)
 			a *= 0.54 - 0.46 * cos(2*PI*i/(order+1));
 

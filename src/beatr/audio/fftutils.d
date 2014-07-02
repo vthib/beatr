@@ -2,6 +2,11 @@ import std.file : mkdir, FileException;
 import std.math : sqrt;
 import core.stdc.errno : EEXIST;
 import std.exception : enforce;
+version(unittest) {
+	import std.random : uniform;
+	import std.math : sin, PI, fabs;
+	import std.exception : assertThrown;
+}
 
 import fftw.fftw3;
 
@@ -91,4 +96,36 @@ double[] times2freqs(T)(inout T[] audio, int transformSize = -1,
 		vec[] /= nbOverlaps;
 
 	return vec;
+}
+unittest
+{
+	double[] input = new double[44100];
+
+	/* create noise input */
+	foreach (ref a; input)
+		a = uniform(-100, 100);
+
+	auto output = times2freqs(input);
+
+	/* noise has every frequency components */
+	foreach (a; output)
+		assert(a != 0.);
+
+	/* create 2 sin input */
+	enum samplerate = 40000;
+	double[] in2 = new double[20000];
+	foreach (i, ref a; in2)
+		a = sin(2*PI*500./samplerate * i) + sin(2*PI*8000./samplerate * i);
+
+	output = times2freqs(in2, 20000);
+
+	/* every frequency energy is null but the two we set */
+	foreach (i, a; output) {
+		if (i == (500 * 20000 / samplerate) || i == (8000 * 20000 / samplerate))
+			assert(a != 0.);
+		else
+			assert(fabs(a) < 1e-10);
+	}
+
+	assertThrown!Exception(times2freqs(in2, 40000));
 }
