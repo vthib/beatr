@@ -44,7 +44,7 @@ public:
 	/++ process the given frame into chroma bands +/
 	void processFrame(short[] f)
 	{
-		auto s = fft2bins(f, Beatr.fftTransformSize, Beatr.fftNbOverlaps);
+		auto s = times2freqs(f, Beatr.fftTransformSize, Beatr.fftNbOverlaps);
 
 		b.addFftSample(s, Beatr.fftTransformSize);
 	}
@@ -52,7 +52,7 @@ public:
 	/++ Returns a score object based on the current chroma bands +/
 	auto score(ProfileType pt = ProfileType.KRUMHANSL,
 			   CorrelationMethod cm = CorrelationMethod.COSINE,
-			   MatchingType mt = MatchingType.CLASSIC)
+			   MatchingType mt = MatchingType.DOMINANT)
 	{
 		Beatr.writefln(Lvl.VERBOSE, "Using profile %s, correlation method %s "
 					   "and matching type %s", pt, cm, mt);

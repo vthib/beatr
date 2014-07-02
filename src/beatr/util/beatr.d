@@ -56,7 +56,7 @@ private:
 	static uint samplerate = 44100;
 
 	/++ Coefficients used when adding dom/subdom/rel scores +/
-	static double[3] coeffs = [1., 1., 1.];
+	static double[3] coeffs = [0.3, 0.3, 0.3];
 
 	/* XXX: not working, because of static methods? */
 	version(none) {

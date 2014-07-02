@@ -33,17 +33,17 @@ public:
 	}
 	unittest
 	{
-		auto aw = new AWeighting(20., 2.);
+		auto aw = new AWeighting(20, 2.);
 
 		assert(approxEqual(weightEnergy(20.), aw.weight(10)));
-		assert(approxEqual(weightOfFreq(30.), aw.weight(15)));
+		assert(approxEqual(weightEnergy(30.), aw.weight(15)));
 		assertThrown!AssertError(aw.weight(20));
 	}
 
 private:
 	/++ A-weighting db correction, returned as a multiplication coefficient
 	  + for the energy level +/
-	double weightEnergy(double f) pure nothrow
+	static double weightEnergy(double f) pure nothrow
 	{
 		immutable auto f2 = f*f;
 		immutable auto f4 = f2*f2;
@@ -58,6 +58,6 @@ private:
 	}
 	unittest
 	{
-		assert(approxEqual(weightOfFreq(1000), 1.0));
+		assert(approxEqual(weightEnergy(1000), 1.0));
 	}
 }

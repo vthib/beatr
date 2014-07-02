@@ -161,6 +161,8 @@ main(string args[])
 
 	initOptArrays();
 
+	opt.corr = MatchingType.DOMINANT;
+
 	try {
 		getopt(
 			args,
