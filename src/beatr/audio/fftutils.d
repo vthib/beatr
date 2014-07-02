@@ -4,7 +4,7 @@ import core.stdc.errno : EEXIST;
 import std.exception : enforce;
 version(unittest) {
 	import std.random : uniform;
-	import std.math : sin, PI, fabs;
+	import std.math : sin, cos, PI, fabs;
 	import std.exception : assertThrown;
 }
 
@@ -65,15 +65,12 @@ double[] times2freqs(T)(inout T[] audio, int transformSize = -1,
 	if (plan is null) {
 		plan = fftw_plan_dft_r2c_1d(transformSize, ibuf, obuf,
 									FFTW_MEASURE | FFTW_DESTROY_INPUT);
-		Beatr.writefln(Lvl.DEBUG, "no wisdom available: new wisdom exported "
-					   "to '%s'", Beatr.configDir ~ "/wisdom");
-		immutable auto filename = toStringz(Beatr.configDir ~ "/wisdom");
-		fftw_export_wisdom_to_filename(filename);
+		saveWisdom();
 	}
 	scope(exit)
 		fftw_destroy_plan(plan);
 
-	auto vec = new double[transformSize/2];
+	auto vec = new double[transformSize/2+1];
 	vec[] = 0.;
 
 	foreach(step; 0 .. nbOverlaps) {
@@ -128,4 +125,82 @@ unittest
 	}
 
 	assertThrown!Exception(times2freqs(in2, 40000));
+}
+
+/++ transform an frequency vector into a time-based vector +/
+double[] freqs2times(T)(inout T[] freqs, in int transformSize)
+in
+{
+	assert(freqs.length >= transformSize/2 + 1,
+		   format("input length needs to be >= %s", transformSize/2 + 1));
+}
+body
+{
+	auto ibuf = new fftw_complex[transformSize/2+1];
+	auto obuf = new double[transformSize];
+
+	auto plan = fftw_plan_dft_c2r_1d(transformSize, ibuf.ptr, obuf.ptr,
+									 FFTW_MEASURE | FFTW_DESTROY_INPUT
+									 | FFTW_WISDOM_ONLY);
+	if (plan is null) {
+		plan = fftw_plan_dft_c2r_1d(transformSize, ibuf.ptr, obuf.ptr,
+									FFTW_MEASURE | FFTW_DESTROY_INPUT);
+		saveWisdom();
+	}
+	scope(exit)
+		fftw_destroy_plan(plan);
+
+	foreach (i, ref a; ibuf)
+		a = freqs[i] + 0i;
+
+	fftw_execute(plan);
+
+	return obuf;
+}
+unittest
+{
+	auto input = new double[44100/2 + 1];
+
+	/* create noise input */
+	foreach (ref a; input)
+		a = uniform(0, 100);
+
+	auto output = freqs2times(input, 44100);
+
+	/* noise has every time components */
+	foreach (a; output)
+		assert(a != 0.);
+
+	auto newinput = times2freqs(output, 44100);
+	newinput[] /= sqrt(44100.);
+
+	/* times -> freqs -> times returns same input */
+	assert(approxEqual(input, newinput, 1e-10, 1e-10));
+
+	/* create 2 sin expected input and output */
+	enum samplerate = 40000;
+	auto in2 = new double[10001];
+	in2[] = 0;
+	/* this returns cosinuses. To get sinus, we should input 0 - x*i instead
+	 * of x + 0i */
+	in2[500 * 20000 / samplerate] = 3*0.5;
+	in2[8000 * 20000 / samplerate] = 0.5*0.5;
+
+	double[] out2 = new double[20000];
+	foreach (i, ref a; out2)
+		a = 3*cos(2*PI*500./samplerate * i) + 0.5*cos(2*PI*8000./samplerate * i);
+
+	output = freqs2times(in2, 20000);
+
+	assert(approxEqual(output, out2));
+
+	assertThrown!AssertError(freqs2times(in2, 50000));
+}
+
+void saveWisdom()
+{
+	Beatr.writefln(Lvl.DEBUG, "no wisdom available: new wisdom exported "
+				   "to '%s'", Beatr.configDir ~ "/wisdom");
+	immutable auto filename = toStringz(Beatr.configDir ~ "/wisdom");
+	fftw_export_wisdom_to_filename(filename);
 }

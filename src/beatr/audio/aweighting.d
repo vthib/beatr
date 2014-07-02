@@ -1,5 +1,6 @@
 import std.exception : assumeUnique;
 import std.math : log10, sqrt, pow;
+import std.string : format;
 version(unittest) {
 	import std.math : approxEqual;
 	import core.exception : AssertError;
@@ -25,7 +26,9 @@ public:
 	double weight(size_t index) const
 	in
 	{
-		assert(index < weights.length);
+		assert(index < weights.length,
+			   format("index %s is greater than max %s", index,
+					  weights.length - 1));
 	}
 	body
 	{

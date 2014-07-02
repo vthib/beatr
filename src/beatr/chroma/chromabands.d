@@ -43,7 +43,7 @@ public:
 		assert(offsetscales + numscales <= 10);
 	}
 	body {
-		aw = new AWeighting(Beatr.fftTransformSize/2,
+		aw = new AWeighting(Beatr.fftTransformSize/2 + 1,
 							Beatr.fftTransformSize / Beatr.sampleRate);
 		offset = offsetscales;
 
