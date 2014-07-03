@@ -3,6 +3,7 @@ import chroma.chromabands;
 import audio.audiofile;
 import audio.audiostream;
 import audio.fftutils;
+import audio.lpfilter;
 import audio.fft;
 import analysis.scores;
 import util.beatr;
@@ -16,6 +17,8 @@ class Analyzer
 private:
 	ChromaBands b;
 	Fft2Freqs fft;
+	LowPassFilter!80 lpf;
+	size_t fbidx;
 
 public:
 	this()
@@ -24,6 +27,10 @@ public:
 
 		fftInit();
 		fft = new Fft2Freqs(Beatr.fftTransformSize());
+
+		if (Beatr.useFilter)
+			lpf = new typeof(lpf)(Beatr.sampleRate, Beatr.cutoffFreq);
+		fbidx = 0;
 	}
 
 	/++ Process the audio file, up to 'seconds' seconds +/
@@ -38,23 +45,45 @@ public:
 
 		clean();
 		size_t i = 0;
-		foreach(frame; stream) {
-			if (i++ >= seconds)
-				break;
-			processFrame(frame);
+		if (Beatr.useFilter) {
+			foreach(frame; stream) {
+				if (i++ >= seconds)
+					break;
+				processFrame!true(frame);
+			}
+			processFrame!true(null, true);
+		} else {
+			foreach(frame; stream) {
+				if (i++ >= seconds)
+					break;
+				processFrame!false(frame);
+			}
 		}
 	}
 
 	/++ process the given frame into chroma bands +/
-	void processFrame(short[] f)
+	void processFrame(bool withFilter)(short[] f, bool flush = false)
 	{
-		if (Beatr.fftNbOverlaps > 1) {
-			fft.executeOverlaps(f, Beatr.fftNbOverlaps);
+		size_t cnt;
+
+		static if (withFilter) {
+			cnt = lpf.filter(flush ? null : f[0 .. (fft.input.length - fbidx)],
+							 fft.input[fbidx .. $], flush);
+			fbidx = (fbidx + cnt) % fft.input.length;
+			if (fbidx != 0)
+				return;
 		} else {
 			foreach (i, ref a; fft.input)
 				a = f[i];
-			fft.execute();
 		}
+
+		if (Beatr.fftNbOverlaps > 1)
+			fft.executeOverlaps(f, Beatr.fftNbOverlaps);
+		else
+			fft.execute();
+
+		static if (withFilter)
+			fbidx += lpf.filter(flush ? null : f[cnt .. $], fft.input[0 .. $], flush);
 
 		b.addFftSample(fft.output, fft.transformationSize);
 	}

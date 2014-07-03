@@ -75,6 +75,8 @@ public:
 		assertThrown!AssertError(new LowPassFilter!10(20, -50.));
 	}
 
+	@property auto getOrder() const nothrow { return order; }
+
 	/++ Apply the filter on input, returning results in the "output" variable.
 	 + The "output" buffer has to have enough room:
 	 +  Between (input.length - order/2) and input.length if not flushing
@@ -82,7 +84,7 @@ public:
 	 + Set "flush" to true to retrieve the delayed inputs
 	 + Returns: the number of elements put in the "output" buffer
 	 +/
-	size_t filter(in double[] input, double[] output, bool flush = false)
+	size_t filter(T)(in T[] input, double[] output, bool flush = false)
 	{
 		size_t iidx = 0;
 		size_t outcnt = 0;
@@ -198,7 +200,7 @@ unittest /* needed outside the object as it is a template, and it needs
 			an instantiation to run inside unit tests */
 {
 	enum cutOff = 10000;
-	auto plf = new LowPassFilter!80(44100, cutOff);
+	auto lpf = new LowPassFilter!80(44100, cutOff);
 
 	import std.stdio;
 	writefln("Testing Low Pass Filter...");
@@ -210,7 +212,7 @@ unittest /* needed outside the object as it is a template, and it needs
 
 	/* get the output of the filter */
 	double[] output = new double[44100];
-	plf.filter(input, output, true);
+	lpf.filter(input, output, true);
 
 	/* get the frequencies of the input with and without the filter
 	   applied */

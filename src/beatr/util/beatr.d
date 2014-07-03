@@ -26,6 +26,7 @@ enum Lvl {
 	DEBUG = 2
 };
 
+/* XXX mixin for each option!! */
 /* XXX Make Options thread-independent */
 /++ Provides a way to print debug messages according
  + to a verbose level +/
@@ -50,13 +51,17 @@ private:
 
 	/++ Parameters to transform audio signal to fft bins +/
 	static int fftSize = 44100;
-	static uint nbOverlaps = 4;
+	static uint nbOverlaps = 1;
 
 	/++ Sample rate of the resampled audio signal used by beatr +/
 	static uint samplerate = 44100;
 
 	/++ Coefficients used when adding dom/subdom/rel scores +/
 	static double[3] coeffs = [0.3, 0.3, 0.3];
+
+	/++ Cutoff frequency for a low pass filter and boolean on its use +/
+	static double cof = 20000.;
+	static bool withFilter = false;
 
 	/* XXX: not working, because of static methods? */
 	version(none) {
@@ -398,5 +403,56 @@ public:
 		assert(coeffs == a);
 
 		coeffs = c;
+	}
+
+	/++ Returns the cut off frequency for a low pass filter before the
+	 + fft transformation
+	 + Default is 20000 Hz
+	 +/
+	@property static auto cutoffFreq() nothrow
+	{
+		return cof;
+	}
+
+	@property static auto cutoffFreq(inout double f) nothrow
+	{
+		return cof = f;
+	}
+	unittest
+	{
+		auto f = this.cutoffFreq;
+
+		assert(c == cof);
+
+		this.cutoffFreq = 15000.;
+		assert(this.cutoffFreq == 15000.);
+		assert(cof == 15000.);
+
+		cof = f;
+	}
+
+	/++ Returns whether to use the low pass filter or not
+	 + Default is false
+	 +/
+	@property static auto useFilter() nothrow
+	{
+		return withFilter;
+	}
+
+	@property static auto useFilter(inout bool b) nothrow
+	{
+		return withFilter = b;
+	}
+	unittest
+	{
+		auto b = this.useFilter;
+
+		assert(c == withFilter);
+
+		this.useFilter = true;
+		assert(this.useFilter == true);
+		assert(withFilter == true);
+
+		withFilter = b;
 	}
 }

@@ -1,13 +1,13 @@
 //@safe:
 import core.stdc.string : memcpy;
 
+import libavcodec.avcodec;
+
 import audio.audiofile;
 import audio.resampler;
-
 import exc.libavexception;
 import util.beatr;
 
-import libavcodec.avcodec;
 
 /++
  + Provides a Range object for the decompressed
@@ -135,6 +135,7 @@ private:
 		auto output = resampler.resample(frame, out_bytes);
 
 		memcpy(d.ptr + offset, output, out_bytes);
+
 		offset += out_bytes / 2; /* byte to short */
 		resampler.freeSample(output);
 

@@ -151,6 +151,10 @@ void printHelp(string programName)
 	io.writeln("\t\t--samplerate\tSamplerate used internally to which the\n"
 			   "\t\t\taudio input is reduced");
 
+	io.writeln("\t\t--cutoff\tcutoff frequency of the low pass filter");
+	io.writeln("\t\t--filter\tboolean whether to use or not the low pass "
+			   "filter");
+
 	io.writeln("\t\t--seconds\tOnly analyze first 'n' seconds from the input");
 }
 
@@ -189,6 +193,8 @@ main(string args[])
 			"fftoverlaps", &setOptions2,
 			"samplerate", &setOptions2,
 			"mcoeffs", &setOptions2,
+			"cutoff", &setOptions2,
+			"filter", &setOptions2,
 			"verbose|v", &setOptions);
 	} catch (Exception e) {
 		io.stderr.writefln("error: %s", e.msg);
@@ -311,6 +317,12 @@ setOptions2(string opt, string value)
 		break;
 	case "mcoeffs":
 		Beatr.mCoefficients = to!(typeof(Beatr.mCoefficients))(value);
+		break;
+	case "cutoff":
+		Beatr.cutoffFreq = to!(typeof(Beatr.cutoffFreq))(value);
+		break;
+	case "filter":
+		Beatr.useFilter = to!(typeof(Beatr.useFilter))(value);
 		break;
 	default:
 		io.stderr.writefln("Unknown option '%s'", opt);
