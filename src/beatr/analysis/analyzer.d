@@ -3,7 +3,7 @@ import chroma.chromabands;
 import audio.audiofile;
 import audio.audiostream;
 import audio.fftutils;
-import audio.fft2freqs;
+import audio.fft;
 import analysis.scores;
 import util.beatr;
 

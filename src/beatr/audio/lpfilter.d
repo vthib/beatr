@@ -6,12 +6,11 @@ version(unittest) {
     import core.exception : AssertError;
 	import std.math : approxEqual, abs;
 	import std.random;
-
-	import audio.fft2freqs;
-	import audio.fft2times;
 }
 
 import fftw.fftw3;
+
+import audio.fft;
 
 /++ Implements a low-pass filter
  + Based mostly on http://paulbourke.net/miscellaneous/filter/

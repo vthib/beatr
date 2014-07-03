@@ -29,3 +29,11 @@ void fftDestroy() nothrow
 {
 	fftw_cleanup();
 }
+
+void fftSaveWisdom()
+{
+	Beatr.writefln(Lvl.DEBUG, "no wisdom available: new wisdom exported "
+				   "to '%s'", Beatr.configDir ~ "/wisdom");
+	immutable auto filename = toStringz(Beatr.configDir ~ "/wisdom");
+	fftw_export_wisdom_to_filename(filename);
+}
