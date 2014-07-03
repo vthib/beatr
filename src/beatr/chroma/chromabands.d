@@ -183,10 +183,15 @@ public:
 												4., 6.5, 6., 4.5, 6.5, 6.5]));
 	}
 
+	void clean() nothrow
+	{
+		bands = null;
+	}
+
 	/++ Use an array representing a FFT analysis to fill the chroma bands
 	 + Params: s = an array of a FFT analysis.
 	 +/
-	void addFftSample(in double[] sin, in int sampleSize) //@safe
+	void addFftSample(in double[] sin, in size_t sampleSize) //@safe
 	body {
 		/* indexes of each note in the FFT array */
 		auto fscales = freqs[offset*12 .. ((offset + nbscales) * 12)];

@@ -20,11 +20,11 @@ main()
 {
 	auto mfiles = array(dirEntries("mfiles", "*.{wav,mp3}", SpanMode.depth));
 	bool[] res = new bool[mfiles.length];
+	auto a = new Analyzer();
 
 	foreach(i, d; mfiles)
 	{
 		try {
-			auto a = new Analyzer();
 			a.processFile(d.name);
 			auto s = a.score();
 			s.printHistograms(10);

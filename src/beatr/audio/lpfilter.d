@@ -7,7 +7,8 @@ version(unittest) {
 	import std.math : approxEqual, abs;
 	import std.random;
 
-	import audio.fftutils;
+	import audio.fft2freqs;
+	import audio.fft2times;
 }
 
 import fftw.fftw3;
@@ -167,35 +168,25 @@ private:
 
 	/++ Creates a time-domain vector equal to a reverse FFT of the desired
 	 + frequency response of an lp filter +/
-	double[] createImpulse(in int transformSize, in double cutOffFreq)
+	static double[] createImpulse(in int transformSize, in double cutOffFreq)
 	{
-		auto ibuf = new cdouble[transformSize];
-		auto obuf = new double[transformSize];
-
-		auto plan = fftw_plan_dft_c2r_1d(transformSize, ibuf.ptr, obuf.ptr,
-										 0);
-		scope(exit)
-			fftw_destroy_plan(plan);
+		auto f2t = new Fft2Times(transformSize);
 
 		/* tau is a constant that means that the highest norm possible
 		 * after the transformation will be <= short.max */
 		immutable auto tau = short.max/((cutOffFreq + 1)*2);
-		double input;
-		foreach (i; 0 .. (transformSize/2)) {
-			input = (i < cutOffFreq) ? tau : 0.;
-			ibuf[i] = input + 0i;
-			ibuf[transformSize - 1 - i] = input + 0i;
-		}
+		foreach (i, ref a; f2t.input)
+			a = ((i < cutOffFreq) ? tau : 0.) + 0i;
 
-		fftw_execute(plan);
+		f2t.execute();
 
 		/* copy the impulse function in an array, translating
 		 * it to make it causal */
 		double[] impulse = new double[order+1];
 		foreach (i; order/2 .. (order+1))
-			impulse[i] = obuf[i - order/2];
+			impulse[i] = f2t.output[i - order/2];
 		foreach (i; 0 .. order/2)
-			impulse[i] = obuf[transformSize - order/2 + i];
+			impulse[i] = f2t.output[transformSize - order/2 + i];
 
 		/* multiply with an Hamming function */
 		foreach (i, ref a; impulse)
@@ -203,38 +194,15 @@ private:
 
 		return impulse;
 	}
-
-	version(none) {
-		void printTab(inout double[] t)
-		{
-			import std.stdio;
-
-			double M = 0;
-			double m = 0.;
-			foreach (a; t) {
-				if (a > M) M = a;
-				if (a < m) m = a;
-			}
-
-			auto step = (M - m + 1) / 80;
-			writefln("min: %s, max: %s", m, M);
-			foreach (i, a; t) {
-				writef("%s ", i);
-				for (auto j = step; j + m <= M; j += step) {
-					if ((j+m) - step < 0 && (j+m) >= 0)
-						write("|");
-					else
-						write((j + m <= a) ? "X" : " ");
-				}
-				writeln();
-			}
-		}
-	}
 }
-unittest
+unittest /* needed outside the object as it is a template, and it needs
+			an instantiation to run inside unit tests */
 {
 	enum cutOff = 10000;
 	auto plf = new LowPassFilter!80(44100, cutOff);
+
+	import std.stdio;
+	writefln("Testing Low Pass Filter...");
 
 	/* create random input (noise) */
 	double[] input = new double[44100];
@@ -247,8 +215,13 @@ unittest
 
 	/* get the frequencies of the input with and without the filter
 	   applied */
-	double[] freqs_without = times2freqs(input, 44100);
-	double[] freqs_with = times2freqs(output, 44100);
+	auto t2f = new Fft2Freqs(44100);
+	t2f.input[] = input[];
+	t2f.execute();
+	auto freqs_without = t2f.output.idup;
+	t2f.input[] = output[];
+	t2f.execute();
+	auto freqs_with = t2f.output.idup;
 
 	/* we will compare the two arrays except between
 	   cutoff - margin and cutoff + margin */

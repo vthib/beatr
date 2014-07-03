@@ -161,7 +161,7 @@ main(string args[])
 
 	initOptArrays();
 
-	opt.corr = MatchingType.DOMINANT;
+	opt.match = MatchingType.DOMINANT;
 
 	try {
 		getopt(
@@ -199,11 +199,11 @@ main(string args[])
 		printHelp(args[0]);
 		return 2;
 	} else
-		return process(args[1], opt);
+		return process(args[1], opt, new Analyzer());
 }
 
 bool
-process(string f, Options opt)
+process(string f, Options opt, Analyzer a)
 {
 	bool hadError = false;
 	DirEntry d;
@@ -218,7 +218,6 @@ process(string f, Options opt)
 	if (d.isFile) {
 		Beatr.writefln(Lvl.VERBOSE, "Processing '%s'...", f);
 		try {
-			auto a = new Analyzer();
 			if (opt.seconds != 0)
 				a.processFile(f, opt.seconds);
 			else
@@ -240,7 +239,7 @@ process(string f, Options opt)
 	} else if (d.isDir)
 		foreach (name; dirEntries(f, opt.recursive ? SpanMode.breadth :
 								  SpanMode.shallow))
-			hadError |= process(name, opt);
+			hadError |= process(name, opt, a);
 	else
 		io.stderr.writefln("'%s' is neither a file nor a directory", f);
 

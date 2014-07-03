@@ -3,6 +3,7 @@ import chroma.chromabands;
 import audio.audiofile;
 import audio.audiostream;
 import audio.fftutils;
+import audio.fft2freqs;
 import analysis.scores;
 import util.beatr;
 
@@ -14,6 +15,7 @@ class Analyzer
 {
 private:
 	ChromaBands b;
+	Fft2Freqs fft;
 
 public:
 	this()
@@ -21,6 +23,7 @@ public:
 		b = new ChromaBands(Beatr.scaleNumbers, Beatr.scaleOffset);
 
 		fftInit();
+		fft = new Fft2Freqs(Beatr.fftTransformSize());
 	}
 
 	/++ Process the audio file, up to 'seconds' seconds +/
@@ -33,6 +36,7 @@ public:
 					   "overlaps", Beatr.fftTransformSize,
 					   Beatr.fftNbOverlaps);
 
+		clean();
 		size_t i = 0;
 		foreach(frame; stream) {
 			if (i++ >= seconds)
@@ -44,9 +48,20 @@ public:
 	/++ process the given frame into chroma bands +/
 	void processFrame(short[] f)
 	{
-		auto s = times2freqs(f, Beatr.fftTransformSize, Beatr.fftNbOverlaps);
+		if (Beatr.fftNbOverlaps > 1) {
+			fft.executeOverlaps(f, Beatr.fftNbOverlaps);
+		} else {
+			foreach (i, ref a; fft.input)
+				a = f[i];
+			fft.execute();
+		}
 
-		b.addFftSample(s, Beatr.fftTransformSize);
+		b.addFftSample(fft.output, fft.transformationSize);
+	}
+
+	void clean() nothrow
+	{
+		b.clean();
 	}
 
 	/++ Returns a score object based on the current chroma bands +/
