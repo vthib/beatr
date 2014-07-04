@@ -68,6 +68,7 @@ public:
 	{
 		assert(biginput.length >= input.length,
 			   format("Input needs to be larger than %s", input.length));
+		assert(nbOverlaps > 1, "number of overlaps must be >= 2");
 	}
 	body
 	{
@@ -82,7 +83,8 @@ public:
 			/*copy the input into the ibuf buffer */
 			/* This has to be done _after_ the plan creation, as this function sets
 			   its argument to 0 */
-			size_t idx = step * (biginput.length - input.length)/nbOverlaps;
+			import std.stdio;
+			size_t idx = step * (biginput.length - input.length)/(nbOverlaps - 1);
 			foreach (ref a; ibuf)
 				a = biginput[idx++];
 

@@ -71,7 +71,10 @@ public:
 				secondmax = s;
 		}
 
-		marginScore = (max - secondmax)*100 / max;
+		if (max != 0.)
+			marginScore = (max - secondmax)*100 / max;
+		else
+			marginScore = 0.;
 
 		/* return best match */
 		return new Note(to!int(imax % 12), to!int(imax / 12));
@@ -116,9 +119,9 @@ public:
 		auto step = m/height;
 
 		/* print the histograms */
-		foreach(i; 0 .. height) {
+		foreach(i; 1 .. (height+1)) {
 			foreach(s; scores) {
-				if (s >= (height - i) * step)
+				if (s > (height - i) * step)
 					w.put('X');
 				else
 					w.put(' ');

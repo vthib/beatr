@@ -44,7 +44,7 @@ public:
 	}
 	body {
 		aw = new AWeighting(Beatr.fftTransformSize/2 + 1,
-							Beatr.fftTransformSize / Beatr.sampleRate);
+							Beatr.fftTransformSize / ((cast(double) Beatr.sampleRate)));
 		offset = offsetscales;
 
 		/* this bound is independent of the fft transformation size */
@@ -201,7 +201,7 @@ public:
 		foreach (i, ref a; s)
 			a *= aw.weight(i);
 
-		enforce(fscales[$ - 1] < s.length,
+		enforce(fscales[$ - 1] * sampleSize / Beatr.sampleRate < s.length,
 				format("Sample provided (%s) too small for the frequencies "
 					   "considered (<= %s).", s.length, fscales[$ - 1]));
 
@@ -251,6 +251,7 @@ public:
 
 			if (sum != 0.)
 				b[i] /= sum;
+
 		}
 
 		bands ~= b;
@@ -284,9 +285,9 @@ public:
 		auto step = m/height;
 
 		/* print the histograms */
-		foreach(i; 0 .. height) {
+		foreach(i; 1 .. (height+1)) {
 			foreach(v; b) {
-				if (v >= (height - i) * step)
+				if (v > (height - i) * step)
 					w.put('X');
 				else
 					w.put(' ');

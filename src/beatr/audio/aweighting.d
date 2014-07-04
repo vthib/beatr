@@ -18,7 +18,7 @@ public:
 		auto w = new double[size];
 
 		foreach(i, ref a; w)
-			a = weightEnergy(i * scaling);
+			a = weightEnergy(i / scaling);
 
 		weights = assumeUnique(w);
 	}

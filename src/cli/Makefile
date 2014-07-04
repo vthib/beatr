@@ -8,8 +8,8 @@ LIBBEATR=$(DIRBEATR)/libbeatr.so
 DIR3RDLIB=../3rdptylib
 
 DC=dmd
-#DFLAGS=-unittest -debug -gc -profile
-DFLAGS?=-O -inline -release -noboundscheck
+DFLAGS=-unittest -debug -gc #-profile
+#DFLAGS?=-O -inline -release -noboundscheck
 IFLAGS=-I.. -I$(DIRBEATR) -I$(DIR3RDLIB)
 LDFLAGS=-L-L$(DIR3RDLIB) -L-lbeatr -L-L$(DIRBEATR)
 
