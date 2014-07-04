@@ -2,6 +2,7 @@ import io = std.stdio;
 import cio = std.c.stdio;
 import std.c.stdlib : exit;
 import std.path : expandTilde;
+import std.string : format;
 version(unittest) {
 	import std.array;
 	import std.exception : assertThrown;
@@ -33,74 +34,36 @@ enum Lvl {
 class Beatr
 {
 private:
-	static auto verbLevel = Lvl.NORMAL;
-
-	/* fft interpolation variables */
-	static double fftSig = 0.4;
-	static auto fftIMode = WindowType.GAUSSIAN;
-
-	/* scales to analyze */
-	static ubyte sOffset = 1;
-	static ubyte sNumbers = 6;
-
-	/++ numbers of frames in the decompression buffer +/
-	static size_t nbFramesBuf = 10;
-
-	/++ Directory where config files are stored +/
-	static string config = null;
-
-	/++ Parameters to transform audio signal to fft bins +/
-	static int fftSize = 44100;
-	static uint nbOverlaps = 1;
-
-	/++ Sample rate of the resampled audio signal used by beatr +/
-	static uint samplerate = 44100;
-
-	/++ Coefficients used when adding dom/subdom/rel scores +/
-	static double[3] coeffs = [0.3, 0.3, 0.3];
-
-	/++ Cutoff frequency for a low pass filter and boolean on its use +/
-	static double cof = 20000.;
-	static bool withFilter = false;
-
 	/* XXX: not working, because of static methods? */
 	version(none) {
 		invariant() {
-			assert(fftSig >= 0.);
-			assert(scaleOffset <= 9);
-			assert(1 <= scaleNumbers && scaleNumbers <= 10);
+			checkInvariants();
 		}
+	}
+
+	private static void checkInvariants() {
+		foreach (c; Beatr.mCoefficients)
+			assert(c >= 0.,
+				   format("matching coefficients (%s) must be positive",
+						  Beatr.mCoefficients));
+		assert(Beatr.fftSigma >= 0.,
+			   format("the sigma of fft interpolation (%s) needs to be positive",
+					  Beatr.fftSigma));
+		assert(Beatr.scaleOffset + Beatr.scaleNumbers <= 10,
+			   format("Last scale (%s = %s + %s) needs to be less than 10",
+					  Beatr.scaleOffset + Beatr.scaleNumbers, Beatr.scaleOffset,
+					  Beatr.scaleNumbers));
 	}
 
 public:
 	/***** Verbose utilities *****/
 
-	/++ set the verbose level to a particular value +/
-	@property static auto verboseLevel(in Lvl v) nothrow
-	{
-		return verbLevel = v;
-	}
-
-	/++ retrieve the verbose level +/
-	@property static auto verboseLevel() nothrow
-	{
-		return verbLevel;
-	}
-	unittest
-	{
-		auto v = verbLevel;
-		assert(v == this.verboseLevel);
-
-		this.verboseLevel = Lvl.WARNING;
-		assert(verbLevel == Lvl.WARNING);
-		assert(this.verboseLevel == Lvl.WARNING);
-
-		this.verboseLevel = Lvl.DEBUG;
-		assert(verbLevel == Lvl.DEBUG);
-		assert(this.verboseLevel == Lvl.DEBUG);
-
-		verbLevel = v;
-	}
+	/++ set the verbose level to a particular value
+	 + Every message with a level greater than the one set will not be displayed
+	 + Messages on a level < 0 will be printed on stderr
+	 + Default is Lvl.NORMAL
+	 +/
+	mixin property!(Lvl, "verboseLevel", "verbLevel", Lvl.NORMAL, Lvl.DEBUG);
 
 	/++ Call writefln(args) only if 'v' is a verbose level
 	 + lesser than the current verbose level.
@@ -108,7 +71,7 @@ public:
 	 +/
 	static void writefln(T...)(in Lvl v, T args) @system nothrow
 	{
-		if (verbLevel >= v) {
+		if (this.verboseLevel >= v) {
 			try {
 				if (v < 0)
 					io.stderr.writefln(args);
@@ -134,27 +97,12 @@ public:
 	 +
 	 + Default is 0.4
 	 +/
-	@property static auto fftSigma() nothrow { return fftSig; }
-
-	@property static auto fftSigma(in double s) nothrow
-	in { assert(s >= 0.); }
-    body
-	{
-		return fftSig = s;
-	}
-	unittest
-	{
-		auto s = fftSig;
-		assert(s == this.fftSigma);
-
-		this.fftSigma = 2.0;
-		assert(this.fftSigma == 2.0);
-		assert(fftSig == 2.0);
-
+	mixin property!(double, "fftSigma", "sigma", 0.4, 1.5);
+	unittest {
+		auto s = this.fftSigma;
 		assertThrown!AssertError(this.fftSigma = -1.0);
 		assertThrown!AssertError(this.fftSigma = double.nan);
-
-		fftSig = s;
+		this.fftSigma = s;
 	}
 
 	/++ The mode of interpolation to transform a DFT vector to chroma values
@@ -167,110 +115,114 @@ public:
 	 +
 	 + Default is GAUSSIAN
 	 +/
-	@property static auto fftInterpolationMode() nothrow
-	{
-		return fftIMode;
-	}
-
-	@property static auto
-	fftInterpolationMode(in WindowType m) nothrow
-	{
-		return fftIMode = m;
-	}
-	unittest
-	{
-		auto m = fftIMode;
-		assert(m == this.fftInterpolationMode);
-
-		enum mode = WindowType.TRIANGLE;
-		this.fftInterpolationMode = mode;
-		assert(this.fftInterpolationMode == mode);
-		assert(fftIMode == mode);
-
-		fftIMode = m;
-	}
+	mixin property!(WindowType, "fftInterpolationMode", "fftIMode",
+					WindowType.GAUSSIAN, WindowType.TRIANGLE);
 
 	/***** Scales to analyze ******/
 
 	/++ Returns the offset indicating the first scale to analyze
-	 + Default is 1
+	 + Default is 0
 	 +/
-	@property static auto scaleOffset() nothrow { return sOffset; }
-
-	@property static auto scaleOffset(in ubyte o) nothrow
-	in { assert(o <= 10); }
-    body
-	{
-		return sOffset = o;
-	}
-	unittest
-	{
-		auto o = sOffset;
-		assert(o == this.scaleOffset);
-
-		this.scaleOffset = 5;
-		assert(this.scaleOffset == 5);
-		assert(sOffset == 5);
-
-		assertThrown!AssertError(this.scaleOffset = 11);
-
-		sOffset = o;
-	}
+	mixin property!(ubyte, "scaleOffset", "sOffset", 0, 2);
 
 	/++ Returns the number of scales to analyze
 	 + Default is 6
 	 +/
-	@property static auto scaleNumbers() nothrow { return sNumbers; }
+	mixin property!(ubyte, "scaleNumbers", "sNumbers", 6, 3);
+	unittest {
+		auto o = this.scaleOffset;
+		auto n = this.scaleNumbers;
 
-	@property static auto scaleNumbers(in ubyte n) nothrow
-	in { assert(1 <= n && n <= 10); }
-    body
-	{
-		return sNumbers = n;
-	}
-	unittest
-	{
-		auto n = sNumbers;
-		assert(n == this.scaleNumbers);
-
-		this.scaleNumbers = 5;
-		assert(this.scaleNumbers == 5);
-		assert(sNumbers == 5);
-
-		assertThrown!AssertError(this.scaleNumbers = 0);
+		/* test the invariant */
 		assertThrown!AssertError(this.scaleNumbers = 11);
+		this.scaleNumbers = 0;
+		this.scaleOffset = 0;
+		this.scaleNumbers = 10;
+		assertThrown!AssertError(this.scaleOffset = 1);
+		assertThrown!AssertError(this.scaleOffset = 11);
+		this.scaleOffset = 0;
+		this.scaleNumbers = 8;
+		this.scaleOffset = 2;
+		assertThrown!AssertError(this.scaleOffset = 3);
 
-		sNumbers = n;
+		this.scaleOffset = 0;
+		this.scaleNumbers = n;
+		this.scaleOffset = o;
 	}
 
 	/++ Returns the number of frames in the buffer used to
 	 + decode the audio stream
 	 + Default is 10
 	 +/
-	@property static auto framesBufSize() nothrow
+	mixin property!(size_t, "framesBufSize", "nbFramesBuf", 10, 5);
+
+	/++ Returns the size of the FFT transformation
+	 + Default is 44100
+	 +/
+	private static int fftSize = 44100;
+
+	@property static auto fftTransformSize() nothrow
 	{
-		return nbFramesBuf;
+		return (fftSize > this.sampleRate) ? this.sampleRate : fftSize;
 	}
 
-	@property static auto framesBufSize(in size_t n) nothrow
+	@property static auto fftTransformSize(in int s) nothrow
 	{
-		return nbFramesBuf = n;
+		return fftSize = s;
 	}
 	unittest
 	{
-		auto n = nbFramesBuf;
-		assert(n == this.framesBufSize);
+		auto s = this.fftTransformSize;
+		assert(s == fftSize);
 
-		this.framesBufSize = 5;
-		assert(this.framesBufSize == 5);
-		assert(nbFramesBuf == 5);
+		this.fftTransformSize = 16384;
+		assert(this.fftTransformSize == 16384);
+		assert(fftSize == 16384);
 
-		nbFramesBuf = n;
+		fftSize = s;
 	}
+
+	/++ Returns the number of overlaps to execute when the fftTransformSize
+	 + is smaller than the audio frame size
+	 + Default is 4
+	 +/
+	mixin property!(uint, "fftNbOverlaps", "nboverlaps", 4, 32);
+
+	/++ Returns the sample rate of the resampled audio signal used
+	 + Default is 44100
+	 +/
+	mixin property!(uint, "sampleRate", "srate", 44100, 48000);
+	unittest {
+		auto fs = this.fftTransformSize;
+		auto ss = this.sampleRate;
+
+		/* test the fact that fftsize is min(fftsize, samplerate) */
+		this.fftTransformSize = 35000;
+		this.sampleRate = 16384;
+		assert(this.fftTransformSize == 16384);
+		this.sampleRate = 44100;
+		assert(this.fftTransformSize == 35000);
+
+		this.fftTransformSize = fs;
+		this.sampleRate = ss;
+	}
+
+	/++ Returns the cut off frequency for a low pass filter before the
+	 + fft transformation
+	 + Default is 20000 Hz
+	 +/
+	mixin property!(double, "cutoffFreq", "cof", 20000., 15000.);
+
+	/++ Returns whether to use the low pass filter or not
+	 + Default is false
+	 +/
+	mixin property!(bool, "useFilter", "withFilter", false, true);
 
 	/++ Returns the directory where config files are stored (wisdom, ...)
 	 + Default is "~/.beatr"
-	 +/
+     +/
+	private static string config = null;
+
 	@property static auto configDir() nothrow
 	{
 		if (config is null) {
@@ -299,160 +251,76 @@ public:
 		config = c;
 	}
 
-	/++ Returns the size of the FFT transformation
-	 + Default is 44100
-	 +/
-	@property static auto fftTransformSize() nothrow
-	{
-		return fftSize;
-	}
-
-	@property static auto fftTransformSize(in int s) nothrow
-	{
-		return fftSize = s;
-	}
-	unittest
-	{
-		auto s = this.fftTransformSize;
-		assert(s == fftSize);
-
-		this.fftTransformSize = 16384;
-		assert(this.fftTransformSize == 16384);
-		assert(fftSize == 16384);
-
-		fftSize = s;
-	}
-
-	/++ Returns the number of overlaps to execute when the fftTransformSize
-	 + is smaller than the audio frame size
-	 + Default is 4
-	 +/
-	@property static auto fftNbOverlaps() nothrow
-	{
-		return nbOverlaps;
-	}
-
-	@property static auto fftNbOverlaps(in uint n) nothrow
-	{
-		return nbOverlaps = n;
-	}
-	unittest
-	{
-		auto n = this.fftNbOverlaps;
-		assert(n == nbOverlaps);
-
-		this.fftNbOverlaps = 16384;
-		assert(this.fftNbOverlaps == 16384);
-		assert(nbOverlaps == 16384);
-
-		nbOverlaps = n;
-	}
-
-	/++ Returns the sample rate of the resampled audio signal used
-	 + Default is 44100
-	 +/
-	@property static auto sampleRate() nothrow
-	{
-		return samplerate;
-	}
-
-	@property static auto sampleRate(in uint sr) nothrow
-	{
-		return samplerate = sr;
-	}
-	unittest
-	{
-		auto sr = this.sampleRate;
-		assert(sr == samplerate);
-
-		this.sampleRate = 16384;
-		assert(this.sampleRate == 16384);
-		assert(samplerate == 16384);
-
-		samplerate = sr;
-	}
-
 	/++ Returns the coefficients used with the matching algorithm
 	 + This is an array of 3 double, for respectively the dominant,
 	 + sub-dominant and relative scores
 	 + Default is [1., 1., 1.]
 	 +/
-	@property static auto mCoefficients() nothrow
-	{
-		return coeffs;
-	}
-
-	@property static auto mCoefficients(inout double[] ct) nothrow
-	{
-		foreach (i, c; ct) {
-			if (i >= 3)
-				break;
-			coeffs[i] = c;
-		}
-		return ct;
-	}
+	mixin property!(double[3], "mCoefficients", "coeffs", [0.3, 0.3, 0.3],
+					[0.5, 0.3, 0.2]);
 	unittest
 	{
-		double[] c = this.mCoefficients;
-
-		assert(c == coeffs);
-
-		auto a = [0.5, 0.3, 0.2];
-		this.mCoefficients = a;
-		assert(this.mCoefficients == a);
-		assert(coeffs == a);
-
-		coeffs = c;
+		auto c = this.mCoefficients;
+		assertThrown!AssertError(this.mCoefficients = [-1.0, 0., 3.]);
+		assertThrown!AssertError(this.mCoefficients = [1., 1., double.nan]);
+		this.mCoefficients = c;
 	}
 
-	/++ Returns the cut off frequency for a low pass filter before the
-	 + fft transformation
-	 + Default is 20000 Hz
-	 +/
-	@property static auto cutoffFreq() nothrow
-	{
-		return cof;
-	}
+private:
+	mixin template property(T, string name, string var, T dval, T oval) {
+		/* declare static private variable */
+		mixin(format(q{
+			private static T %s = dval;
+		}, var));
 
-	@property static auto cutoffFreq(inout double f) nothrow
-	{
-		return cof = f;
-	}
-	unittest
-	{
-		auto f = this.cutoffFreq;
+		/* declare getter */
+		mixin(format(q{
+			@property public static T %s() nothrow @safe
+			{
+				return %s;
+			}
+		}, name, var));
 
-		assert(c == cof);
+		/* declare setter */
+		mixin(format(q{
+			static if (__traits(isStaticArray, T)) {
+				private alias U = typeof(%s[0])[]; /* if T is V[n], U is V[] */
 
-		this.cutoffFreq = 15000.;
-		assert(this.cutoffFreq == 15000.);
-		assert(cof == 15000.);
+				@property public static inout(U) %s(inout(U) v)
+				{
+					foreach (i, c; v) { /* copy each element up to T.length */
+						if (i >= T.length)
+							break;
+						%s[i] = c;
+					}
+					checkInvariants();
+					return v;
+				}
+			} else {
+				@property public static T %s(in T v)
+				{
+					%s = v;
+					checkInvariants();
+					return v;
+				}
+			}
+		}, var, name, var, name, var));
 
-		cof = f;
-	}
+		/* create unittests */
+		mixin(format(q{
+			unittest
+			{
+				auto v = this.%s;
 
-	/++ Returns whether to use the low pass filter or not
-	 + Default is false
-	 +/
-	@property static auto useFilter() nothrow
-	{
-		return withFilter;
-	}
+				io.writefln("Testing properties Beatr.%s...");
+				assert(v == %s);
 
-	@property static auto useFilter(inout bool b) nothrow
-	{
-		return withFilter = b;
-	}
-	unittest
-	{
-		auto b = this.useFilter;
+				this.%s = oval;
+				assert(this.%s == oval);
+				assert(%s == oval);
 
-		assert(c == withFilter);
-
-		this.useFilter = true;
-		assert(this.useFilter == true);
-		assert(withFilter == true);
-
-		withFilter = b;
+				%s = v;
+			}
+		}, name, name, var, name, name, var, var));
 	}
 }

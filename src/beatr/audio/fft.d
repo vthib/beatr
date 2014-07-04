@@ -57,7 +57,7 @@ public:
 		executePlan();
 	}
 
-	@property auto input() nothrow { return ibuf; }
+	@property auto input() { return ibuf; }
 	@property auto output() const nothrow { return onormed; }
 	@property auto rawoutput() const nothrow { return obuf; }
 	@property auto transformationSize() const nothrow { return size; }

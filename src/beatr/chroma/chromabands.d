@@ -88,7 +88,7 @@ public:
 		/* max freq is 16384/2 == 8192 Hz, between B8 and C9 */
 		Beatr.sampleRate = 16384;
 
-		/* this should be shrinked back to 8 scales */
+		/* this should be shrunk back to 8 scales */
 		cb = new ChromaBands(9, 1);
 		assert(cb.nbscales == 8);
 		assert(cb.offset == 1);

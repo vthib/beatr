@@ -34,7 +34,7 @@ $(TARGET): % : %.o $(BOBJ)
 compile: copy $(TARGET)
 
 clean:
-	rm -rf $(TARGET) $(BOBJ) src obj *.lst
+	rm -rf $(TARGET) $(BOBJ) $(OBJ) src obj *.lst
 	mkdir src obj
 
 test: compile

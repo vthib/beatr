@@ -7,8 +7,8 @@
 class Note
 {
 private:
-	int k;
-	int minor;
+	immutable int k;
+	immutable int minor;
 
 	enum notes = ["C", "C#", "D", "Eb", "E", "F",
 				  "F#", "G", "G#", "A", "Bb", "B"];
@@ -19,7 +19,7 @@ private:
 	}
 
 public:
-	this(in int key, in int m = -1) nothrow
+	this(in int key, in int m = -1)
 	{
 		k = key;
 		minor = m;

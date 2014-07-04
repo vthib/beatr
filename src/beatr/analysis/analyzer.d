@@ -116,7 +116,7 @@ public:
 		assert(a.bands.getBands.length == 0);
 
 		auto frame = new short[Beatr.fftTransformSize];
-		a.processFrame(frame);
+		a.processFrame!false(frame);
 		auto b = new double[][](1, Beatr.scaleNumbers*12);
 		b[0][] = 0.;
 		assert(equal(a.bands.getBands, b));
