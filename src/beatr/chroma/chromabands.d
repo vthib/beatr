@@ -230,11 +230,10 @@ public:
 
 			/* Leftmost bin from which we start to aggregate results */
 			auto left = mu*(1 - Q);
+			auto right = mu*(1 + Q);
 			begin = (left < 0.) ? 0 : to!size_t(min(left, mu));
-			// XXX bound check for end
 			end = to!size_t(max(mu*(1 + Q), mu + 1));
 			end = min(end, s.length - 1);
-			auto right = mu*(1 + Q);
 
 			/* for every significant abscissa ([mu(1-Q); mu(1+Q)], compute
 			   the correlation coeff, add coeff * value, and in the end
