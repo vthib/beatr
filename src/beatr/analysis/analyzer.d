@@ -39,7 +39,7 @@ public:
 		auto af = new AudioFile(fname);
 		auto stream = new AudioStream(af);
 
-		Beatr.writefln(Lvl.VERBOSE, "Using fft transform size %s and %s "
+		Beatr.writefln(Lvl.verbose, "Using fft transform size %s and %s "
 					   "overlaps", Beatr.fftTransformSize,
 					   Beatr.fftNbOverlaps);
 
@@ -94,11 +94,11 @@ public:
 	}
 
 	/++ Returns a score object based on the current chroma bands +/
-	auto score(ProfileType pt = ProfileType.KRUMHANSL,
-			   CorrelationMethod cm = CorrelationMethod.COSINE,
-			   MatchingType mt = MatchingType.DOMINANT)
+	auto score(ProfileType pt = ProfileType.krumhansl,
+			   CorrelationMethod cm = CorrelationMethod.cosine,
+			   MatchingType mt = MatchingType.dominant)
 	{
-		Beatr.writefln(Lvl.VERBOSE, "Using profile %s, correlation method %s "
+		Beatr.writefln(Lvl.verbose, "Using profile %s, correlation method %s "
 					   "and matching type %s", pt, cm, mt);
 
 		return new Scores(b, new ChromaProfile(pt), cm, mt);

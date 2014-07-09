@@ -75,7 +75,7 @@ public:
 		onormed[] = 0.;
 
 		if ((biginput.length - input.length) % nbOverlaps != 0)
-			Beatr.writefln(Lvl.WARNING, "Samples lost due to difference "
+			Beatr.writefln(Lvl.warning, "Samples lost due to difference "
 						   "between frame length and FFT transform size "
 						   "not divisible by number of overlaps");
 

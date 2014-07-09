@@ -25,6 +25,7 @@ public:
 		minor = m;
 	}
 
+	/++ Returns: an integer representing the note between 0 (C) and 11 (B) +/
 	@property auto note() const nothrow
 	{
 		return k;

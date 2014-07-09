@@ -61,7 +61,7 @@ void matchingCallback(ref Options opt, string option, string val)
 {
 	bool found;
 
-	opt.match = MatchingType.CLASSIC;
+	opt.match = MatchingType.classic;
 	foreach (s; val.splitter(',')) {
 		found = false;
 		foreach(m; matchings) {
@@ -165,7 +165,7 @@ main(string args[])
 
 	initOptArrays();
 
-	opt.match = MatchingType.DOMINANT;
+	opt.match = MatchingType.dominant;
 
 	try {
 		getopt(
@@ -222,7 +222,7 @@ process(string f, Options opt, Analyzer a)
 	}
 
 	if (d.isFile) {
-		Beatr.writefln(Lvl.VERBOSE, "Processing '%s'...", f);
+		Beatr.writefln(Lvl.verbose, "Processing '%s'...", f);
 		try {
 			if (opt.seconds != 0)
 				a.processFile(f, opt.seconds);
@@ -257,13 +257,13 @@ setOptions(string opt)
 {
 	switch (opt) {
 	case "verbose|v":
-		Beatr.verboseLevel = Lvl.VERBOSE;
+		Beatr.verboseLevel = Lvl.verbose;
 		break;
 	case "debug|d":
-		Beatr.verboseLevel = Lvl.DEBUG;
+		Beatr.verboseLevel = Lvl.debug_;
 		break;
 	case "quiet|q":
-		Beatr.verboseLevel = Lvl.NORMAL;
+		Beatr.verboseLevel = Lvl.normal;
 		break;
 	default:
 		io.stderr.writefln("Unknown option '%s'", opt);

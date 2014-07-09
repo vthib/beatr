@@ -16,31 +16,21 @@ import util.window;
 version(unittest) {}
 else {  @safe: }
 
-public:
-
 /++ different levels of debugging +/
 enum Lvl {
-	SILENCE = -2,
-	WARNING = -1,
-	NORMAL = 0,
-	VERBOSE = 1,
-	DEBUG = 2
+	silence = -2,
+	warning = -1,
+	normal = 0,
+	verbose = 1,
+	debug_ = 2
 };
 
-/* XXX mixin for each option!! */
 /* XXX Make Options thread-independent */
 /++ Provides a way to print debug messages according
  + to a verbose level +/
 class Beatr
 {
 private:
-	/* XXX: not working, because of static methods? */
-	version(none) {
-		invariant() {
-			checkInvariants();
-		}
-	}
-
 	private static void checkInvariants() {
 		foreach (c; Beatr.mCoefficients)
 			assert(c >= 0.,
@@ -61,9 +51,9 @@ public:
 	/++ set the verbose level to a particular value
 	 + Every message with a level greater than the one set will not be displayed
 	 + Messages on a level < 0 will be printed on stderr
-	 + Default is Lvl.NORMAL
+	 + Default is Lvl.normal
 	 +/
-	mixin property!(Lvl, "verboseLevel", "verbLevel", Lvl.NORMAL, Lvl.DEBUG);
+	mixin property!(Lvl, "verboseLevel", "verbLevel", Lvl.normal, Lvl.debug_);
 
 	/++ Call writefln(args) only if 'v' is a verbose level
 	 + lesser than the current verbose level.
@@ -105,18 +95,12 @@ public:
 		this.fftSigma = s;
 	}
 
-	/++ The mode of interpolation to transform a DFT vector to chroma values
+	/++ The window functino to use to transform a DFT vector to chroma values
 	 + The window is taken as fftSigma * (1 - sqrt(2, 12)).
-	 + RECTANGLE: Every value in the window has the same coefficient
-	 + TRIANGLE: Use a triangle window equal to 0 left and right and 1 on the
-	 + note frequency
-	 + COSINE: Use a cosine function centered on the note frequency
-	 + GAUSSIAN: Idem with a gaussian function
-	 +
-	 + Default is GAUSSIAN
+	 + Default is WindowType.gaussian
 	 +/
 	mixin property!(WindowType, "fftInterpolationMode", "fftIMode",
-					WindowType.GAUSSIAN, WindowType.TRIANGLE);
+					WindowType.gaussian, WindowType.triangle);
 
 	/***** Scales to analyze ******/
 

@@ -15,7 +15,7 @@ void fftInit() nothrow
 			if (f.errno == EEXIST)
 				goto end;
 		}
-		Beatr.writefln(Lvl.WARNING, "error creating config directory "
+		Beatr.writefln(Lvl.warning, "error creating config directory "
 					   "'%s': %s", Beatr.configDir, e.msg);
 		return;
 	}
@@ -32,7 +32,7 @@ void fftDestroy() nothrow
 
 void fftSaveWisdom()
 {
-	Beatr.writefln(Lvl.DEBUG, "no wisdom available: new wisdom exported "
+	Beatr.writefln(Lvl.debug_, "no wisdom available: new wisdom exported "
 				   "to '%s'", Beatr.configDir ~ "/wisdom");
 	immutable auto filename = toStringz(Beatr.configDir ~ "/wisdom");
 	fftw_export_wisdom_to_filename(filename);

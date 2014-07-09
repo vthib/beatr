@@ -12,23 +12,23 @@ import util.note;
 import util.beatr;
 
 enum CorrelationMethod {
-	COSINE,
-	PEARSON,
+	cosine,
+	pearson,
 };
 
 /++ Describe how the adjust the score for each key after using a
  + ChromaProfile
  +/
 enum MatchingType {
-	CLASSIC      = 0, /++ Just use the score from the ChromaProfile +/
-	ADD_SUBDOM   = 0x01, /++ Add the score of the subdominant to each key +/ 
-	ADD_DOMINANT = 0x02, /++ Idem, for the dominant +/
-	ADD_RELATIVE = 0x04, /++ Idem, for the relative key +/
-	DOMINANT     = ADD_DOMINANT, /++ Only add the dominant +/
-	CADENCE      = ADD_DOMINANT | ADD_SUBDOM, /++ Add both the dominant and
-											   + the sub-dominant +/
+	classic   = 0, /++ Just use the score from the ChromaProfile +/
+	addSubdom = 0x01, /++ Add the score of the subdominant to each key +/ 
+	addDom    = 0x02, /++ Idem, for the dominant +/
+	addRel    = 0x04, /++ Idem, for the relative key +/
+	dominant  = addDom, /++ Only add the dominant +/
+	cadence   = addDom | addSubdom, /++ Add both the dominant and the
+									 + sub-dominant +/
 	/++ Add the dominant, the sub-dominant and the relative +/
-	ALL          = ADD_DOMINANT | ADD_SUBDOM | ADD_RELATIVE,
+	all       = addDom | addSubdom | addRel,
 }
 
 /++
@@ -229,7 +229,7 @@ private:
 		/* adjust the scores from the matching type */
 		adjustScores(scores, m);
 
-		Beatr.writefln(Lvl.VERBOSE, "Scores for each note: %s", scores);
+		Beatr.writefln(Lvl.verbose, "Scores for each note: %s", scores);
 	}
 
 	/* compute a score multiplying each band with its profile coeff */
@@ -239,10 +239,10 @@ private:
 	body
 	{
 		final switch(cm) {
-		case CorrelationMethod.PEARSON:
-			return pearson(bands, profile);
-		case CorrelationMethod.COSINE:
+		case CorrelationMethod.cosine:
 			return cosine(bands, profile);
+		case CorrelationMethod.pearson:
+			return pearson(bands, profile);
 		}
 	}
 	unittest
@@ -250,9 +250,9 @@ private:
 		double[] a = [5., 2., -1., 8., 7., 0., 2.];
 		double[] b = [3., -4, 2, -0.5, 0., 3., -0.5];
 
-		assert(approxEqual(computeKeyScore(a, b, CorrelationMethod.PEARSON),
+		assert(approxEqual(computeKeyScore(a, b, CorrelationMethod.pearson),
 							0.) == false);
-		assert(approxEqual(computeKeyScore(a, b, CorrelationMethod.COSINE),
+		assert(approxEqual(computeKeyScore(a, b, CorrelationMethod.cosine),
 							0.) == true);
 	}
 
@@ -336,11 +336,11 @@ private:
 		auto save = scores.idup;
 		double c;
 
-		Beatr.writefln(Lvl.DEBUG, "Adjusting scores using matching type %s "
+		Beatr.writefln(Lvl.debug_, "Adjusting scores using matching type %s "
 					   "and coefficients %s", m, Beatr.mCoefficients);
 
 		/* add the score of the dominant to each */
-		if (m & MatchingType.ADD_DOMINANT) {
+		if (m & MatchingType.addDom) {
 			foreach (i; 0 .. 12) {
 				c = Beatr.mCoefficients[0];
 				idx = (i + 7) % 12;
@@ -349,7 +349,7 @@ private:
 			}
 		}
 		/* add the score of the sub-dominant to each */
-		if (m & MatchingType.ADD_SUBDOM) {
+		if (m & MatchingType.addSubdom) {
 			foreach (i; 0 .. 12) {
 				c = Beatr.mCoefficients[1];
 				idx = (i + 5) % 12;
@@ -358,7 +358,7 @@ private:
 			}
 		}
 		/* add the score of the relative to each */
-		if (m & MatchingType.ADD_RELATIVE) {
+		if (m & MatchingType.addRel) {
 			c = Beatr.mCoefficients[2];
 			foreach (i; 0 .. 12)
 				scores[i] += c * save[12 + ((i + 9) % 12)];
@@ -382,43 +382,43 @@ private:
 
 		auto res = s.dup;
 		t[] = s[];
-		adjustScores(res, MatchingType.CLASSIC);
+		adjustScores(res, MatchingType.classic);
 		assert(equal!approxEqual(res, t));
 
 		res = s.dup;
 		t[] = s[] + dom[];
-		adjustScores(res, MatchingType.ADD_DOMINANT);
+		adjustScores(res, MatchingType.addDom);
 		assert(equal!approxEqual(res, t));
 
 		res = s.dup;
 		t[] = s[] + sub[];
-		adjustScores(res, MatchingType.ADD_SUBDOM);
+		adjustScores(res, MatchingType.addSubdom);
 		assert(equal!approxEqual(res, t));
 
 		res = s.dup;
 		t[] = s[] + rel[];
-		adjustScores(res, MatchingType.ADD_RELATIVE);
+		adjustScores(res, MatchingType.addRel);
 		assert(equal!approxEqual(res, t));
 
 		res = s.dup;
 		t[] = s[] + dom[];
-		adjustScores(res, MatchingType.DOMINANT);
+		adjustScores(res, MatchingType.dominant);
 		assert(equal!approxEqual(res, t));
 
 		res = s.dup;
 		t[] = s[] + dom[] + sub[];
-		adjustScores(res, MatchingType.CADENCE);
+		adjustScores(res, MatchingType.cadence);
 		assert(equal!approxEqual(res, t));
 
 		res = s.dup;
 		t[] = s[] + dom[] + sub[] + rel[];
-		adjustScores(res, MatchingType.ALL);
+		adjustScores(res, MatchingType.all);
 		assert(equal!approxEqual(res, t));
 
 		Beatr.mCoefficients = [0.5, 0.3, 0.2];
 		res = s.dup;
 		t[] = s[] + 0.5*dom[] + 0.3*sub[] + 0.2*rel[];
-		adjustScores(res, MatchingType.ALL);
+		adjustScores(res, MatchingType.all);
 		assert(equal!approxEqual(res, t));
 
 		Beatr.mCoefficients = csave;

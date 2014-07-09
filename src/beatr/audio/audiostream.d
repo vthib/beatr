@@ -50,7 +50,7 @@ public:
         if ((ret = avcodec_open2(ctx, avc, null)) < 0)
             throw new LibAvException("avcodec_open2 error", ret);
 
-        Beatr.writefln(Lvl.DEBUG, "sample rate: %s, channels: %s",
+        Beatr.writefln(Lvl.debug_, "sample rate: %s, channels: %s",
 					   ctx.sample_rate, ctx.channels);
 
 		/* open the resampler */
@@ -62,7 +62,6 @@ public:
 			d = new short[samplerate *
 						  (af.duration / AV_TIME_BASE + 10)];
 		} else {
-			/* XXX: experiment with this value */
 			/* allocates for the buffer nbFramesBuf seconds of samples */
 			d = new short[samplerate * Beatr.framesBufSize];
 		}
@@ -175,7 +174,7 @@ private:
 
 			if ((ret = avcodec_decode_audio4(ctx, frame, &got_frame,
 											 &pkt)) < 0) {
-				Beatr.writefln(Lvl.WARNING, "Error while decoding: %s",
+				Beatr.writefln(Lvl.warning, "Error while decoding: %s",
 							   LibAvException.errorToString(ret));
 			}
 			av_free_packet(&pkt);

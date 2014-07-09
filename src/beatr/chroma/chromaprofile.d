@@ -7,15 +7,15 @@ alias double[12][12][2] profile;
 
 /++ The different profile types available +/
 enum ProfileType {
-	KRUMHANSL = 0, /++ Profile based on Krumhansl's works +/
-	SCALE = 1, /++ 1 if the note is in the scale, 0 otherwise +/
-	SCALE_HARM = 2, /++ Idem but with the harmonic scale for minor +/
-	SCALE_BOTH = 3, /++ A mean of the two previous profiles +/
-	CHORD = 4, /++ A profile counting the occurence of every note in
+	krumhansl = 0, /++ Profile based on Krumhansl's works +/
+	scale = 1, /++ 1 if the note is in the scale, 0 otherwise +/
+	scaleHarm = 2, /++ Idem but with the harmonic scale for minor +/
+	scaleBoth = 3, /++ A mean of the two previous profiles +/
+	chord = 4, /++ A profile counting the occurence of every note in
 				+ 4 chords: tonic, sub-dominant, dominant and relative +/
-	CHORD_NORMALIZED = 5, /++ Idem but renormalized between the tonic
+    chordNormalized = 5, /++ Idem but renormalized between the tonic
 						   + and the dominant for minor +/
-	CHORD_KRUMHANSL = 6, /++ A profile Krumhansl-like but chord based +/
+	chordKrumhansl = 6, /++ A profile Krumhansl-like but chord based +/
 };
 
 /++ An interface representing chroma profiles for each possible key +/
@@ -37,7 +37,7 @@ class ChromaProfile
 	{
 		import std.algorithm : equal;
 
-		enum type = ProfileType.CHORD;
+		enum type = ProfileType.chord;
 		auto cp = new ChromaProfile(type);
 		double[3] a = [1, 2, 3];
 		assert(equal(cp[0][0][], pfs[type].maj[]));
@@ -58,27 +58,27 @@ struct pf {
 };
 
 enum pfs = [
-	// KRUMHANSL
+	// krumhansl
 	pf([6.35, 2.23, 3.48, 2.33, 4.38, 4.09,
 		2.52, 5.19, 2.39, 3.66, 2.29, 2.88],
        [6.33, 2.68, 3.52, 5.38, 2.60, 3.53,
 		2.54, 4.75, 3.98, 2.69, 3.34, 3.17]),
-	// SCALE
+	// scale
 	pf([1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1],
 	   [1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0]),
-	// SCALE_HARM
+	// scaleHarm
 	pf([1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1],
 	   [1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1]),
-	// SCALE_BOTH
+	// scaleBoth
 	pf([1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1],
 	   [1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0.5, 0.5]),
-	// CHORD
+	// chord
 	pf([3, 0, 1, 0, 2, 1, 0, 2, 0, 2, 0, 1],
 	   [2, 0, 1, 2, 0, 1, 0, 3, 1, 0, 1.5, 0.5]),
-	// CHORD_NORMALIZED
+	// chordNormalized
 	pf([3, 0, 1, 0, 2, 1, 0, 2, 0, 2, 0, 1],
 	   [3, 0, 1, 2, 0, 1, 0, 2, 1, 0, 1.5, 0.5]),
-	// CHORD_KRUMHANSL
+	// chordKrumhansl
 	pf([6.66, 4.71, 4.60, 4.31, 4.64, 5.59,
 		4.36, 5.33, 5.01, 4.64, 4.73, 4.67],
        [5.30, 4.11, 3.83, 4.14, 3.99, 4.41,

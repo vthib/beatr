@@ -58,16 +58,16 @@ public:
 			int lastscale = to!int(fs.lowerBound(lastfreq).length / 12);
 			nbscales = to!ubyte((lastscale > offset) ? lastscale - offset : 0);
 
-			Beatr.writefln(Lvl.WARNING, "Maximum frequency considered greater "
+			Beatr.writefln(Lvl.warning, "Maximum frequency considered greater "
 						   "than the Nyquist frequency of the fft "
 						   "transformation. Replacing number of scales %s with "
 						   "%s.", numscales, nbscales);
 		} else
 			nbscales = numscales;
 
-		Beatr.writefln(Lvl.DEBUG, "using mode '%s' and sigma '%s'",
+		Beatr.writefln(Lvl.debug_, "using mode '%s' and sigma '%s'",
 					   Beatr.fftInterpolationMode, Beatr.fftSigma);
-		Beatr.writefln(Lvl.DEBUG, "Analyzing between C%s and C%s",
+		Beatr.writefln(Lvl.debug_, "Analyzing between C%s and C%s",
 					   Beatr.scaleOffset,
 					   Beatr.scaleOffset + Beatr.scaleNumbers);
 	}
@@ -77,7 +77,7 @@ public:
 		auto lvl = Beatr.verboseLevel;
 		ChromaBands cb;
 
-		Beatr.verboseLevel = Lvl.SILENCE;
+		Beatr.verboseLevel = Lvl.silence;
 
 		Beatr.sampleRate = 44100;
 		/* no issue here */

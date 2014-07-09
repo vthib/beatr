@@ -1,15 +1,25 @@
 import std.math;
 
+/++ Different types of windows usable +/
 enum WindowType {
-	TRIANGLE,
-	RECTANGLE,
-	GAUSSIAN,
-	HANN,
-	FLATTOP,
+	triangle,
+	rectangle,
+	gaussian,
+	hann,
+	flattop,
 };
 
+/++ compute the result of a window function
+ + Params:
+ +  t = the window type
+ +  l = the left boundary
+ +  r = the right boundary
+ +  mu = the center of the window (mu = (l + r)/2)
+ +  Q = the parameter of the window function (if applicable)
+ + Returns: f(x) where f is the window function
+ +/
 T
-window(T)(WindowType t, in T l, in T r, in T mu, in T x, in T Q)
+window(T)(in WindowType t, in T l, in T r, in T mu, in T x, in T Q)
 in
 {
 	assert(l <= x && x <= r);
@@ -21,19 +31,19 @@ body
 	T coeff;
 
 	final switch(t) {
-	case WindowType.TRIANGLE:
+	case WindowType.triangle:
 		coeff = triangle(mu, l, r, x);
 		break;
-	case WindowType.RECTANGLE:
+	case WindowType.rectangle:
 		coeff = 1;
 		break;
-	case WindowType.GAUSSIAN:
+	case WindowType.gaussian:
 		coeff = gaussian(mu, Q, x);
 		break;
-	case WindowType.HANN:
+	case WindowType.hann:
 		coeff = hann(l, r, x);
 		break;
-	case WindowType.FLATTOP:
+	case WindowType.flattop:
 		coeff = flattop(l, r, x);
 		break;
 	}
@@ -42,7 +52,6 @@ body
 }
 
 private:
-
 T
 triangle(T)(in T mu, in T l, in T r, in T x) pure @safe
 {

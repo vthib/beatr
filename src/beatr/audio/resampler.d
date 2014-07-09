@@ -81,7 +81,7 @@ private:
 	~this()
 	{
 		if (avresample_available(resamplectx))
-			Beatr.writefln(Lvl.WARNING, "Still some "
+			Beatr.writefln(Lvl.warning, "Still some "
 						   "resampled samples available");
 		avresample_close(resamplectx);
 		avresample_free(&resamplectx);

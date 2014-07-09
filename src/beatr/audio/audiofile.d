@@ -44,7 +44,7 @@ public:
 			if (ctx.streams[i].codec.codec_type
 				== AVMediaType.AVMEDIA_TYPE_AUDIO) {
 				if (audioStream != uint.max)
-					Beatr.writefln(Lvl.WARNING, "Several audio stream found!");
+					Beatr.writefln(Lvl.warning, "Several audio stream found!");
 				audioStream = i;
 			}
 		}
