@@ -15,11 +15,13 @@ import analysis.scores;
 import util.beatr;
 import chroma.chromaprofile;
 import util.window;
+import util.weighting;
 
 struct Options {
 	MatchingType match;
 	ProfileType profile;
 	CorrelationMethod corr;
+	WeightCurve wcurve;
 	bool recursive;
 	bool sgraph;
 	bool cgraph;
@@ -37,6 +39,7 @@ Info!ProfileType[] profiles;
 Info!MatchingType[] matchings;
 Info!WindowType[] windows;
 Info!CorrelationMethod[] corrs;
+Info!WeightCurve[] wcurves;
 
 /* fill the arrays mapping enum names to values */
 void
@@ -53,6 +56,7 @@ initOptArrays()
 	fillInfos(matchings);
 	fillInfos(windows);
 	fillInfos(corrs);
+	fillInfos(wcurves);
 }
 
 /***** callbacks to set the options values *****/
@@ -140,6 +144,11 @@ void printHelp(string programName)
 	io.write("\t\t--fftimode\tSelect a FFT interpolation mode, amongst:");
 	printArray(windows);
 
+	/* print all possible weight curves */
+	io.write("\t\t--weightcurve\tSelect a weight curve for adjustment, "
+			 "amongst:");
+	printArray(wcurves);
+
 	io.writeln("\t\t--scales N:M\tAnalyze scales between the N-th one and "
 			   "the M-th one");
 	io.writeln("\t\t--bufsize\tSize of the buffer used to decode the\n"
@@ -183,6 +192,9 @@ main(string args[])
 			"correlation",
 			(string a, string b) => infoArrayCallback(opt.corr,
 													  corrs, a, b),
+			"weightcurve",
+			(string a, string b) => infoArrayCallback(opt.wcurve,
+													  wcurves, a, b),
 			"quiet|q", &setOptions,
 			"recursive|r", &opt.recursive,
 			"fftsigma", &setOptions2,
@@ -200,6 +212,8 @@ main(string args[])
 		io.stderr.writefln("error: %s", e.msg);
 		return 3;
 	}
+
+	Beatr.weightCurve = opt.wcurve;
 
 	if (args.length <= 1) {
 		printHelp(args[0]);

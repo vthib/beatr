@@ -13,7 +13,7 @@ version(unittest) {
 
 import util.beatr;
 import util.window;
-import audio.aweighting;
+import util.weighting;
 
 /++
  + Chroma bands represents an histogram of the intensity of each note.
@@ -21,7 +21,7 @@ import audio.aweighting;
 class ChromaBands
 {
 private:
-	AWeighting aw;
+	Weighting aw;
 
 	/* Number of scales in our chroma bands */
 	immutable ubyte nbscales;
@@ -43,8 +43,9 @@ public:
 		assert(offsetscales + numscales <= 10);
 	}
 	body {
-		aw = new AWeighting(Beatr.fftTransformSize/2 + 1,
-							Beatr.fftTransformSize / ((cast(double) Beatr.sampleRate)));
+		aw = new Weighting(Beatr.weightCurve, Beatr.fftTransformSize/2 + 1,
+						   Beatr.fftTransformSize /
+						   ((cast(double) Beatr.sampleRate)));
 		offset = offsetscales;
 
 		/* this bound is independent of the fft transformation size */
@@ -70,6 +71,7 @@ public:
 		Beatr.writefln(Lvl.debug_, "Analyzing between C%s and C%s",
 					   Beatr.scaleOffset,
 					   Beatr.scaleOffset + Beatr.scaleNumbers);
+		Beatr.writefln(Lvl.debug_, "Using weight curve %s", Beatr.weightCurve);
 	}
 	unittest
 	{

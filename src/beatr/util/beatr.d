@@ -12,6 +12,7 @@ version(unittest) {
 }
 
 import util.window;
+import util.weighting;
 
 version(unittest) {}
 else {  @safe: }
@@ -201,6 +202,12 @@ public:
 	 + Default is false
 	 +/
 	mixin property!(bool, "useFilter", "withFilter", false, true);
+
+	/++ Returns the weight curve used to adjust the intensity of each frequency
+	 + Default is A
+	 +/
+	mixin property!(WeightCurve, "weightCurve", "wCurve", WeightCurve.A,
+					WeightCurve.B);
 
 	/++ Returns the directory where config files are stored (wisdom, ...)
 	 + Default is "~/.beatr"
