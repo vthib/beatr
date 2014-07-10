@@ -4,6 +4,7 @@ import std.string : format;
 import std.range : assumeSorted;
 import std.conv: to;
 import std.stdio : stdout;
+import std.parallelism : parallel;
 
 version(unittest) {
 	import std.string : appender, indexOf;
@@ -210,51 +211,14 @@ public:
 		/* bands of the sample */
 		double[] b = new double[nbscales * 12];
 
-		/* boundaries of the window */
-		size_t begin;
-		size_t end;
-
 		/* Q is equal to sigma*(sqrt(2, 12) - 1)
 		 * Thus mu_(i) * Q = mu_(i+1)*sigma */
 		immutable Q = Beatr.fftSigma * (nextNote - 1);
 
-		double sum;
-		double coeff;
-		foreach(i, f; fscales) {
-			/* center of the window is the note frequency */
-			auto mu = f * sampleSize / Beatr.sampleRate;
-
-			if (Q == 0.) {
-				b[i] = s[to!(size_t)(mu)];
-				continue;
-			} else
-				b[i] = 0.;
-
-			/* Leftmost bin from which we start to aggregate results */
-			auto left = mu*(1 - Q);
-			auto right = mu*(1 + Q);
-			begin = (left < 0.) ? 0 : to!size_t(min(left, mu));
-			end = to!size_t(max(mu*(1 + Q), mu + 1));
-			end = min(end, s.length - 1);
-
-			/* for every significant abscissa ([mu(1-Q); mu(1+Q)], compute
-			   the correlation coeff, add coeff * value, and in the end
-			   divide by the sum of the coefficients */
-			sum = 0.;
-
-			foreach (j; begin .. (end+1)) {
-				if (j < left || j > right)
-					continue;
-				coeff = window!double(Beatr.fftInterpolationMode, left,
-									  right, mu, j, Q);
-				sum += coeff;
-				b[i] += s[j] * coeff;
-			}
-
-			if (sum != 0.)
-				b[i] /= sum;
-
-		}
+		immutable scaling = sampleSize / Beatr.sampleRate;
+//		foreach(i, f; parallel(fscales))
+		foreach(i, f; fscales)
+			b[i] = computeBin(f * scaling, Q, s);
 
 		bands ~= b;
 	}
@@ -482,6 +446,42 @@ EOS"
 	}
 
 private:
+	double computeBin(in double mu, in double Q, inout double[] s)
+	{
+		double res;
+
+		if (Q == 0.)
+			return s[to!(size_t)(mu)];
+		else
+			res = 0.;
+
+		/* Leftmost bin from which we start to aggregate results */
+		auto left = mu*(1 - Q);
+		auto right = mu*(1 + Q);
+		size_t begin = (left < 0.) ? 0 : to!size_t(min(left, mu));
+		size_t end = to!size_t(max(mu*(1 + Q), mu + 1));
+		end = min(end, s.length - 1);
+
+		/* for every significant abscissa ([mu(1-Q); mu(1+Q)], compute
+		   the correlation coeff, add coeff * value, and in the end
+		   divide by the sum of the coefficients */
+		auto sum = 0.;
+		double coeff;
+
+		immutable auto windowFun =
+			Window!double.getFunction(Beatr.fftInterpolationMode);
+
+		foreach (j; begin .. (end+1)) {
+			if (j < left || j > right)
+				continue;
+			coeff = windowFun(j, mu, left, right, Q);
+			sum += coeff;
+			res += s[j] * coeff;
+		}
+
+		return (sum != 0.) ? res / sum : 0.;
+	}
+
 	/++ Generate an array of the frequencies for each note +/
 	static double[] genFreqs() pure @safe
 	{
