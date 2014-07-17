@@ -18,7 +18,7 @@ import util.window;
 import util.weighting;
 
 struct Options {
-	MatchingType match;
+	AdjustmentType adjust;
 	ProfileType profile;
 	CorrelationMethod corr;
 	WeightCurve wcurve;
@@ -36,7 +36,7 @@ struct Info(T) {
 };
 
 Info!ProfileType[] profiles;
-Info!MatchingType[] matchings;
+Info!AdjustmentType[] adjustments;
 Info!WindowType[] windows;
 Info!CorrelationMethod[] corrs;
 Info!WeightCurve[] wcurves;
@@ -53,7 +53,7 @@ initOptArrays()
 	}
 
 	fillInfos(profiles);
-	fillInfos(matchings);
+	fillInfos(adjustments);
 	fillInfos(windows);
 	fillInfos(corrs);
 	fillInfos(wcurves);
@@ -61,22 +61,22 @@ initOptArrays()
 
 /***** callbacks to set the options values *****/
 
-void matchingCallback(ref Options opt, string option, string val)
+void adjustCallback(ref Options opt, string option, string val)
 {
 	bool found;
 
-	opt.match = MatchingType.classic;
+	opt.adjust = AdjustmentType.none;
 	foreach (s; val.splitter(',')) {
 		found = false;
-		foreach(m; matchings) {
+		foreach(m; adjustments) {
 			if (val == m.name) {
-				opt.match |= m.type;
+				opt.adjust |= m.type;
 				found = true;
 				break;
 			}
 		}
 		if (!found) {
-			io.stderr.writefln("Unknown matching type '%s'", s);
+			io.stderr.writefln("Unknown adjust type '%s'", s);
 			return;
 		}
 	}
@@ -118,11 +118,11 @@ void printHelp(string programName)
 			   "input");
 	io.writeln("\t\t-h|--help\tPrint this help message");
 
-	/* print all the possible matching types */
-	io.writeln("\t\t-m|--mtype\tUse the specified matching algorithm.");
+	/* print all the possible adjust types */
+	io.writeln("\t\t-m|--mtype\tUse the specified adjust algorithm.");
 	io.write("\t\t\tIf several are specified separated with a ',', then\n"
 			 "\t\t\tadd the combination of them. Possible choices are:");
-	printArray(matchings);
+	printArray(adjustments);
 
 	/* print all possible profile types */
 	io.write("\t\t-p|--profile\tUse the specified profile, amongst:");
@@ -174,7 +174,7 @@ main(string args[])
 
 	initOptArrays();
 
-	opt.match = MatchingType.dominant;
+	opt.adjust = AdjustmentType.dominant;
 
 	try {
 		getopt(
@@ -185,7 +185,7 @@ main(string args[])
 			"graph|g", &opt.sgraph,
 			"seconds", &opt.seconds,
 			"help|h", () => printHelp(args[0]),
-			"mtype|m", (string a, string b) => matchingCallback(opt, a, b),
+			"mtype|m", (string a, string b) => adjustCallback(opt, a, b),
 			"profile|p",
 			(string a, string b) => infoArrayCallback(opt.profile,
 													  profiles, a, b),
@@ -243,7 +243,7 @@ process(string f, Options opt, Analyzer a)
 			else
 				a.processFile(f);
 
-			auto s = a.score(opt.profile, opt.corr, opt.match);
+			auto s = a.score(opt.profile, opt.corr, opt.adjust);
 			auto k = s.bestKey();
 			if (opt.cgraph)
 				a.bands.printHistograms(25);

@@ -19,8 +19,8 @@ enum CorrelationMethod {
 /++ Describe how the adjust the score for each key after using a
  + ChromaProfile
  +/
-enum MatchingType {
-	classic   = 0, /++ Just use the score from the ChromaProfile +/
+enum AdjustmentType {
+	none   = 0, /++ Just use the score from the ChromaProfile +/
 	addSubdom = 0x01, /++ Add the score of the subdominant to each key +/ 
 	addDom    = 0x02, /++ Idem, for the dominant +/
 	addRel    = 0x04, /++ Idem, for the relative key +/
@@ -47,7 +47,7 @@ public:
 	 +         m = the post-processing algorithm of the scores
 	 +/
 	this(in ChromaBands b, in ChromaProfile p, in CorrelationMethod cm,
-		 in MatchingType m)
+		 in AdjustmentType m)
 	{
 		compute(b, p, cm, m);
 	}
@@ -215,7 +215,7 @@ private:
 	}
 
 	void compute(in ChromaBands bands, in ChromaProfile p,
-				 in CorrelationMethod cm, in MatchingType m)
+				 in CorrelationMethod cm, in AdjustmentType m)
 	{
 		reset();
 
@@ -330,7 +330,7 @@ private:
 
 	/* XXX experiment with different coefficients for each addition,
 	 * e.g. 0.5 for add_dominant, 0.3 for add_relative, ... */
-	static void adjustScores(double[] scores, MatchingType m)
+	static void adjustScores(double[] scores, AdjustmentType m)
 	{
 		size_t idx;
 		auto save = scores.idup;
@@ -340,7 +340,7 @@ private:
 					   "and coefficients %s", m, Beatr.mCoefficients);
 
 		/* add the score of the dominant to each */
-		if (m & MatchingType.addDom) {
+		if (m & AdjustmentType.addDom) {
 			foreach (i; 0 .. 12) {
 				c = Beatr.mCoefficients[0];
 				idx = (i + 7) % 12;
@@ -349,7 +349,7 @@ private:
 			}
 		}
 		/* add the score of the sub-dominant to each */
-		if (m & MatchingType.addSubdom) {
+		if (m & AdjustmentType.addSubdom) {
 			foreach (i; 0 .. 12) {
 				c = Beatr.mCoefficients[1];
 				idx = (i + 5) % 12;
@@ -358,7 +358,7 @@ private:
 			}
 		}
 		/* add the score of the relative to each */
-		if (m & MatchingType.addRel) {
+		if (m & AdjustmentType.addRel) {
 			c = Beatr.mCoefficients[2];
 			foreach (i; 0 .. 12)
 				scores[i] += c * save[12 + ((i + 9) % 12)];
@@ -382,43 +382,43 @@ private:
 
 		auto res = s.dup;
 		t[] = s[];
-		adjustScores(res, MatchingType.classic);
+		adjustScores(res, AdjustmentType.none);
 		assert(equal!approxEqual(res, t));
 
 		res = s.dup;
 		t[] = s[] + dom[];
-		adjustScores(res, MatchingType.addDom);
+		adjustScores(res, AdjustmentType.addDom);
 		assert(equal!approxEqual(res, t));
 
 		res = s.dup;
 		t[] = s[] + sub[];
-		adjustScores(res, MatchingType.addSubdom);
+		adjustScores(res, AdjustmentType.addSubdom);
 		assert(equal!approxEqual(res, t));
 
 		res = s.dup;
 		t[] = s[] + rel[];
-		adjustScores(res, MatchingType.addRel);
+		adjustScores(res, AdjustmentType.addRel);
 		assert(equal!approxEqual(res, t));
 
 		res = s.dup;
 		t[] = s[] + dom[];
-		adjustScores(res, MatchingType.dominant);
+		adjustScores(res, AdjustmentType.dominant);
 		assert(equal!approxEqual(res, t));
 
 		res = s.dup;
 		t[] = s[] + dom[] + sub[];
-		adjustScores(res, MatchingType.cadence);
+		adjustScores(res, AdjustmentType.cadence);
 		assert(equal!approxEqual(res, t));
 
 		res = s.dup;
 		t[] = s[] + dom[] + sub[] + rel[];
-		adjustScores(res, MatchingType.all);
+		adjustScores(res, AdjustmentType.all);
 		assert(equal!approxEqual(res, t));
 
 		Beatr.mCoefficients = [0.5, 0.3, 0.2];
 		res = s.dup;
 		t[] = s[] + 0.5*dom[] + 0.3*sub[] + 0.2*rel[];
-		adjustScores(res, MatchingType.all);
+		adjustScores(res, AdjustmentType.all);
 		assert(equal!approxEqual(res, t));
 
 		Beatr.mCoefficients = csave;

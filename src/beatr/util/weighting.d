@@ -8,6 +8,7 @@ version(unittest) {
 }
 
 enum WeightCurve {
+	none,
 	A,
 	B,
 	C,
@@ -25,8 +26,10 @@ public:
 	{
 		auto w = new double[size];
 
-		double function(double) weight;// pure nothrow weight;
+		double function(double) pure nothrow weight;
 		final switch (wc) {
+		case WeightCurve.none:
+			weight = (a => 1); break;
 		case WeightCurve.A:
 			weight = &aCurve; break;
 		case WeightCurve.B:
@@ -69,16 +72,16 @@ public:
 private:
     /++ A-weighting db correction, returned as a multiplication coefficient
       + for the energy level. Cf wikipedia page for function +/
-	static double aCurve(double f) //pure nothrow
+	static double aCurve(double f) pure nothrow
 	{
 		immutable auto f2 = f*f;
 		immutable auto f4 = f*f*f*f;
 
 		double w = 1.;
 
-		w = (f2 + 20.598997*20.598997)*(f2 + 12194.22*12194.22);
+		w = (f2 + 20.598997*20.598997)*(f2 + 12194.217*12194.217);
 		w *= sqrt((f2 + 107.65265*107.65265)*(f2 + 737.86223*737.86223));
-		w = 1.87193495e8 * f4 / w;
+		w = 1.87193440e8 * f4 / w;
 
 		return w;
 	}

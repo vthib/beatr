@@ -15,7 +15,6 @@ enum ProfileType {
 				+ 4 chords: tonic, sub-dominant, dominant and relative +/
     chordNormalized = 5, /++ Idem but renormalized between the tonic
 						   + and the dominant for minor +/
-	chordKrumhansl = 6, /++ A profile Krumhansl-like but chord based +/
 };
 
 /++ An interface representing chroma profiles for each possible key +/
@@ -78,11 +77,6 @@ enum pfs = [
 	// chordNormalized
 	pf([3, 0, 1, 0, 2, 1, 0, 2, 0, 2, 0, 1],
 	   [3, 0, 1, 2, 0, 1, 0, 2, 1, 0, 1.5, 0.5]),
-	// chordKrumhansl
-	pf([6.66, 4.71, 4.60, 4.31, 4.64, 5.59,
-		4.36, 5.33, 5.01, 4.64, 4.73, 4.67],
-       [5.30, 4.11, 3.83, 4.14, 3.99, 4.41,
-		3.92, 4.38, 4.45, 3.69, 4.22, 3.85]),
 	];
 unittest
 {
