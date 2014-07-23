@@ -214,7 +214,7 @@ public:
 		 * Thus mu_(i) * Q = mu_(i+1)*sigma */
 		immutable Q = Beatr.fftSigma * (nextNote - 1);
 
-		immutable scaling = sampleSize / Beatr.sampleRate;
+		immutable double scaling = (cast(double) sampleSize) / Beatr.sampleRate;
 //		foreach(i, f; parallel(fscales))
 		foreach(i, f; fscales)
 			b[i] = computeBin(f * scaling, Q, s);
@@ -478,7 +478,8 @@ private:
 			res += s[j] * coeff;
 		}
 
-		return (sum != 0.) ? res / sum : 0.;
+		immutable tmp = res / sum;
+		return std.math.isNaN(tmp) ? 0. : tmp;
 	}
 
 	/++ Generate an array of the frequencies for each note +/

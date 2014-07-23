@@ -8,12 +8,12 @@ version(unittest) {
 }
 
 enum WeightCurve {
-	none,
 	A,
 	B,
 	C,
 //	ITUR468,
 //	INVISO226,
+	none,
 }
 
 class Weighting
@@ -28,14 +28,14 @@ public:
 
 		double function(double) pure nothrow weight;
 		final switch (wc) {
-		case WeightCurve.none:
-			weight = (a => 1); break;
 		case WeightCurve.A:
 			weight = &aCurve; break;
 		case WeightCurve.B:
 			weight = &bCurve; break;
 		case WeightCurve.C:
 			weight = &cCurve; break;
+		case WeightCurve.none:
+			weight = (a => 1); break;
 		}
 		foreach(i, ref a; w)
 			a = weight(i / scaling);

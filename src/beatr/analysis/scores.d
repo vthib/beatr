@@ -166,47 +166,6 @@ EOS"
 				   ));
 	}
 
-
-/+
-	void printHistograms(in uint height) const
-	{
-		double m = 0;
-		foreach(s; scores)
-			if (s >= m)
-				m = s;
-
-		auto step = m/height;
-
-		/* print the histograms */
-		foreach(i; 0 .. (height + 1)) {
-			foreach(s; scores) {
-				if (s >= (height - i) * step)
-					write('X');
-				else
-					write(' ');
-			}
-			writeln();
-		}
-
-		/* print the notes names */
-		foreach(i; 0 .. scores.length) {
-			switch (i % 12) {
-			case 0: write('C'); break;
-			case 2: write('D'); break;
-			case 4: write('E'); break;
-			case 5: write('F'); break;
-			case 7: write('G'); break;
-			case 9: write('A'); break;
-			case 11: write('B'); break;
-			default: write(' '); break;
-			}
-		}
-		writeln();
-
-		/* print major or minor */
-		writeln("major       minor");
-	}
-+/
 private:
 	void reset()
 	{
