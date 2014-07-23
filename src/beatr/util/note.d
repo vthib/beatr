@@ -11,7 +11,7 @@ private:
 	immutable int minor;
 
 	enum notes = ["C", "C#", "D", "Eb", "E", "F",
-				  "F#", "G", "G#", "A", "Bb", "B"];
+				  "F#", "G", "Ab", "A", "Bb", "B"];
 
 	invariant() {
 		assert(0 <= k && k < 12);
@@ -54,7 +54,7 @@ public:
 		if (minor == -1)
 			return notes[k];
 		else
-			return notes[k] ~ (minor == 1 ? "min" : "maj");
+			return notes[k] ~ (minor == 1 ? "m" : "");
 	}
 
 	/++ return the english name of the note +/
@@ -70,17 +70,17 @@ public:
 		if (minor == T.max)
 			return notes[i];
 		else
-			return notes[i] ~ (minor == 1 ? "min" : "maj");
+			return notes[i] ~ (minor == 1 ? "m" : "");
 	}
 	unittest
 	{
 		assert(new Note(4).name == "E");
-		assert(new Note(7, 0).name == "Gmaj");
-		assert(new Note(10, 1).name == "Bbmin");
+		assert(new Note(7, 0).name == "G");
+		assert(new Note(10, 1).name == "Bbm");
 
 		assert(Note.name(4) == "E");
-		assert(Note.name(7, 0) == "Gmaj");
-		assert(Note.name(10, 1) == "Bbmin");
+		assert(Note.name(7, 0) == "G");
+		assert(Note.name(10, 1) == "Bbm");
 	}
 
 	/++ return the english name of the note +/
@@ -94,15 +94,15 @@ public:
 		Note n = new Note(k);
 		assert("G" == n.name);
 		assert("G" == Note.name(k));
-		assert("Gmaj" == Note.name(k, 0));
-		assert("Gmin" == Note.name(k, 1));
+		assert("G" == Note.name(k, 0));
+		assert("Gm" == Note.name(k, 1));
 		assert("G" == n.toString());
 
 		k = 3;
 		n = new Note(k, 1);
-		assert("Ebmin" == n.name);
+		assert("Ebm" == n.name);
 		assert("Eb" == Note.name(k));
-		assert("Ebmin" == n.toString());
+		assert("Ebm" == n.toString());
 	}
 
 	override bool opEquals(Object o) const

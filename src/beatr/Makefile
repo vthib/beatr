@@ -7,8 +7,8 @@ OBJ=$(SRC:.d=.o)
 3RDLIBS=$(3RDDIR)/libdavcodec.so $(3RDDIR)/libdavformat.so $(3RDDIR)/libdavutil.so $(3RDDIR)/libdfftw3.so
 
 DC=dmd
-DFLAGS?=-debug -gc -fPIC #-profile
-#DFLAGS?=-O -inline -release -noboundscheck -fPIC
+#DFLAGS?=-debug -gc -fPIC #-profile
+DFLAGS?=-O -inline -release -noboundscheck -fPIC
 IFLAGS=-I$(shell pwd) -I$(shell pwd)/../3rdptylib
 LDFLAGS=-L-L$(3RDDIR) -L-ldavcodec -L-ldavformat -L-ldfftw3 -L-ldavresample -L-ldavutil
 

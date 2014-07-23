@@ -14,9 +14,9 @@ with open(sys.argv[1]) as f:
     line = f.readline()
     while line != '':
         i = int(line)
-        r = float(f.readline().split(" ")[1])
-        u = float(f.readline().split(" ")[1])
-        s = float(f.readline().split(" ")[1])
+        r = float(f.readline().split("\t")[1])
+        u = float(f.readline().split("\t")[1])
+        s = float(f.readline().split("\t")[1])
         print("{}\t{}\t{}\t{}".format(i, r, u, s))
         line = f.readline()
 

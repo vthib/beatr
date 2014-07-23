@@ -175,6 +175,7 @@ main(string args[])
 	initOptArrays();
 
 	opt.adjust = AdjustmentType.dominant;
+	opt.wcurve = Beatr.weightCurve;
 
 	try {
 		getopt(
@@ -307,8 +308,7 @@ setOptions2(string opt, string value)
 			ubyte end = to!ubyte(nums[1]);
 			enforce(end > start);
 
-			Beatr.scaleOffset = start;
-			Beatr.scaleNumbers = cast(ubyte) (end - start);
+			Beatr.scales = [start, end];
 		} catch (Exception e) {
 			io.stderr.writefln("--scales requires argument in form 'N:M' with M > N");
 			break;

@@ -70,8 +70,7 @@ public:
 		Beatr.writefln(Lvl.debug_, "using mode '%s' and sigma '%s'",
 					   Beatr.fftInterpolationMode, Beatr.fftSigma);
 		Beatr.writefln(Lvl.debug_, "Analyzing between C%s and C%s",
-					   Beatr.scaleOffset,
-					   Beatr.scaleOffset + Beatr.scaleNumbers);
+					   offset, offset + nbscales);
 		Beatr.writefln(Lvl.debug_, "Using weight curve %s", Beatr.weightCurve);
 	}
 	unittest

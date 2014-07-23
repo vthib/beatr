@@ -40,10 +40,10 @@ private:
 		assert(Beatr.fftSigma >= 0.,
 			   format("the sigma of fft interpolation (%s) needs to be positive",
 					  Beatr.fftSigma));
-		assert(Beatr.scaleOffset + Beatr.scaleNumbers <= 10,
-			   format("Last scale (%s = %s + %s) needs to be less than 10",
-					  Beatr.scaleOffset + Beatr.scaleNumbers, Beatr.scaleOffset,
-					  Beatr.scaleNumbers));
+		assert(Beatr.scales[0] < Beatr.scales[1] && Beatr.scales[1] <= 10,
+			   format("Scales %s is not valid (first element must be less than "
+					  "second one which must be less or equal than 10",
+					  Beatr.scales));
 	}
 
 public:
@@ -105,34 +105,19 @@ public:
 
 	/***** Scales to analyze ******/
 
-	/++ Returns the offset indicating the first scale to analyze
-	 + Default is 0
+	/++ Returns an array of the starting and ending scale to analyze
+	 + Default is [0, 6]
 	 +/
-	mixin property!(ubyte, "scaleOffset", "sOffset", 0, 2);
-
-	/++ Returns the number of scales to analyze
-	 + Default is 6
-	 +/
-	mixin property!(ubyte, "scaleNumbers", "sNumbers", 6, 3);
+	mixin property!(ubyte[2], "scales", "sc", [0, 6], [2, 3]);
 	unittest {
-		auto o = this.scaleOffset;
-		auto n = this.scaleNumbers;
+		auto s = this.scales;
 
 		/* test the invariant */
-		assertThrown!AssertError(this.scaleNumbers = 11);
-		this.scaleNumbers = 0;
-		this.scaleOffset = 0;
-		this.scaleNumbers = 10;
-		assertThrown!AssertError(this.scaleOffset = 1);
-		assertThrown!AssertError(this.scaleOffset = 11);
-		this.scaleOffset = 0;
-		this.scaleNumbers = 8;
-		this.scaleOffset = 2;
-		assertThrown!AssertError(this.scaleOffset = 3);
+		assertThrown!AssertError(this.scales = [3, 11]);
+		assertThrown!AssertError(this.scales = [3, 2]);
+		assertThrown!AssertError(this.scales = [5, 5]);
 
-		this.scaleOffset = 0;
-		this.scaleNumbers = n;
-		this.scaleOffset = o;
+		this.scales = s;
 	}
 
 	/++ Returns the number of frames in the buffer used to
@@ -295,7 +280,7 @@ private:
 					return v;
 				}
 			}
-		}, var, name, var, name, var));
+				}, var, name, var, name, var));
 
 		/* create unittests */
 		mixin(format(q{

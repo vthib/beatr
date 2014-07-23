@@ -23,7 +23,8 @@ private:
 public:
 	this()
 	{
-		b = new ChromaBands(Beatr.scaleNumbers, Beatr.scaleOffset);
+		b = new ChromaBands(cast(ubyte) (Beatr.scales[1] - Beatr.scales[0]),
+							Beatr.scales[0]);
 
 		fftInit();
 		fft = new Fft2Freqs(Beatr.fftTransformSize());
