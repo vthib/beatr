@@ -251,7 +251,7 @@ process(string f, Options opt, Analyzer a)
 			if (opt.sgraph)
 				s.printHistograms(25);
 			if (opt.chromagram)
-				a.bands.printChromagram();
+				a.bands.printChromagram(true);
 			io.writefln("%s\t%s\t%.2s", f, k, s.confidence);
 		} catch (LibAvException e) {
 			hadError = true;

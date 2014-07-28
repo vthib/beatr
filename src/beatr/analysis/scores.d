@@ -111,17 +111,22 @@ public:
 
 	void printHistograms(Writer)(in uint height, Writer w) const
 	{
-		double m = 0;
-		foreach(s; scores)
-			if (s >= m)
-				m = s;
+		double M = -double.max;
+		double m = double.max;
 
-		auto step = m/height;
+		foreach(s; scores) {
+			if (s >= M)
+				M = s;
+			if (s <= m)
+				m = s;
+		}
+
+		auto step = (M - m)/height;
 
 		/* print the histograms */
 		foreach(i; 1 .. (height+1)) {
 			foreach(s; scores) {
-				if (s > (height - i) * step)
+				if (s > (height - i) * step + m)
 					w.put('X');
 				else
 					w.put(' ');
