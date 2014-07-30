@@ -129,9 +129,9 @@ public:
 	/***** Scales to analyze ******/
 
 	/++ Returns an array of the starting and ending scale to analyze
-	 + Default is [0, 6]
+	 + Default is [1, 9]
 	 +/
-	mixin property!(ubyte[2], "scales", "sc", [0, 6], [2, 3]);
+	mixin property!(ubyte[2], "scales", "sc", [1, 9], [2, 3]);
 	unittest {
 		auto s = this.scales;
 
