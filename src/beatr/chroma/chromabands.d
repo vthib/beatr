@@ -176,6 +176,8 @@ public:
 												5., 6.5, 6.5, 4.5, 6.5, 6.5]));
 
 		/* test that it starts from A0, not C0 */
+		auto save = Beatr.firstNote;
+		Beatr.firstNote = 9;
 		cb = new ChromaBands(2, 0);
 		cb.bands ~= [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
 					 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
@@ -183,6 +185,7 @@ public:
 					 8, 8, 8, 3, 8, 8, 2, 8, 8, 0, 8, 8];
 		assert(equal!approxEqual(cb.normalize, [10., 9.5, 9., 6., 8., 7.5,
 												4., 6.5, 6., 4.5, 6.5, 6.5]));
+		Beatr.firstNote = save;
 	}
 
 	void clean() nothrow
@@ -234,8 +237,8 @@ public:
 	void printHistograms(Writer)(in uint height, Writer w) const
 	{
 		double m = 0;
-		/* start from A0 and not C0 if offset == 0*/
-		immutable firstoffset = (offset == 0) ? 9 : 0;
+		/* start from first note and not C0 if offset == 0*/
+		immutable int firstoffset = (offset == 0) ? Beatr.firstNote : 0;
 		double[] b = new double[nbscales * 12 - firstoffset];
 
 		b[] = 0.;
@@ -313,6 +316,8 @@ EOS"
 				   ));
 
 		/***** test that it starts from A0, not C0 *****/
+		auto save = Beatr.firstNote;
+		Beatr.firstNote = 9;
 		app = appender!string();
 		cb = new ChromaBands(2, 0);
 
@@ -337,6 +342,8 @@ A BC D EF G A B
 0  1           
 EOS"
 				   ));
+
+		Beatr.firstNote = save;
 	}
 
 	/++ print a Chromagram
@@ -348,8 +355,8 @@ EOS"
 
 	void printChromagram(Writer)(Writer w, bool full = false) const
 	{
-		/* start from A0 and not C0 if offset == 0 */
-		immutable firstoffset = (offset == 0) ? 9 : 0;
+		/* start from first note and not C0 if offset == 0 */
+		immutable int firstoffset = (offset == 0) ? Beatr.firstNote : 0;
 		const(double[])[] b;
 		if (full)
 			b = bands;
@@ -428,6 +435,8 @@ EOS"
 				   "    -\nG - -\n     \nA   -\n    -\nB    \n"));
 
 		/* test that it starts from A0 not C0 */
+		auto save = Beatr.firstNote;
+		Beatr.firstNote = 9;
 		app = appender!string();
 		cb = new ChromaBands(1, 0);
 
@@ -442,6 +451,7 @@ EOS"
 		assert(-1 != app.data.indexOf(
 				   "C    \n     \nD    \n     \nE    \nF    \n"
 				   "     \nG    \n     \nA   -\n   #-\nB    \n"));
+		Beatr.firstNote = save;
 	}
 
 private:

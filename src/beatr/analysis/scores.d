@@ -11,26 +11,6 @@ import chroma.chromaprofile;
 import util.note;
 import util.beatr;
 
-enum CorrelationMethod {
-	cosine,
-	pearson,
-};
-
-/++ Describe how the adjust the score for each key after using a
- + ChromaProfile
- +/
-enum AdjustmentType {
-	none   = 0, /++ Just use the score from the ChromaProfile +/
-	addSubdom = 0x01, /++ Add the score of the subdominant to each key +/ 
-	addDom    = 0x02, /++ Idem, for the dominant +/
-	addRel    = 0x04, /++ Idem, for the relative key +/
-	dominant  = addDom, /++ Only add the dominant +/
-	cadence   = addDom | addSubdom, /++ Add both the dominant and the
-									 + sub-dominant +/
-	/++ Add the dominant, the sub-dominant and the relative +/
-	all       = addDom | addSubdom | addRel,
-}
-
 /++
  + Class computing the score for every possible key
  +/
@@ -46,10 +26,9 @@ public:
 	 +         p = the profile to use against our chroma bands
 	 +         m = the post-processing algorithm of the scores
 	 +/
-	this(in ChromaBands b, in ChromaProfile p, in CorrelationMethod cm,
-		 in AdjustmentType m)
+	this(in ChromaBands b, in ChromaProfile p, in CorrelationMethod cm)
 	{
-		compute(b, p, cm, m);
+		compute(b, p, cm, Beatr.adjustType);
 	}
 
 private:
@@ -182,6 +161,9 @@ private:
 				 in CorrelationMethod cm, in AdjustmentType m)
 	{
 		reset();
+
+		Beatr.writefln(Lvl.verbose, "Using correlation method %s "
+					   "and adjustment type %s", cm, m);
 
 		auto b = bands.normalize;
 		/* compute score from the profile */

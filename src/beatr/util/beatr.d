@@ -26,6 +26,26 @@ enum Lvl {
 	debug_ = 2
 };
 
+enum CorrelationMethod {
+	cosine,
+	pearson,
+};
+
+/++ Describe how the adjust the score for each key after using a
+ + ChromaProfile
+ +/
+enum AdjustmentType {
+	none   = 0, /++ Just use the score from the ChromaProfile +/
+	addSubdom = 0x01, /++ Add the score of the subdominant to each key +/ 
+	addDom    = 0x02, /++ Idem, for the dominant +/
+	addRel    = 0x04, /++ Idem, for the relative key +/
+	dominant  = addDom, /++ Only add the dominant +/
+	cadence   = addDom | addSubdom, /++ Add both the dominant and the
+									 + sub-dominant +/
+	/++ Add the dominant, the sub-dominant and the relative +/
+	all       = addDom | addSubdom | addRel,
+}
+
 /* XXX Make Options thread-independent */
 /++ Provides a way to print debug messages according
  + to a verbose level +/
@@ -44,6 +64,9 @@ private:
 			   format("Scales %s is not valid (first element must be less than "
 					  "second one which must be less or equal than 10",
 					  Beatr.scales));
+		assert(Beatr.firstNote < 12,
+			   format("The first analyzed note (%s) must be less than 12",
+					  Beatr.firstNote));
 	}
 
 public:
@@ -86,9 +109,9 @@ public:
 	 + For a value of 0.5, the values considered are between -50 cents
 	 + and +50 cents
 	 +
-	 + Default is 0.4
+	 + Default is 0.9
 	 +/
-	mixin property!(double, "fftSigma", "sigma", 0.4, 1.5);
+	mixin property!(double, "fftSigma", "sigma", 0.9, 1.5);
 	unittest {
 		auto s = this.fftSigma;
 		assertThrown!AssertError(this.fftSigma = -1.0);
@@ -98,10 +121,10 @@ public:
 
 	/++ The window functino to use to transform a DFT vector to chroma values
 	 + The window is taken as fftSigma * (1 - sqrt(2, 12)).
-	 + Default is WindowType.gaussian
+	 + Default is WindowType.hann
 	 +/
 	mixin property!(WindowType, "fftInterpolationMode", "fftIMode",
-					WindowType.gaussian, WindowType.triangle);
+					WindowType.hann, WindowType.triangle);
 
 	/***** Scales to analyze ******/
 
@@ -120,6 +143,19 @@ public:
 		this.scales = s;
 	}
 
+	/++ Returns the first note possible to analyze
+	 + Default is 0 (C0)
+	 +/
+	mixin property!(ubyte, "firstNote", "fnote", 0, 3);
+	unittest {
+		auto n = this.firstNote;
+
+		/* test the invariant */
+		assertThrown!AssertError(this.firstNote = 12);
+
+		this.firstNote = n;
+	}
+
 	/++ Returns the number of frames in the buffer used to
 	 + decode the audio stream
 	 + Default is 10
@@ -127,9 +163,9 @@ public:
 	mixin property!(size_t, "framesBufSize", "nbFramesBuf", 10, 5);
 
 	/++ Returns the size of the FFT transformation
-	 + Default is 44100
+	 + Default is 16384
 	 +/
-	private static int fftSize = 44100;
+	private static int fftSize = 16384;
 
 	@property static auto fftTransformSize() nothrow
 	{
@@ -145,18 +181,18 @@ public:
 		auto s = this.fftTransformSize;
 		assert(s == fftSize);
 
-		this.fftTransformSize = 16384;
-		assert(this.fftTransformSize == 16384);
-		assert(fftSize == 16384);
+		this.fftTransformSize = 8192;
+		assert(this.fftTransformSize == 8192);
+		assert(fftSize == 8192);
 
 		fftSize = s;
 	}
 
 	/++ Returns the number of overlaps to execute when the fftTransformSize
 	 + is smaller than the audio frame size
-	 + Default is 1
+	 + Default is 4
 	 +/
-	mixin property!(uint, "fftNbOverlaps", "nboverlaps", 1, 32);
+	mixin property!(uint, "fftNbOverlaps", "nboverlaps", 4, 32);
 
 	/++ Returns the sample rate of the resampled audio signal used
 	 + Default is 44100
@@ -227,13 +263,19 @@ public:
 		config = c;
 	}
 
+	/++ Returns the adjusting method to use to compensate scores
+	 + Default is cadence
+	 +/
+	mixin property!(AdjustmentType, "adjustType", "adjtype",
+					AdjustmentType.cadence, AdjustmentType.none);
+
 	/++ Returns the coefficients used with the matching algorithm
 	 + This is an array of 3 double, for respectively the dominant,
 	 + sub-dominant and relative scores
-	 + Default is [1., 1., 1.]
+	 + Default is [0.5, 0.2, 0.]
 	 +/
-	mixin property!(double[3], "mCoefficients", "coeffs", [0.3, 0.3, 0.3],
-					[0.5, 0.3, 0.2]);
+	mixin property!(double[3], "mCoefficients", "coeffs", [0.5, 0.2, 0.],
+					[0.3, 0.3, 0.3]);
 	unittest
 	{
 		auto c = this.mCoefficients;

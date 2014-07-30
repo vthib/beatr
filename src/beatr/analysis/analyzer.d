@@ -96,13 +96,11 @@ public:
 
 	/++ Returns a score object based on the current chroma bands +/
 	auto score(ProfileType pt = ProfileType.krumhansl,
-			   CorrelationMethod cm = CorrelationMethod.cosine,
-			   AdjustmentType mt = AdjustmentType.dominant)
+			   CorrelationMethod cm = CorrelationMethod.cosine)
 	{
-		Beatr.writefln(Lvl.verbose, "Using profile %s, correlation method %s "
-					   "and adjustment type %s", pt, cm, mt);
+		Beatr.writefln(Lvl.verbose, "Using profile type %s", pt);
 
-		return new Scores(b, new ChromaProfile(pt), cm, mt);
+		return new Scores(b, new ChromaProfile(pt), cm);
 	}
 
 	@property auto bands() nothrow
@@ -118,7 +116,7 @@ public:
 
 		auto frame = new short[Beatr.fftTransformSize];
 		a.processFrame!false(frame);
-		auto b = new double[][](1, Beatr.scaleNumbers*12);
+		auto b = new double[][](1, (Beatr.scales[1] - Beatr.scales[0])*12);
 		b[0][] = 0.;
 		assert(equal(a.bands.getBands, b));
 	}

@@ -18,7 +18,6 @@ import util.window;
 import util.weighting;
 
 struct Options {
-	AdjustmentType adjust;
 	ProfileType profile;
 	CorrelationMethod corr;
 	WeightCurve wcurve;
@@ -65,12 +64,12 @@ void adjustCallback(ref Options opt, string option, string val)
 {
 	bool found;
 
-	opt.adjust = AdjustmentType.none;
+	auto adjtype = AdjustmentType.none;
 	foreach (s; val.splitter(',')) {
 		found = false;
 		foreach(m; adjustments) {
 			if (val == m.name) {
-				opt.adjust |= m.type;
+				adjtype |= m.type;
 				found = true;
 				break;
 			}
@@ -80,6 +79,8 @@ void adjustCallback(ref Options opt, string option, string val)
 			return;
 		}
 	}
+
+	Beatr.adjustType = adjtype;
 }
 
 void infoArrayCallback(T)(ref T o, ref Info!T[] a, string option, string val)
@@ -119,17 +120,17 @@ void printHelp(string programName)
 	io.writeln("\t\t-h|--help\tPrint this help message");
 
 	/* print all the possible adjust types */
-	io.writeln("\t\t-m|--mtype\tUse the specified adjust algorithm.");
+	io.writeln("\t\t-m|--mtype m\tUse the specified adjust algorithm.");
 	io.write("\t\t\tIf several are specified separated with a ',', then\n"
 			 "\t\t\tadd the combination of them. Possible choices are:");
 	printArray(adjustments);
 
 	/* print all possible profile types */
-	io.write("\t\t-p|--profile\tUse the specified profile, amongst:");
+	io.write("\t\t-p|--profile p\tUse the specified profile, amongst:");
 	printArray(profiles);
 
 	/* print all possible correlation methods */
-	io.write("\t\t--correlation\tUse the specified correlation method, "
+	io.write("\t\t--correlation c\tUse the specified correlation method, "
 			 "amongst:");
 	printArray(corrs);
 
@@ -138,33 +139,36 @@ void printHelp(string programName)
 			   "'input'");
 	io.writeln("\t\t-v|--verbose\tAdd more messages");
 
-	io.writeln("\t\t--fftsigma\tSelect a sigma value for the FFT "
+	io.writeln("\t\t--fftsigma s\tSelect a sigma value for the FFT "
 			   "interpolation");
 	/* print all possible window type for interpolation */
-	io.write("\t\t--fftimode\tSelect a FFT interpolation mode, amongst:");
+	io.write("\t\t--fftimode m\tSelect a FFT interpolation mode, amongst:");
 	printArray(windows);
 
 	/* print all possible weight curves */
-	io.write("\t\t--weightcurve\tSelect a weight curve for adjustment, "
+	io.write("\t\t--weightcurve c\tSelect a weight curve for adjustment, "
 			 "amongst:");
 	printArray(wcurves);
 
 	io.writeln("\t\t--scales N:M\tAnalyze scales between the N-th one and "
 			   "the M-th one");
-	io.writeln("\t\t--bufsize\tSize of the buffer used to decode the\n"
+	io.writeln("\t\t--firstnote n\tOnly starts analysis from this note (in "
+			   "the 0th octave");
+
+	io.writeln("\t\t--bufsize s\tSize of the buffer used to decode the\n"
 			   "\t\t\taudio stream in seconds");
 
-	io.writeln("\t\t--fftsize\tSize of the fft transformation");
-	io.writeln("\t\t--fftoverlaps\tNumber of overlaps executed when the\n"
+	io.writeln("\t\t--fftsize s\tSize of the fft transformation");
+	io.writeln("\t\t--fftoverlaps n\tNumber of overlaps executed when the\n"
 			   "\t\t\tfftsize is different than the audio stream size");
-	io.writeln("\t\t--samplerate\tSamplerate used internally to which the\n"
+	io.writeln("\t\t--samplerate s\tSamplerate used internally to which the\n"
 			   "\t\t\taudio input is reduced");
 
-	io.writeln("\t\t--cutoff\tcutoff frequency of the low pass filter");
-	io.writeln("\t\t--filter\tboolean whether to use or not the low pass "
+	io.writeln("\t\t--cutoff f\tcutoff frequency of the low pass filter");
+	io.writeln("\t\t--filter b\tboolean whether to use or not the low pass "
 			   "filter");
 
-	io.writeln("\t\t--seconds\tOnly analyze first 'n' seconds from the input");
+	io.writeln("\t\t--seconds n\tOnly analyze first 'n' seconds from the input");
 }
 
 int
@@ -174,7 +178,6 @@ main(string args[])
 
 	initOptArrays();
 
-	opt.adjust = AdjustmentType.dominant;
 	opt.wcurve = Beatr.weightCurve;
 
 	try {
@@ -201,6 +204,7 @@ main(string args[])
 			"fftsigma", &setOptions2,
 			"fftimode", &setOptions2,
 			"scales", &setOptions2,
+			"firstnote", &setOptions2,
 			"bufsize", &setOptions2,
 			"fftsize", &setOptions2,
 			"fftoverlaps", &setOptions2,
@@ -244,7 +248,7 @@ process(string f, Options opt, Analyzer a)
 			else
 				a.processFile(f);
 
-			auto s = a.score(opt.profile, opt.corr, opt.adjust);
+			auto s = a.score(opt.profile, opt.corr);
 			auto k = s.bestKey();
 			if (opt.cgraph)
 				a.bands.printHistograms(25);
@@ -313,6 +317,9 @@ setOptions2(string opt, string value)
 			io.stderr.writefln("--scales requires argument in form 'N:M' with M > N");
 			break;
 		}
+		break;
+	case "firstnote":
+		Beatr.firstNote = to!(typeof(Beatr.firstNote))(value);
 		break;
 	case "fftsigma":
 		Beatr.fftSigma = to!(typeof(Beatr.fftSigma))(value);
