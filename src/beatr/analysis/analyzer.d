@@ -95,7 +95,7 @@ public:
 	}
 
 	/++ Returns a score object based on the current chroma bands +/
-	auto score(ProfileType pt = ProfileType.krumhansl,
+	auto score(ProfileType pt = ProfileType.chordNormalized,
 			   CorrelationMethod cm = CorrelationMethod.cosine)
 	{
 		Beatr.writefln(Lvl.verbose, "Using profile type %s", pt);

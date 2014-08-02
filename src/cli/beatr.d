@@ -178,6 +178,7 @@ main(string args[])
 
 	initOptArrays();
 
+	opt.profile = ProfileType.chordNormalized;
 	opt.wcurve = Beatr.weightCurve;
 
 	try {

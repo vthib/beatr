@@ -214,7 +214,7 @@ public:
 		double[] b = new double[nbscales * 12];
 
 		/* Q is equal to sigma*(sqrt(2, 12) - 1)
-		 * Thus mu_(i) * Q = mu_(i+1)*sigma */
+		 * Thus mu_(i) * (1 + Q) = mu_(i+1)*sigma */
 		immutable Q = Beatr.fftSigma * (nextNote - 1);
 
 		immutable double scaling = (cast(double) sampleSize) / Beatr.sampleRate;
