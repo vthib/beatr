@@ -19,6 +19,7 @@ private:
 	Fft2Freqs fft;
 	LowPassFilter!80 lpf;
 	size_t fbidx;
+	double[] filterout;
 
 public:
 	this()
@@ -29,8 +30,10 @@ public:
 		fftInit();
 		fft = new Fft2Freqs(Beatr.fftTransformSize());
 
-		if (Beatr.useFilter)
+		if (Beatr.useFilter) {
 			lpf = new typeof(lpf)(Beatr.sampleRate, Beatr.cutoffFreq);
+			filterout = new double[Beatr.sampleRate];
+		}
 		fbidx = 0;
 	}
 
@@ -50,44 +53,48 @@ public:
 			foreach(frame; stream) {
 				if (i++ >= seconds)
 					break;
-				processFrame!true(frame);
+				processFrameWithFilter(frame);
 			}
-			processFrame!true(null, true);
+			processFrameWithFilter(null, true);
 		} else {
 			foreach(frame; stream) {
 				if (i++ >= seconds)
 					break;
-				processFrame!false(frame);
+				processFrame(frame);
 			}
 		}
 	}
 
-	/++ process the given frame into chroma bands +/
-	void processFrame(bool withFilter)(short[] f, bool flush = false)
+	/++ Filter the input before processing it +/
+	void processFrameWithFilter(short[] f, bool flush = false)
 	{
 		size_t cnt;
 
-		static if (withFilter) {
-			cnt = lpf.filter(flush ? null : f[0 .. (fft.input.length - fbidx)],
-							 fft.input[fbidx .. $], flush);
-			fbidx = (fbidx + cnt) % fft.input.length;
-			if (fbidx != 0)
-				return;
-		} else {
-			foreach (i, ref a; fft.input)
-				a = f[i];
-		}
+		cnt = lpf.filter(flush ? null : f[0 .. (filterout.length - fbidx)],
+						 filterout[fbidx .. $], flush);
+		fbidx = (fbidx + cnt) % filterout.length;
+		if (fbidx != 0)
+			return;
 
-		if (Beatr.fftNbOverlaps > 1)
-			fft.executeOverlaps(f, Beatr.fftNbOverlaps);
-		else
-			fft.execute();
+		processFrame(filterout);
 
-		static if (withFilter)
-			fbidx += lpf.filter(flush ? null : f[cnt .. $], fft.input[0 .. $], flush);
-
-		b.addFftSample(fft.output, fft.transformationSize);
+		fbidx += lpf.filter(flush ? null : f[cnt .. $], filterout[0 .. $], flush);
 	}
+
+	/++ Process the given frame into chroma bands +/
+	void processFrame(T)(T[] f)
+	{
+        if (Beatr.fftNbOverlaps > 1)
+            fft.executeOverlaps(f, Beatr.fftNbOverlaps);
+        else {
+            foreach (i, ref a; fft.input)
+                a = f[i];
+            fft.execute();
+        }
+
+        b.addFftSample(fft.output, fft.transformationSize);
+    }
+
 
 	void clean() nothrow
 	{
