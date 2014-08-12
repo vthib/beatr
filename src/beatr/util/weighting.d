@@ -12,7 +12,7 @@ enum WeightCurve {
 	B,
 	C,
 //	ITUR468,
-//	INVISO226,
+	INVISO226,
 	none,
 }
 
@@ -34,11 +34,17 @@ public:
 			weight = &bCurve; break;
 		case WeightCurve.C:
 			weight = &cCurve; break;
+		case WeightCurve.INVISO226:
+			weight = null;
+			fillInvIsoWeight(w);
+			break;
 		case WeightCurve.none:
 			weight = (a => 1); break;
 		}
-		foreach(i, ref a; w)
-			a = weight(i / scaling);
+
+		if (weight !is null)
+			foreach(i, ref a; w)
+				a = weight(i / scaling);
 
 		weights = assumeUnique(w);
 	}
@@ -116,7 +122,7 @@ private:
         assert(approxEqual(bCurve(4000.), pow(10, -0.7/20.)));
     }
 
-    /++ B-weighting db correction, returned as a multiplication coefficient
+    /++ C-weighting db correction, returned as a multiplication coefficient
       + for the energy level. Cf wikipedia page for function +/
 	static double cCurve(double f) pure nothrow
 	{
@@ -135,5 +141,78 @@ private:
         assert(approxEqual(cCurve(250.), pow(10, 0./20.)));
         assert(approxEqual(cCurve(1000.), 1.0));
         assert(approxEqual(cCurve(4000.), pow(10, -0.8/20.)));
+    }
+
+    /++ Inverse of ISO-226 curve, returned as a multiplication coefficient
+      + for the energy level.
+	  + The ISO-226 only provides values for a few frequencies. Others are
+	  + interpolated linearly.
+	  +/
+	static void fillInvIsoWeight(double[] weights) pure nothrow
+	{
+		enum fs = [20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315,
+				   400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150,
+				   4000, 5000, 6300, 8000, 10000, 12500, 20000];
+		enum af = [0.532, 0.506, 0.480, 0.455, 0.432, 0.409, 0.387, 0.367,
+				   0.349, 0.330, 0.315, 0.301, 0.288, 0.276, 0.267, 0.259,
+				   0.253, 0.250, 0.246, 0.244, 0.243, 0.243, 0.243, 0.242,
+				   0.242, 0.245, 0.254, 0.271, 0.301, 0.532];
+		enum Lu = [-31.6, -27.2, -23.0, -19.1, -15.9, -13.0, -10.3, -8.1,
+				   -6.2, -4.5, -3.1, -2.0, -1.1, -0.4, 0.0, 0.3, 0.5, 0.0,
+				   -2.7, -4.1, -1.0,  1.7, 2.5, 1.2, -2.1, -7.1, -11.2, -10.7,
+				   -3.1, -31.6];
+		enum Tf = [78.5, 68.7, 59.5, 51.1, 44.0, 37.5, 31.5, 26.5, 22.1, 17.9,
+				   14.4, 11.4, 8.6, 6.2, 4.4, 3.0, 2.2, 2.4, 3.5, 1.7, -1.3,
+				   -4.2, -6.0, -5.4, -1.5, 6.0, 12.6, 13.9, 12.3, 78.5];
+
+		double Af, Lp;
+		immutable Ln = 40;
+
+		double[] coeffs = new double[fs.length];
+
+		foreach (i, f; fs) {
+			Af = 4.47e-3 * (pow(10., 0.025*Ln) - 1.15) +
+				pow((0.4*pow(10., (((Tf[i] + Lu[i])/10) - 9))), af[i]);
+			Lp = (10./af[i] * log10(Af)) - Lu[i] + 94;
+
+			coeffs[i] = Lp;
+		}
+
+		/* inverse the curve, setting the coefficient of freq 1000 at 0 */
+		immutable coeff1000 = coeffs[17];
+		foreach (ref c; coeffs)
+			c = coeff1000 - c;
+
+		size_t curi = 0;
+		foreach (i, ref w; weights) {
+			double x = i;
+			double y;
+
+			if (i < 20) {
+				w = 0.;
+				continue;
+			}
+
+			if (x == fs[curi])
+				y = coeffs[curi];
+			else {
+				if (x > fs[curi+1] && curi + 2 < fs.length)
+					curi++;
+				y = (x - fs[curi]) * (coeffs[curi+1] - coeffs[curi])
+					/(fs[curi+1] - fs[curi]) + coeffs[curi];
+			}
+			w = pow(10, y/20.);
+		}
+	}
+    unittest
+    {
+		double[] w = new double[44100/2 + 1];
+
+		fillInvIsoWeight(w);
+        assert(approxEqual(w[20], pow(10, -59.84/20.)));
+        assert(approxEqual(w[250], pow(10, -10.38/20.)));
+        assert(approxEqual(w[1000], 1.));
+        assert(approxEqual(w[4000], pow(10, 3.361/20.)));
+        assert(approxEqual(w[20000], pow(10, -59.84/20.)));
     }
 }
