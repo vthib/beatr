@@ -57,14 +57,8 @@ public:
 		samplerate = Beatr.sampleRate;
 		resampler = new Resampler(ctx, samplerate);
 
-		/* allocate the buffer */
-		version (full_decomp) {
-			d = new short[samplerate *
-						  (af.duration / AV_TIME_BASE + 10)];
-		} else {
-			/* allocates for the buffer nbFramesBuf seconds of samples */
-			d = new short[samplerate * Beatr.framesBufSize];
-		}
+		/* allocates for the buffer nbFramesBuf seconds of samples */
+		d = new short[samplerate * Beatr.framesBufSize];
 
 		dend = d.length;
 		offset = dend; /* indicates the buffer unusable */

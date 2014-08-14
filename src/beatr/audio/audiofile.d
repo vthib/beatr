@@ -59,12 +59,6 @@ public:
 		return ctx.streams[audioStream].codec;
 	}
 
-	/* return the duration in seconds */
-	@property uint duration() const nothrow pure
-	{
-		return cast(uint) (ctx.duration / AV_TIME_BASE);
-	}
-
 	/++ Retrieves the next frame in the audio data
 	 + Returns: false if end of file, true if success
 	 + Throws: LibAvException on libav function error

@@ -9,12 +9,12 @@ BSRC=$(shell for i in $(BEATRSRC); do echo src/`basename $$i`; done)
 BOBJ=$(BSRC:src/%.d=obj/%.o)
 
 3RDDIR=$(shell pwd)/../../3rdptylib
-3RDLIBS=$(3RDDIR)/libdavcodec.so $(3RDDIR)/libdavformat.so $(3RDDIR)/libdavutil.so $(3RDDIR)/libdfftw3.so
+3RDLIBS=$(3RDDIR)/libdavcodec.a $(3RDDIR)/libdavformat.a $(3RDDIR)/libdavutil.a $(3RDDIR)/libdavresample.a $(3RDDIR)/libdfftw3.a
 
 DC=dmd
 DFLAGS?=-unittest -cov -gc -debug
 IFLAGS=-I$(shell pwd)/$(BEATRPATH) -I$(3RDDIR)
-LDFLAGS=-L-L$(3RDDIR) -L-ldavcodec -L-ldavformat -L-ldfftw3 -L-ldavresample -L-ldavutil -L-lavutil -L-lavcodec -L-lavformat -L-lfftw3 -L-lavresample
+LDFLAGS=-L-lavutil -L-lavcodec -L-lavformat -L-lfftw3 -L-lavresample
 
 .PHONY=clean test copy compile
 all: compile
@@ -28,8 +28,8 @@ $(BOBJ): obj/%.o : src/%.d
 $(OBJ): %.o : %.d
 	$(DC) $(DFLAGS) $(IFLAGS) -of$@ -c $<
 
-$(TARGET): % : %.o $(BOBJ)
-	$(DC) $(DFLAGS) $(LDFLAGS) -defaultlib=libphobos2.so -L-rpath=$(3RDDIR) -of$@ $^
+$(TARGET): % : %.o $(BOBJ) $(3RDLIBS)
+	$(DC) $(DFLAGS) $(LDFLAGS) -of$@ $^
 
 compile: copy $(TARGET)
 

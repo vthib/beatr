@@ -1,18 +1,18 @@
-TARGET=../libdavutil.so
+TARGET=../libdavutil.a
 SRC=$(wildcard *.d)
 OBJ=$(SRC:.d=.o)
 
 DC=dmd
-DFLAGS=-gc -fPIC
+DFLAGS?=-O -inline -release -noboundscheck -fPIC
 IFLAGS=-I..
-LDFLAGS=-L-lavutil
+#LDFLAGS=-L-lavutil
 
 .PHONY=clean test
 
 all:$(TARGET)
 
 $(TARGET): $(OBJ)
-	$(DC) $(DFLAGS) $(LDFLAGS) -of$@ -shared -defaultlib=libphobos2.so -L-L/usr/local/lib/ $^ 
+	$(DC) $(DFLAGS) $(LDFLAGS) -of$@ -lib $^
 
 $(OBJ): %.o : %.d
 	$(DC) $(DFLAGS) $(IFLAGS) -of$@ -c $<

@@ -221,11 +221,18 @@ main(string args[])
 
 	Beatr.weightCurve = opt.wcurve;
 
+	beatrInit();
+
+	int res;
 	if (args.length <= 1) {
 		printHelp(args[0]);
-		return 2;
+		res = 2;
 	} else
-		return process(args[1], opt, new Analyzer());
+		res = process(args[1], opt, new Analyzer());
+
+	beatrCleanup();
+
+	return res;
 }
 
 bool

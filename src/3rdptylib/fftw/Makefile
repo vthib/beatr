@@ -1,18 +1,18 @@
-TARGET=../libdfftw3.so
+TARGET=../libdfftw3.a
 SRC=$(wildcard *.d)
 OBJ=$(SRC:.d=.o)
 
 DC=dmd
-DFLAGS=-gc -fPIC
+DFLAGS?=-O -inline -release -noboundscheck -fPIC
 IFLAGS=
-LDFLAGS=-L-lfftw3 -L-lfftw3f -L-lfftw3l -L-lfftw3 -L-lfftw3_omp -L-lfftw3f_omp -L-lfftw3l_omp
+#LDFLAGS=-L-lfftw3 -L-lfftw3f -L-lfftw3l -L-lfftw3 -L-lfftw3_omp -L-lfftw3f_omp -L-lfftw3l_omp
 
 .PHONY=clean test
 
 all:$(TARGET)
 
 $(TARGET): $(OBJ)
-	$(DC) $(DFLAGS) $(LDFLAGS) -of$@ -shared -defaultlib=libphobos2.so -L-L/usr/local/lib/ $^ 
+	$(DC) $(DFLAGS) $(LDFLAGS) -of$@ -lib $^ 
 
 $(OBJ): %.o : %.d
 	$(DC) $(DFLAGS) $(IFLAGS) -of$@ -c $<

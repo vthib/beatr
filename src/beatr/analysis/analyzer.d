@@ -27,7 +27,6 @@ public:
 		b = new ChromaBands(cast(ubyte) (Beatr.scales[1] - Beatr.scales[0]),
 							Beatr.scales[0]);
 
-		fftInit();
 		fft = new Fft2Freqs(Beatr.fftTransformSize());
 
 		if (Beatr.useFilter) {
@@ -127,10 +126,16 @@ public:
 		b[0][] = 0.;
 		assert(equal(a.bands.getBands, b));
 	}
+}
 
-private:
-	~this()
-	{
-		fftDestroy();
-	}
+void
+beatrInit()
+{
+	fftInit();
+}
+
+void
+beatrCleanup()
+{
+	fftDestroy();
 }

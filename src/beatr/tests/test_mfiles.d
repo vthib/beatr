@@ -8,6 +8,7 @@ import std.path;
 
 import analysis.analyzer;
 import util.note;
+import audio.fftutils;
 
 void
 errorMessage(string filename, string msg)
@@ -18,6 +19,8 @@ errorMessage(string filename, string msg)
 int
 main()
 {
+	beatrInit();
+
 	auto mfiles = array(dirEntries("mfiles", "*.{wav,mp3}", SpanMode.depth));
 	bool[] res = new bool[mfiles.length];
 	auto a = new Analyzer();
@@ -43,6 +46,7 @@ main()
 	auto count = reduce!((acc, r) => acc + r)(0, res);
 	writefln("%s/%s tests passed", count, res.length);
 
+	beatrCleanup();
+
 	return cast(int) (res.length - count);
 }
-
