@@ -34,7 +34,7 @@ public:
 		/* analyse the file */
 		ret = avformat_find_stream_info(ctx, null);
 		if (ret < 0)
-					throw new LibAvException("avformat_find_stream_info error", ret);
+			throw new LibAvException("avformat_find_stream_info error", ret);
 
 		/* find the audio stream */
 		audioStream = uint.max;
@@ -92,8 +92,4 @@ private:
 		if (ctx !is null)
 			avformat_close_input(&ctx);
 	}
-
-	/++ An AudioFile object can be used to access directly the members
-	 + of the AVFormatContext structure +/
-	alias ctx this;
 }

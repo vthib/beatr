@@ -190,6 +190,7 @@ public:
 
 	void clean() nothrow
 	{
+		destroy(bands);
 		bands = null;
 	}
 
@@ -362,6 +363,7 @@ EOS"
 			b = bands;
 		else {
 			auto b2 = new double[][](bands.length, 12);
+			scope(exit) destroy(b2);
 			foreach(ref t; b2)
 				t[] = 0.;
 			foreach(i, t; bands)
@@ -509,5 +511,11 @@ private:
 
 		assert(approxEqual(freqs[9 + 12 * 4], 440)); /* A4 */
 		assert(approxEqual(2*freqs[23], freqs[23 + 12]));
+	}
+
+private:
+	~this()
+	{
+		destroy(aw);
 	}
 }

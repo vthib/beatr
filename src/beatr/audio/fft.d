@@ -53,8 +53,7 @@ public:
 
 	void execute()
 	{
-		onormed[] = 0.;
-		executePlan();
+		executePlan!false();
 	}
 
 	@property auto input() { return ibuf; }
@@ -88,22 +87,29 @@ public:
 			foreach (ref a; ibuf)
 				a = biginput[idx++];
 
-			executePlan();
+			executePlan!true();
 		}
 
 		onormed[] /= nbOverlaps;
 	}
 
 private:
-	void executePlan()
+	void executePlan(bool add)()
 	{
 		fftw_execute(plan);
 
 		foreach(i, c; obuf) {
-			static if (t2f)
-				onormed[i] += sqrt(c.re*c.re + c.im*c.im) * norm_coeff;
-			else
-				onormed[i] += c * norm_coeff;
+			static if (t2f) {
+				static if (add)
+					onormed[i] += sqrt(c.re*c.re + c.im*c.im) * norm_coeff;
+				else
+					onormed[i] = sqrt(c.re*c.re + c.im*c.im) * norm_coeff;
+			} else {
+				static if (add)
+					onormed[i] += c * norm_coeff;
+				else
+					onormed[i] = c * norm_coeff;
+			}
 		}
 	}
 

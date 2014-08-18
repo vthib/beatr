@@ -180,6 +180,7 @@ main(string args[])
 
 	opt.profile = ProfileType.chordNormalized;
 	opt.wcurve = Beatr.weightCurve;
+	opt.seconds = 150;
 
 	try {
 		getopt(

@@ -107,6 +107,8 @@ private:
 	{
         if (frame !is null)
             av_frame_free(&frame);
+        destroy(d);
+        destroy(resampler);
 	}
 
 	/++ Copies a frame in the data buffer

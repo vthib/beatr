@@ -1,6 +1,7 @@
 import std.exception : assumeUnique;
 import std.math : log10, sqrt, pow;
 import std.string : format;
+
 version(unittest) {
 	import std.math : approxEqual;
 	import core.exception : AssertError;

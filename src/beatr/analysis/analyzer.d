@@ -8,6 +8,8 @@ import audio.fft;
 import analysis.scores;
 import util.beatr;
 
+import std.typecons : scoped;
+
 /++
  + Main class of Beatr.
  + Process samples of audio data and returns the best key estimate
@@ -39,8 +41,8 @@ public:
 	/++ Process the audio file, up to 'seconds' seconds +/
 	void processFile(string fname, size_t seconds = size_t.max)
 	{
-		auto af = new AudioFile(fname);
-		auto stream = new AudioStream(af);
+		auto af = scoped!AudioFile(fname);
+		auto stream = scoped!AudioStream(af);
 
 		Beatr.writefln(Lvl.verbose, "Using fft transform size %s and %s "
 					   "overlaps", Beatr.fftTransformSize,
