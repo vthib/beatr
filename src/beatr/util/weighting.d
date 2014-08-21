@@ -12,7 +12,7 @@ enum WeightCurve {
 	A,
 	B,
 	C,
-//	ITUR468,
+	ITUR468,
 	INVISO226,
 	none,
 }
@@ -35,9 +35,13 @@ public:
 			weight = &bCurve; break;
 		case WeightCurve.C:
 			weight = &cCurve; break;
+		case WeightCurve.ITUR468:
+			weight = null;
+			fillITUR468Weight(w, scaling);
+			break;
 		case WeightCurve.INVISO226:
 			weight = null;
-			fillInvIsoWeight(w);
+			fillInvIsoWeight(w, scaling);
 			break;
 		case WeightCurve.none:
 			weight = (a => 1); break;
@@ -149,7 +153,8 @@ private:
 	  + The ISO-226 only provides values for a few frequencies. Others are
 	  + interpolated linearly.
 	  +/
-	static void fillInvIsoWeight(double[] weights) pure nothrow
+	static void fillInvIsoWeight(double[] weights,
+								 in double scaling) pure nothrow
 	{
 		enum fs = [20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315,
 				   400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150,
@@ -186,10 +191,10 @@ private:
 
 		size_t curi = 0;
 		foreach (i, ref w; weights) {
-			double x = i;
+			double x = i / scaling;
 			double y;
 
-			if (i < 20) {
+			if (x < 20) {
 				w = 0.;
 				continue;
 			}
@@ -209,11 +214,59 @@ private:
     {
 		double[] w = new double[44100/2 + 1];
 
-		fillInvIsoWeight(w);
-        assert(approxEqual(w[20], pow(10, -59.84/20.)));
-        assert(approxEqual(w[250], pow(10, -10.38/20.)));
-        assert(approxEqual(w[1000], 1.));
-        assert(approxEqual(w[4000], pow(10, 3.361/20.)));
-        assert(approxEqual(w[20000], pow(10, -59.84/20.)));
+		fillInvIsoWeight(w, 0.5);
+        assert(approxEqual(w[20 / 2], pow(10, -59.84/20.)));
+        assert(approxEqual(w[250 / 2], pow(10, -10.38/20.)));
+        assert(approxEqual(w[1000 / 2], 1.));
+        assert(approxEqual(w[4000 / 2], pow(10, 3.361/20.)));
+        assert(approxEqual(w[20000 / 2], pow(10, -59.84/20.)));
+    }
+
+    /++ ITU-R 468 curve, returned as a multiplication coefficient
+      + for the energy level.
+	  + Only values for a few frequencies are available. Others are
+	  + interpolated linearly.
+	  +/
+	static void fillITUR468Weight(double[] weights,
+								  in double scaling) pure nothrow
+	{
+		enum fs = [31.5, 63, 100, 200, 400, 800, 1000, 2000, 3150, 4000, 5000,
+				   6300, 7100, 8000, 9000, 10000, 12500, 14000, 16000, 20000,
+				   31500];
+		enum coeffs = [-29.9, -23.9, -19.8, -13.8, -7.8, -1.9, 0, 5.6, 9, 10.5,
+				  11.7, 12.2, 12, 11.4, 10.1, 8.1, 0, -5.3, -11.7, -22.2,
+				  -42.7];
+
+		size_t curi = 0;
+		foreach (i, ref w; weights) {
+			double x = i / scaling;
+			double y;
+
+			if (x < 20) {
+				w = 0.;
+				continue;
+			}
+
+			if (x == fs[curi])
+				y = coeffs[curi];
+			else {
+				if (x > fs[curi+1] && curi + 2 < fs.length)
+					curi++;
+				y = (x - fs[curi]) * (coeffs[curi+1] - coeffs[curi])
+					/(fs[curi+1] - fs[curi]) + coeffs[curi];
+			}
+			w = pow(10, y/20.);
+		}
+	}
+    unittest
+    {
+		double[] w = new double[44100/2 + 1];
+
+		fillITUR468Weight(w, 0.5);
+        assert(approxEqual(w[100 / 2], pow(10, -19.8/20.)));
+        assert(approxEqual(w[150 / 2], pow(10, -16.8/20.)));
+        assert(approxEqual(w[1000 / 2], 1.));
+        assert(approxEqual(w[4000 / 2], pow(10, 10.5/20.)));
+        assert(approxEqual(w[9250 / 2], pow(10, 9.6/20.)));
     }
 }
