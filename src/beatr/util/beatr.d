@@ -190,9 +190,9 @@ public:
 
 	/++ Returns the number of overlaps to execute when the fftTransformSize
 	 + is smaller than the audio frame size
-	 + Default is 2
+	 + Default is 8
 	 +/
-	mixin property!(uint, "fftNbOverlaps", "nboverlaps", 2, 32);
+	mixin property!(uint, "fftNbOverlaps", "nboverlaps", 8, 32);
 
 	/++ Returns the sample rate of the resampled audio signal used
 	 + Default is 44100
