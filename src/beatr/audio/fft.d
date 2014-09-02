@@ -73,10 +73,13 @@ public:
 	{
 		onormed[] = 0.;
 
-		if ((biginput.length - input.length) % nbOverlaps != 0)
-			Beatr.writefln(Lvl.warning, "Samples lost due to difference "
-						   "between frame length and FFT transform size "
-						   "not divisible by number of overlaps");
+		version(none) { /* annoying as new default is to lose some samples:
+						   44100 -> 16384 with 8 overlaps */
+			if ((biginput.length - input.length) % nbOverlaps != 0)
+				Beatr.writefln(Lvl.warning, "Samples lost due to difference "
+							   "between frame length and FFT transform size "
+							   "not divisible by number of overlaps");
+		}
 
 		foreach(step; 0 .. nbOverlaps) {
 			/*copy the input into the ibuf buffer */
