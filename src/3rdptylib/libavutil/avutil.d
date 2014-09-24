@@ -6,8 +6,8 @@ extern(C):
 nothrow:
 
 uint avutil_version();
-const char *avutil_configuration();
-const char *avutil_license();
+const(char) *avutil_configuration();
+const(char) *avutil_license();
 
 enum AVMediaType {
 	AVMEDIA_TYPE_UNKNOWN = -1,

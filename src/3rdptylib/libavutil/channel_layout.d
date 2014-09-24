@@ -83,4 +83,4 @@ int av_get_channel_layout_channel_index(ulong channel_layout,
 
 ulong av_channel_layout_extract_channel(ulong channel_layout, int index);
 
-const char *av_get_channel_name(ulong channel);
+const(char) *av_get_channel_name(ulong channel);

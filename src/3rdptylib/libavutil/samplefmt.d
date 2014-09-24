@@ -25,7 +25,7 @@ enum AVSampleFormat {
     AV_SAMPLE_FMT_NB
 };
 
-const char *av_get_sample_fmt_name(AVSampleFormat sample_fmt);
+const(char) *av_get_sample_fmt_name(AVSampleFormat sample_fmt);
 
 AVSampleFormat av_get_sample_fmt(const char *name);
 AVSampleFormat av_get_packed_sample_fmt(AVSampleFormat sample_fmt);

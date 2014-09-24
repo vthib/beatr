@@ -74,16 +74,16 @@ int av_opt_eval_q     (void *obj, const AVOption *o, const char *val,
 enum AV_OPT_SEARCH_CHILDREN = 0x0001;
 enum AV_OPT_SEARCH_FAKE_OBJ = 0x0002;
 
-const AVOption *av_opt_find(void *obj, const char *name, const char *unit,
+const(AVOption) *av_opt_find(void *obj, const char *name, const char *unit,
                             int opt_flags, int search_flags);
-const AVOption *av_opt_find2(void *obj, const char *name, const char *unit,
+const(AVOption) *av_opt_find2(void *obj, const char *name, const char *unit,
                              int opt_flags, int search_flags,
 							 void **target_obj);
-const AVOption *av_opt_next(void *obj, const AVOption *prev);
+const(AVOption) *av_opt_next(void *obj, const AVOption *prev);
 
 void *av_opt_child_next(void *obj, void *prev);
 
-const AVClass *av_opt_child_class_next(const AVClass *parent,
+const(AVClass) *av_opt_child_class_next(const AVClass *parent,
 									   const AVClass *prev);
 
 int av_opt_set       (void *obj, const char *name, const char *val,

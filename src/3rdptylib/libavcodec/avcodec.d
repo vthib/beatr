@@ -680,14 +680,14 @@ struct AVSubtitle {
 AVCodec *av_codec_next(const AVCodec *c);
 
 uint avcodec_version();
-const char *avcodec_configuration();
-const char *avcodec_license();
+const(char) *avcodec_configuration();
+const(char) *avcodec_license();
 void avcodec_register(AVCodec *codec);
 void avcodec_register_all();
 
 AVCodecContext *avcodec_alloc_context3(const AVCodec *codec);
 int avcodec_get_context_defaults3(AVCodecContext *s, const AVCodec *codec);
-const AVClass *avcodec_get_class();
+const(AVClass) *avcodec_get_class();
 
 int avcodec_copy_context(AVCodecContext *dest, const AVCodecContext *src);
 

@@ -46,7 +46,7 @@ void av_log_set_callback(void function(void*, int, const char*, va_list) cb);
 void av_log_default_callback(void *avcl, int level, const char *fmt,
 							 va_list vl);
 
-const char* av_default_item_name(void* ctx);
+const(char*) av_default_item_name(void* ctx);
 }
 
 debug {

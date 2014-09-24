@@ -250,8 +250,8 @@ struct AVPacketList {
 /*** Core ***/
 
 uint avformat_version();
-const char *avformat_configuration();
-const char *avformat_license();
+const(char) *avformat_configuration();
+const(char) *avformat_license();
 
 void av_register_all();
 
@@ -267,7 +267,7 @@ AVOutputFormat *av_oformat_next(AVOutputFormat *f);
 AVFormatContext *avformat_alloc_context();
 
 void avformat_free_context(AVFormatContext *s);
-const AVClass *avformat_get_class();
+const(AVClass) *avformat_get_class();
 
 AVStream *avformat_new_stream(AVFormatContext *s, AVCodec *c);
 AVProgram *av_new_program(AVFormatContext *s, int id);
@@ -368,5 +368,5 @@ int av_match_ext(const char *filename, const char *extensions);
 int avformat_query_codec(AVOutputFormat *ofmt, AVCodecID codec_id,
 						 int std_compliance);
 
-const AVCodecTag *avformat_get_riff_video_tags();
-const AVCodecTag *avformat_get_riff_audio_tags();
+const(AVCodecTag) *avformat_get_riff_video_tags();
+const(AVCodecTag) *avformat_get_riff_audio_tags();

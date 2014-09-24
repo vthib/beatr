@@ -99,7 +99,7 @@ int avio_closep(AVIOContext **s);
 int avio_open_dyn_buf(AVIOContext **s);
 int avio_close_dyn_buf(AVIOContext *s, ubyte **pbuffer);
 
-const char *avio_enum_protocols(void **opaque, int output);
+const(char) *avio_enum_protocols(void **opaque, int output);
 
 int avio_pause(AVIOContext *h, int pause);
 

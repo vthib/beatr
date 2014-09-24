@@ -40,11 +40,11 @@ enum AVResampleDitherMethod {
 
 uint avresample_version();
 
-const char *avresample_configuration();
+const(char) *avresample_configuration();
 
-const char *avresample_license();
+const(char) *avresample_license();
 
-const AVClass *avresample_get_class();
+const(AVClass) *avresample_get_class();
 
 AVAudioResampleContext *avresample_alloc_context();
 
