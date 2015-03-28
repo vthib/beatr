@@ -1,4 +1,4 @@
-module main;
+module cli;
 
 import io = std.stdio;
 import std.exception;

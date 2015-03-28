@@ -1,0 +1,5 @@
+add_subdirectory(fftw)
+add_subdirectory(libavcodec)
+add_subdirectory(libavformat)
+add_subdirectory(libavresample)
+add_subdirectory(libavutil)
