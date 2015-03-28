@@ -1,3 +1,5 @@
+module analysis.scores;
+
 import std.math : isNaN, sqrt;
 version(unittest) {
 	import std.math : approxEqual;

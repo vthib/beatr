@@ -1,3 +1,5 @@
+module audio.resampler;
+
 import exc.libavexception;
 import util.beatr;
 

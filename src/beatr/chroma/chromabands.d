@@ -1,3 +1,5 @@
+module chroma.chromabands;
+
 import std.algorithm : max, min;
 import std.exception : enforce;
 import std.string : format;

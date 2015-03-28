@@ -1,3 +1,5 @@
+module audio.audiofile;
+
 import std.string : toStringz;
 
 import libavcodec.avcodec;

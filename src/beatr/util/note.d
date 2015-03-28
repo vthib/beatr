@@ -1,3 +1,5 @@
+module util.note;
+
 @safe:
 
 /++

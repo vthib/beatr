@@ -1,3 +1,5 @@
+module analysis.analyzer;
+
 import chroma.chromaprofile;
 import chroma.chromabands;
 import audio.audiofile;

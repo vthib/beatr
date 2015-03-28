@@ -1,3 +1,5 @@
+module util.window;
+
 import std.math;
 
 /++ Different types of windows usable +/

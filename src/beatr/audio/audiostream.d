@@ -1,3 +1,5 @@
+module audio.audiostream;
+
 //@safe:
 import core.stdc.string : memcpy;
 

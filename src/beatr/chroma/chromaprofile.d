@@ -1,3 +1,5 @@
+module chroma.chromaprofile;
+
 /++ Keeps coefficient representing a profile for each possible key
  + First dimension is 2 (major then minor)
  + Second dimension the number of possible key (12)

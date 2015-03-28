@@ -1,3 +1,5 @@
+module util.beatr;
+
 import io = std.stdio;
 import cio = std.c.stdio;
 import std.c.stdlib : exit;

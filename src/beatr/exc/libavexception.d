@@ -1,3 +1,5 @@
+module exc.libavexception;
+
 import libavutil.error;
 
 import core.stdc.string : strlen;

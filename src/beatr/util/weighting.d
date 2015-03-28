@@ -1,3 +1,5 @@
+module util.weighting;
+
 import std.exception : assumeUnique;
 import std.math : log10, sqrt, pow;
 import std.string : format;

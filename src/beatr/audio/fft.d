@@ -1,3 +1,5 @@
+module audio.fft;
+
 import std.math : sqrt;
 version(unittest) {
 	import std.random : uniform;

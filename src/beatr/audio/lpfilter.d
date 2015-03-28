@@ -1,3 +1,5 @@
+module audio.lpfilter;
+
 import std.math : sqrt, cos, PI;
 import std.exception : assumeUnique;
 version(unittest) {

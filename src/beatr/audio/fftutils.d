@@ -1,3 +1,5 @@
+module audio.fftutils;
+
 import std.file : mkdir, FileException;
 import core.stdc.errno : EEXIST;
 import std.string: toStringz;
