@@ -6,13 +6,11 @@ import std.string : format;
 
 T AV_VERSION_INT(T)(T a, T b, T c)
 {
-	static assert(__ctfe);
 	return (a << 16 | b << 8 | c);
 }
 
 string AV_VERSION_DOT(T, U, V)(T a, U b, V c)
 {
-	static assert(__ctfe);
 	return format("%s.%s.%s", a, b, c);
 }
 
