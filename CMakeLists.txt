@@ -6,5 +6,5 @@ set(Beatr_VERSION_MINOR 1)
 
 add_subdirectory(src/3rdptylib)
 add_subdirectory(src/beatr)
-add_subdirectory(src/cli)
+add_subdirectory(src/ui)
 
