@@ -1,4 +1,5 @@
 include_directories(. ../3rdptylib)
+add_subdirectory(tests)
 add_library(beatr
     analysis/analyzer.d analysis/scores.d
 

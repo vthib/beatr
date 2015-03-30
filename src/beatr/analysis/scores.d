@@ -4,8 +4,8 @@ import std.math : isNaN, sqrt;
 version(unittest) {
 	import std.math : approxEqual;
 	import std.algorithm : equal, map;
-	import std.array : array;
-	import std.string : appender, indexOf;
+	import std.array : array, appender;
+	import std.string : indexOf;
 }
 
 import chroma.chromabands;

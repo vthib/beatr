@@ -9,9 +9,10 @@ import std.stdio : stdout;
 import std.parallelism : parallel;
 
 version(unittest) {
-	import std.string : appender, indexOf;
-	import std.algorithm : equal;
-	import std.math : approxEqual;
+    import std.string : indexOf;
+    import std.algorithm : equal;
+    import std.math : approxEqual;
+    import std.array : appender;
 }
 
 import util.beatr;

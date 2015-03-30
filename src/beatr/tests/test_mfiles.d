@@ -17,11 +17,18 @@ errorMessage(string filename, string msg)
 }
 
 int
-main()
+main(string[] args)
 {
+    string dirname;
+
+    if (args.length > 1)
+        dirname = args[1] ~ "/mfiles";
+    else
+        dirname = "mfiles";
+
 	beatrInit();
 
-	auto mfiles = array(dirEntries("mfiles", "*.{wav,mp3}", SpanMode.depth));
+	auto mfiles = array(dirEntries(dirname, "*.{wav,mp3}", SpanMode.depth));
 	bool[] res = new bool[mfiles.length];
 	auto a = new Analyzer();
 
