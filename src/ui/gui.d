@@ -4,6 +4,7 @@ import std.stdio;
 import std.file;
 import std.parallelism;
 import std.conv;
+import std.range : iota;
 
 import gtk.MainWindow;
 import gtk.Box;
@@ -21,6 +22,7 @@ import gtk.ListStore;
 import gtk.TreeView;
 import gtk.TreeViewColumn;
 import gtk.CellRendererText;
+import gtk.CellRendererProgress;
 import glib.Idle;
 
 import util.weighting;
@@ -42,62 +44,70 @@ struct Data {
     MainWindow main;
 
     SongListStore list;
+
+    TaskPool taskPool;
 };
 
 Data data;
+Analyzer a = null;
 
 /* {{{ Process */
 
 struct Process {
     string f;
-    Analyzer a;
     TreeIter iter;
     string k;
+    int progress;
+
+    this(string file, TreeIter it)
+    {
+        f = file;
+        iter = it;
+    }
 
     void run()
     {
-        DirEntry d;
-
-        try {
-            d = DirEntry(f);
-        } catch (FileException e) {
-            io.stderr.writefln("error: %s", e.msg);
-            return;
+        if (a is null) {
+            synchronized {
+                a = new Analyzer();
+            }
         }
+        a.setProgressCallback(&progressCb);
 
-        if (d.isFile) {
-            Beatr.writefln(Lvl.verbose, "Processing '%s'...", f);
-            try {
-                if (data.opt.seconds != 0)
-                    a.processFile(f, data.opt.seconds);
-                else
-                    a.processFile(f);
+        Beatr.writefln(Lvl.verbose, "Processing '%s'...", f);
+        try {
+            if (data.opt.seconds != 0)
+                a.processFile(f, data.opt.seconds);
+            else
+                a.processFile(f);
 
-                auto s = a.score(data.opt.profile, data.opt.corr);
-                k = to!string(s.bestKey());
+            auto s = a.score(data.opt.profile, data.opt.corr);
+            k = to!string(s.bestKey());
 
-                new Idle(&updateKey);
-            } catch (LibAvException e) {
-                io.stderr.writefln("%s\n", e.msg);
-                /* TODO err */
-                return;
-            }
-        } else if (d.isDir) {
-            foreach (name; dirEntries(f, SpanMode.breadth)) {
-                auto newIter = data.list.addSong(f);
-                auto p = new Process(name, new Analyzer(), newIter);
-                auto task = task(&p.run);
-
-                taskPool.put(task);
-            }
-        } else {
-            io.stderr.writefln("'%s' is neither a file nor a directory", f);
+            new Idle(&updateKey);
+        } catch (LibAvException e) {
+            io.stderr.writefln("%s\n", e.msg);
+            /* TODO err */
+            return;
         }
     }
 
-    bool updateKey() {
+    void progressCb(int p)
+    {
+        progress = p;
+        new Idle(&updateProgress);
+    }
+
+    bool updateProgress()
+    {
+        data.list.setProgress(iter, progress);
+        return false;
+    }
+
+    bool updateKey()
+    {
         data.list.setKey(iter, k);
-        return true;
+        return false;
     }
 }
 
@@ -109,12 +119,14 @@ void main(string[] args)
     data.opt.wcurve = Beatr.weightCurve;
     data.opt.seconds = 150;
 
+    data.taskPool = new TaskPool(1);
+
     beatrInit();
     scope(exit) beatrCleanup();
 
     Main.init(args);
     data.main = new MainWindow("Beatr");
-    data.main.setDefaultSize(250, 200);
+    data.main.setDefaultSize(800, 600);
 
     MenuBar menuBar = new MenuBar();
     menuBar.append(new FileMenuItem());
@@ -147,6 +159,10 @@ class FileMenuItem : MenuItem
         chooseFile.addOnButtonRelease(&selectFile);
         fileMenu.append(chooseFile);
 
+        auto chooseDir = new MenuItem("Open a folder");
+        chooseDir.addOnButtonRelease(&selectDir);
+        fileMenu.append(chooseDir);
+
         auto exitMenuItem = new MenuItem("Exit");
         exitMenuItem.addOnButtonRelease(&exit);
         fileMenu.append(exitMenuItem);
@@ -160,18 +176,52 @@ class FileMenuItem : MenuItem
         return true;
     }
 
+    static void addFile(string f)
+    {
+        DirEntry d;
+
+        try {
+            d = DirEntry(f);
+        } catch (FileException e) {
+            io.stderr.writefln("error: %s", e.msg);
+            return;
+        }
+
+        if (d.isFile) {
+            auto iter = data.list.addSong(f);
+            auto p = new Process(f, iter);
+            auto task = task(&p.run);
+
+            data.taskPool.put(task);
+        } else if (d.isDir) {
+            foreach (name; dirEntries(f, SpanMode.breadth)) {
+                addFile(name);
+            }
+        } else {
+            io.stderr.writefln("'%s' is neither a file nor a directory", f);
+        }
+    }
+
     bool selectFile(Event event, Widget widget)
     {
-        auto s = new SelectFile();
+        auto s = new SelectFile(true);
         auto res = s.run();
 
         if (res == ResponseType.OK) {
-            auto f = s.getFilename();
-            auto iter = data.list.addSong(f);
-            auto p = new Process(f, new Analyzer(), iter);
-            auto task = task(&p.run);
+            addFile(s.getFilename());
+        }
+        s.destroy();
 
-            taskPool.put(task);
+        return true;
+    }
+
+    bool selectDir(Event event, Widget widget)
+    {
+        auto s = new SelectFile(false);
+        auto res = s.run();
+
+        if (res == ResponseType.OK) {
+            addFile(s.getFilename());
         }
         s.destroy();
 
@@ -181,9 +231,13 @@ class FileMenuItem : MenuItem
 
 class SelectFile : FileChooserDialog
 {
-    this()
+    this(in bool only_file)
     {
-        super("Choose a file", data.main, GtkFileChooserAction.OPEN);
+        if (only_file) {
+            super("Choose a file", data.main, GtkFileChooserAction.OPEN);
+        } else {
+            super("Choose a folder", data.main, GtkFileChooserAction.SELECT_FOLDER);
+        }
     }
 }
 
@@ -208,8 +262,8 @@ class SongTreeView : TreeView
                                        "text", 1);
         appendColumn(keyColumn);
 
-        progressColumn = new TreeViewColumn("Progress", new CellRendererText(),
-                                            "text", 2);
+        progressColumn = new TreeViewColumn("Progress", new CellRendererProgress(),
+                                            "value", 2);
         appendColumn(progressColumn);
  
         setModel(store);
@@ -222,29 +276,34 @@ class SongTreeView : TreeView
 class SongListStore : ListStore
 {
     enum {
-        FILENAME,
-        KEY,
-        PROGRESS
+        FILENAME = 0,
+        KEY      = 1,
+        PROGRESS = 2
     };
 
     this()
     {
-        super([GType.STRING, GType.STRING, GType.STRING]);
+        super([GType.STRING, GType.STRING, GType.INT]);
     }
  
     public TreeIter addSong(in string name)
     {
         TreeIter iter = createIter();
         setValue(iter, FILENAME, name);
-        setValue(iter, PROGRESS, "0");
+        setValue(iter, PROGRESS, 0);
 
         return iter;
     }
 
     public void setKey(TreeIter iter, in string key)
     {
-        setValue(iter, PROGRESS, "100");
+        setValue(iter, PROGRESS, 100);
         setValue(iter, KEY, key);
+    }
+
+    public void setProgress(TreeIter iter, in int progress)
+    {
+        setValue(iter, PROGRESS, progress);
     }
 }
 

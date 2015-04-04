@@ -2,6 +2,7 @@ module audio.audiostream;
 
 //@safe:
 import core.stdc.string : memcpy;
+import std.algorithm : min;
 
 import libavcodec.avcodec;
 
@@ -27,7 +28,9 @@ private:
 	AVFrame* frame; /++ a frame, kept if already decompressed but buffer full +/
 	AVCodecContext* ctx;
 	Resampler resampler;
-	immutable uint samplerate;
+	immutable uint  samplerate;
+    size_t          full_length;
+    ulong           real_pos;
 
 	invariant() {
 		assert(0 <= dend && dend <= d.length);
@@ -58,6 +61,8 @@ public:
 		/* open the resampler */
 		samplerate = Beatr.sampleRate;
 		resampler = new Resampler(ctx, samplerate);
+        full_length = samplerate * af.duration;
+        real_pos = 0;
 
 		/* allocates for the buffer nbFramesBuf seconds of samples */
 		d = new short[samplerate * Beatr.framesBufSize];
@@ -67,6 +72,19 @@ public:
 
 		addFrames();
 	}
+
+    void setMaxSeconds(size_t seconds) nothrow
+    {
+        full_length = min(full_length, seconds * samplerate);
+    }
+
+    @property int progress() const
+    {
+        if (full_length == 0)
+            return 100;
+        else
+            return cast(int)(real_pos * 100 / full_length);
+    }
 
 	/++++ Range Functions +++++/
 
@@ -98,6 +116,7 @@ public:
 	void popFront()
 	{
 		offset += samplerate;
+        real_pos += samplerate;
 
 		/* refill the data if necessary so that empty() will work */
 		if (offset + samplerate > dend && !endOfFile)

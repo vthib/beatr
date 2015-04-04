@@ -25,12 +25,11 @@ public:
 	{
 		int ret;
 
-		av_register_all();
-		av_log_set_level(AV_LOG_ERROR);
-
 		/* open file */
-		ret = avformat_open_input(&ctx, file.toStringz, null, null);
-		if (ret < 0)
+        synchronized {
+            ret = avformat_open_input(&ctx, file.toStringz, null, null);
+        }
+        if (ret < 0)
 			throw new LibAvException("avformat_open_input error", ret);
 
 		/* analyse the file */
@@ -60,6 +59,12 @@ public:
 	{
 		return ctx.streams[audioStream].codec;
 	}
+
+    /* return the duration in seconds */
+    @property ulong duration() const nothrow pure
+    {
+        return cast(ulong) (ctx.duration / AV_TIME_BASE);
+    }
 
 	/++ Retrieves the next frame in the audio data
 	 + Returns: false if end of file, true if success

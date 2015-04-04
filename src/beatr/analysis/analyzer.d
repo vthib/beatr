@@ -10,6 +10,8 @@ import audio.fft;
 import analysis.scores;
 import util.beatr;
 
+import libavformat.avformat;
+
 import std.typecons : scoped;
 
 /++
@@ -24,6 +26,7 @@ private:
 	LowPassFilter!80 lpf;
 	size_t fbidx;
 	double[] filterout;
+    void delegate(int) progressReport = null;
 
 public:
 	this()
@@ -40,6 +43,11 @@ public:
 		fbidx = 0;
 	}
 
+    void setProgressCallback(void delegate(int) f)
+    {
+        progressReport = f;
+    }
+
 	/++ Process the audio file, up to 'seconds' seconds +/
 	void processFile(string fname, size_t seconds = size_t.max)
 	{
@@ -52,6 +60,7 @@ public:
 
 		clean();
 		size_t i = 0;
+        stream.setMaxSeconds(seconds);
 		if (Beatr.useFilter) {
 			foreach(frame; stream) {
 				if (i++ >= seconds)
@@ -64,6 +73,9 @@ public:
 				if (i++ >= seconds)
 					break;
 				processFrame(frame);
+                if (progressReport !is null) {
+                    progressReport(stream.progress);
+                }
 			}
 		}
 	}
@@ -136,6 +148,8 @@ void
 beatrInit()
 {
 	fftInit();
+    av_register_all();
+    av_log_set_level(AV_LOG_ERROR);
 }
 
 void
