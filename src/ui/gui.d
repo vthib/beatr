@@ -28,6 +28,8 @@ import gtk.TreeViewColumn;
 import gtk.CellRendererText;
 import gtk.CellRendererProgress;
 import glib.Idle;
+import gtk.TreeRowReference;
+import gtk.CheckButton;
 
 import util.weighting;
 import analysis.analyzer;
@@ -35,6 +37,7 @@ import chroma.chromaprofile;
 import util.beatr;
 import exc.libavexception;
 import id3lib.id3lib;
+import util.note;
 
 struct Options {
     ProfileType profile;
@@ -51,6 +54,10 @@ struct Data {
     SongListStore list;
 
     TaskPool taskPool;
+
+    Process* rows[];
+
+    bool useCodes;
 };
 
 Data data;
@@ -80,7 +87,8 @@ struct Song {
     string filename;
     string artist = "";
     string title = "";
-    string key;
+    Note key;
+    int progress;
 
     this(in string f)
     {
@@ -128,8 +136,7 @@ struct Song {
 
 struct Process {
     Song *song;
-    TreeIter iter;
-    int progress;
+    TreeRowReference treeRef;
 
     void run()
     {
@@ -147,10 +154,10 @@ struct Process {
                 a.processFile(song.filename);
 
             auto s = a.score(data.opt.profile, data.opt.corr);
-            song.key = to!string(s.bestKey());
-            progress = 100;
+            song.key = s.bestKey();
+            song.progress = 100;
 
-            new Idle(&updateKey);
+            new Idle(&updateSong);
         } catch (LibAvException e) {
             io.stderr.writefln("%s\n", e.msg);
             /* TODO err */
@@ -160,30 +167,60 @@ struct Process {
 
     void progressCb(int p)
     {
-        progress = p;
-        new Idle(&updateProgress);
+        song.progress = p;
+        new Idle(&updateSong);
     }
 
-    bool updateKey()
+    bool updateSong()
     {
-        data.list.setKey(iter, song.key);
-        return false;
-    }
+        auto iter = new TreeIter(data.list, treeRef.getPath());
 
-    bool updateProgress()
-    {
-        data.list.setProgress(iter, progress);
+        data.list.updateSong(iter, song);
         return false;
     }
 }
 
 /* }}} */
 
+class MainInterface
+{
+    public this()
+    {
+        data.main = new MainWindow("Beatr");
+        data.main.setDefaultSize(800, 600);
+
+        MenuBar menuBar = new MenuBar();
+        menuBar.append(new FileMenuItem());
+
+        data.list = new SongListStore();
+        auto treeView = new SongTreeView(data.list);
+
+        auto button = new CheckButton("Use Camelot Codes", &toggleCamelot);
+
+        Box box = new Box(Orientation.VERTICAL, 10);
+        box.packStart(menuBar, false, false, 0);
+        box.packStart(button,  false, false, 0);
+        box.packStart(treeView, true, false, 0);
+
+        data.main.add(box);
+        data.main.showAll();
+    }
+
+    private void toggleCamelot(CheckButton button)
+    {
+        data.useCodes = button.getActive();
+        foreach (p; data.rows) {
+            p.updateSong();
+        }
+    }
+}
+
 void main(string[] args)
 {
     data.opt.profile = ProfileType.chordNormalized;
     data.opt.wcurve = Beatr.weightCurve;
     data.opt.seconds = 150;
+    data.useCodes = false;
 
     data.taskPool = new TaskPool(1);
 
@@ -191,21 +228,7 @@ void main(string[] args)
     scope(exit) beatrCleanup();
 
     Main.init(args);
-    data.main = new MainWindow("Beatr");
-    data.main.setDefaultSize(800, 600);
-
-    MenuBar menuBar = new MenuBar();
-    menuBar.append(new FileMenuItem());
-
-    data.list = new SongListStore();
-    auto treeView = new SongTreeView(data.list);
-
-    Box box = new Box(Orientation.VERTICAL, 10);
-    box.packStart(menuBar, false, false, 0);
-    box.packStart(treeView, false, false, 0);
-
-    data.main.add(box);
-    data.main.showAll();
+    MainInterface m = new MainInterface();
     Main.run();
 }
 
@@ -256,7 +279,9 @@ class FileMenuItem : MenuItem
         if (d.isFile) {
             Song *song = new Song(f);
             auto iter = data.list.addSong(song);
-            auto p = new Process(song, iter);
+            auto treeRef = new TreeRowReference(data.list, iter.getTreePath());
+            auto p = new Process(song, treeRef);
+            data.rows ~= p;
             auto task = task(&p.run);
 
             data.taskPool.put(task);
@@ -367,24 +392,23 @@ class SongListStore : ListStore
     public TreeIter addSong(Song *s)
     {
         TreeIter iter = createIter();
-        setValue(iter, FILENAME, std.path.baseName(s.filename));
-        setValue(iter, ARTIST, s.artist);
-        setValue(iter, TITLE, s.title);
-        setValue(iter, KEY, s.key);
-        setValue(iter, PROGRESS, 0);
+        iter.setModel(this);
+        updateSong(iter, s);
 
         return iter;
     }
 
-    public void setKey(TreeIter iter, in string key)
+    public void updateSong(TreeIter iter, Song *s)
     {
-        setValue(iter, KEY, key);
-        setValue(iter, PROGRESS, 100);
-    }
+        setValue(iter, FILENAME, std.path.baseName(s.filename));
+        setValue(iter, ARTIST, s.artist);
+        setValue(iter, TITLE, s.title);
+        if (s.key !is null) {
+            string key = data.useCodes ? s.key.toCode : s.key.toString;
 
-    public void setProgress(TreeIter iter, in int progress)
-    {
-        setValue(iter, PROGRESS, progress);
+            setValue(iter, KEY, key);
+        }
+        setValue(iter, PROGRESS, s.progress);
     }
 }
 
