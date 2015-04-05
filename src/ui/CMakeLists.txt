@@ -12,4 +12,4 @@ target_link_libraries(beatr-cli ${LIBRARIES})
 
 include_directories(/usr/include/d/gtkd-3)
 add_executable(beatr-gui gui.d)
-target_link_libraries(beatr-gui ${LIBRARIES} gtkd-3 dl)
+target_link_libraries(beatr-gui ${LIBRARIES} gtkd-3 dl did3lib id3)

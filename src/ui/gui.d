@@ -5,6 +5,10 @@ import std.file;
 import std.parallelism;
 import std.conv;
 import std.range : iota;
+import std.string;
+import core.stdc.string : strlen;
+import std.utf;
+import std.bitmanip;
 
 import gtk.MainWindow;
 import gtk.Box;
@@ -30,6 +34,7 @@ import analysis.analyzer;
 import chroma.chromaprofile;
 import util.beatr;
 import exc.libavexception;
+import id3lib.id3lib;
 
 struct Options {
     ProfileType profile;
@@ -53,17 +58,78 @@ Analyzer a = null;
 
 /* {{{ Process */
 
-struct Process {
-    string f;
-    TreeIter iter;
-    string k;
-    int progress;
+string frameToString(ID3Frame *frame)
+{
+    ID3Field *field = ID3Frame_GetField(frame, ID3_FieldID.ID3FN_TEXT);
+    wchar wbuf[];
 
-    this(string file, TreeIter it)
-    {
-        f = file;
-        iter = it;
+    if (field is null) {
+        return "";
     }
+
+    wbuf.length = 1024;
+    wbuf.length = ID3Field_GetUNICODE(field, wbuf.ptr, 1024) / 2;
+    foreach(ref w; wbuf) {
+        ubyte a[2] = [ w & 0xFF, (w >> 8) & 0xFF ];
+        w = bigEndianToNative!(wchar)(a);
+    }
+    return wbuf.idup.toUTF8;
+}
+
+struct Song {
+    string filename;
+    string artist = "";
+    string title = "";
+    string key;
+
+    this(in string f)
+    {
+        filename = f;
+
+        ID3Tag *tag = ID3Tag_New();
+        ID3Tag_Link(tag, f.toStringz());
+
+        /*
+        ID3TagIterator *it = ID3Tag_CreateIterator(tag);
+        ID3Frame *frame = null;
+        while ((frame = ID3TagIterator_GetNext(it)) !is null) {
+            writefln("frame id: %s", ID3Frame_GetID(frame));
+            ID3Field *field = ID3Frame_GetField(frame, ID3_FieldID.ID3FN_TEXT);
+
+            if (field !is null) {
+                wchar wbuf[];
+
+                wbuf.length = 1024;
+                wbuf.length = ID3Field_GetUNICODE(field, wbuf.ptr, 1024);
+                wbuf.length /= 2;
+                foreach(ref w; wbuf) {
+                    ubyte a[2] = [ w & 0xFF, (w >> 8) & 0xFF ];
+                    w = bigEndianToNative!(wchar)(a);
+                }
+                title = wbuf.idup.toUTF8;
+            }
+        }
+        ID3TagIterator_Delete(it);
+        */
+
+        ID3Frame *frame = ID3Tag_FindFrameWithID(tag, ID3_FrameID.ID3FID_TITLE);
+        if (frame !is null) {
+            title = frameToString(frame);
+        }
+
+        frame = ID3Tag_FindFrameWithID(tag, ID3_FrameID.ID3FID_LEADARTIST);
+        if (frame !is null) {
+            artist = frameToString(frame);
+        }
+
+        ID3Tag_Delete(tag);
+    }
+};
+
+struct Process {
+    Song *song;
+    TreeIter iter;
+    int progress;
 
     void run()
     {
@@ -74,15 +140,15 @@ struct Process {
         }
         a.setProgressCallback(&progressCb);
 
-        Beatr.writefln(Lvl.verbose, "Processing '%s'...", f);
         try {
             if (data.opt.seconds != 0)
-                a.processFile(f, data.opt.seconds);
+                a.processFile(song.filename, data.opt.seconds);
             else
-                a.processFile(f);
+                a.processFile(song.filename);
 
             auto s = a.score(data.opt.profile, data.opt.corr);
-            k = to!string(s.bestKey());
+            song.key = to!string(s.bestKey());
+            progress = 100;
 
             new Idle(&updateKey);
         } catch (LibAvException e) {
@@ -98,15 +164,15 @@ struct Process {
         new Idle(&updateProgress);
     }
 
-    bool updateProgress()
+    bool updateKey()
     {
-        data.list.setProgress(iter, progress);
+        data.list.setKey(iter, song.key);
         return false;
     }
 
-    bool updateKey()
+    bool updateProgress()
     {
-        data.list.setKey(iter, k);
+        data.list.setProgress(iter, progress);
         return false;
     }
 }
@@ -188,8 +254,9 @@ class FileMenuItem : MenuItem
         }
 
         if (d.isFile) {
-            auto iter = data.list.addSong(f);
-            auto p = new Process(f, iter);
+            Song *song = new Song(f);
+            auto iter = data.list.addSong(song);
+            auto p = new Process(song, iter);
             auto task = task(&p.run);
 
             data.taskPool.put(task);
@@ -248,24 +315,33 @@ class SelectFile : FileChooserDialog
 
 class SongTreeView : TreeView
 {
-    private TreeViewColumn filenameColumn;
-    private TreeViewColumn keyColumn;
-    private TreeViewColumn progressColumn;
- 
     this(ListStore store)
-    { 
-        filenameColumn = new TreeViewColumn("Filename", new CellRendererText(),
-                                            "text", 0);
-        appendColumn(filenameColumn);
- 
-        keyColumn = new TreeViewColumn("Key", new CellRendererText(),
-                                       "text", 1);
-        appendColumn(keyColumn);
+    {
+        auto column = new TreeViewColumn("Filename", new CellRendererText(),
+                                         "text", 0);
+        column.setResizable(true);
+        appendColumn(column);
 
-        progressColumn = new TreeViewColumn("Progress", new CellRendererProgress(),
-                                            "value", 2);
-        appendColumn(progressColumn);
- 
+        column = new TreeViewColumn("Artist", new CellRendererText(),
+                                    "text", 1);
+        column.setResizable(true);
+        appendColumn(column);
+
+        column = new TreeViewColumn("Title", new CellRendererText(),
+                                    "text", 2);
+        column.setResizable(true);
+        appendColumn(column);
+
+        column = new TreeViewColumn("Key", new CellRendererText(),
+                                    "text", 3);
+        column.setResizable(true);
+        appendColumn(column);
+
+        column = new TreeViewColumn("Progress", new CellRendererProgress(),
+                                    "value", 4);
+        column.setResizable(true);
+        appendColumn(column);
+
         setModel(store);
     }
 }
@@ -277,19 +353,24 @@ class SongListStore : ListStore
 {
     enum {
         FILENAME = 0,
-        KEY      = 1,
-        PROGRESS = 2
+        ARTIST,
+        TITLE,
+        KEY,
+        PROGRESS
     };
 
     this()
     {
-        super([GType.STRING, GType.STRING, GType.INT]);
+        super([GType.STRING, GType.STRING, GType.STRING, GType.STRING, GType.INT]);
     }
- 
-    public TreeIter addSong(in string name)
+
+    public TreeIter addSong(Song *s)
     {
         TreeIter iter = createIter();
-        setValue(iter, FILENAME, name);
+        setValue(iter, FILENAME, std.path.baseName(s.filename));
+        setValue(iter, ARTIST, s.artist);
+        setValue(iter, TITLE, s.title);
+        setValue(iter, KEY, s.key);
         setValue(iter, PROGRESS, 0);
 
         return iter;
@@ -297,8 +378,8 @@ class SongListStore : ListStore
 
     public void setKey(TreeIter iter, in string key)
     {
-        setValue(iter, PROGRESS, 100);
         setValue(iter, KEY, key);
+        setValue(iter, PROGRESS, 100);
     }
 
     public void setProgress(TreeIter iter, in int progress)
