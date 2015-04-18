@@ -1,13 +1,16 @@
-add_executable(test-mfiles test_mfiles.d)
-add_executable(unittesting unittesting.d)
+set(INTERNAL_OBJECTS
+    $<TARGET_OBJECTS:beatr>
+	$<TARGET_OBJECTS:dfftw3>
+	$<TARGET_OBJECTS:davcodec>
+	$<TARGET_OBJECTS:davutil>
+	$<TARGET_OBJECTS:davformat>
+	$<TARGET_OBJECTS:davresample>
+)
+
 include_directories(.)
 include_directories(../beatr)
 include_directories(../3rdptylib)
-set(LIBRARIES
-    beatr
-    dfftw3 davcodec davutil davformat davresample
-     fftw3  avcodec  avutil  avformat  avresample
-)
+add_executable(test-mfiles test_mfiles.d ${INTERNAL_OBJECTS})
+add_executable(unittesting unittesting.d ${INTERNAL_OBJECTS})
+
 set(BEATR_TEST_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "directory of the tests")
-target_link_libraries(test-mfiles ${LIBRARIES})
-target_link_libraries(unittesting ${LIBRARIES})

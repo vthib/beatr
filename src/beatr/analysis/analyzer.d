@@ -110,10 +110,14 @@ public:
         b.addFftSample(fft.output, fft.transformationSize);
     }
 
-
 	void clean() nothrow
 	{
 		b.clean();
+	}
+
+	void cleanup() nothrow
+	{
+		fft.cleanup();
 	}
 
 	/++ Returns a score object based on the current chroma bands +/

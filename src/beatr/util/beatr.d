@@ -241,7 +241,11 @@ public:
 	{
 		if (config is null) {
 			try {
-				config = expandTilde("~/.beatr");
+				version (Windows) {
+					config = ".beatr";
+				} else {
+					config = expandTilde("~/.beatr");
+				}
 			} catch (Exception e) {
 				cio.printf("error expanding tilde in config directory name");
 			}

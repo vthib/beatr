@@ -1,3 +1,5 @@
+module test_mfiles;
+
 import std.file;
 import std.stdio;
 import std.algorithm;

@@ -1,2 +1,4 @@
 include_directories(..)
-add_library(davcodec avcodec.d version_.d)
+add_library(davcodec OBJECT
+    avcodec.d version_.d
+)

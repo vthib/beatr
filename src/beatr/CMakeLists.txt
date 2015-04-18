@@ -1,6 +1,5 @@
 include_directories(. ../3rdptylib)
-add_subdirectory(tests)
-add_library(beatr
+add_library(beatr OBJECT
     analysis/analyzer.d analysis/scores.d
 
     audio/audiofile.d audio/audiostream.d audio/fft.d audio/fftutils.d
@@ -12,3 +11,4 @@ add_library(beatr
 
     util/beatr.d util/note.d util/weighting.d util/window.d
 )
+#add_subdirectory(tests)

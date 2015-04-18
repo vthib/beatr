@@ -29,7 +29,7 @@ private:
 	AVCodecContext* ctx;
 	Resampler resampler;
 	immutable uint  samplerate;
-    size_t          full_length;
+    ulong           full_length;
     ulong           real_pos;
 
 	invariant() {

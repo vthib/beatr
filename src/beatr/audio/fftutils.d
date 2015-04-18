@@ -3,10 +3,16 @@ module audio.fftutils;
 import std.file : mkdir, FileException;
 import core.stdc.errno : EEXIST;
 import std.string: toStringz;
+import std.path : buildPath;
 
 import fftw.fftw3;
 
 import util.beatr;
+
+immutable(char) *wisdomFilename() nothrow
+{
+	return buildPath(Beatr.configDir, "wisdom").toStringz;
+}
 
 void fftInit() nothrow
 {
@@ -23,8 +29,7 @@ void fftInit() nothrow
 	}
 
 end:
-	immutable auto filename = toStringz(Beatr.configDir ~ "/wisdom");
-	fftw_import_wisdom_from_filename(filename);
+	fftw_import_wisdom_from_filename(wisdomFilename());
 }
 
 void fftDestroy() nothrow
@@ -34,8 +39,8 @@ void fftDestroy() nothrow
 
 void fftSaveWisdom()
 {
+	auto f = wisdomFilename();
 	Beatr.writefln(Lvl.debug_, "no wisdom available: new wisdom exported "
-				   "to '%s'", Beatr.configDir ~ "/wisdom");
-	immutable auto filename = toStringz(Beatr.configDir ~ "/wisdom");
-	fftw_export_wisdom_to_filename(filename);
+				   "to '%s'", f);
+	fftw_export_wisdom_to_filename(f);
 }

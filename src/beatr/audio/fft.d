@@ -98,6 +98,11 @@ public:
 		onormed[] /= nbOverlaps;
 	}
 
+	void cleanup() nothrow
+	{
+        fftw_destroy_plan(plan);
+	}
+
 private:
 	void executePlan(bool add)()
 	{
@@ -116,11 +121,6 @@ private:
 					onormed[i] = c * norm_coeff;
 			}
 		}
-	}
-
-	~this()
-	{
-		fftw_destroy_plan(plan);
 	}
 }
 
@@ -171,7 +171,9 @@ unittest
 			else
 				assert(fabs(a) < 1e-10);
 		}
-	}	
+	}
+
+	fft.cleanup();
 }
 
 alias Fft2Times = FftTransformation!(cdouble, double, false);
@@ -229,4 +231,6 @@ unittest
 
 	fft.execute();
 	assert(approxEqual(fft.output, expected));
+
+	fft.cleanup();
 }

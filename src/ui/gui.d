@@ -29,7 +29,9 @@ import gtk.CellRendererText;
 import gtk.CellRendererProgress;
 import glib.Idle;
 import gtk.TreeRowReference;
+import gtk.ScrolledWindow;
 import gtk.CheckButton;
+import gtkc.glib;
 
 import util.weighting;
 import analysis.analyzer;
@@ -53,14 +55,12 @@ struct Data {
 
     SongListStore list;
 
-    TaskPool taskPool;
-
     Process* rows[];
 
     bool useCodes;
 };
 
-Data data;
+__gshared Data data;
 Analyzer a = null;
 
 /* {{{ Process */
@@ -92,10 +92,15 @@ struct Song {
 
     this(in string f)
     {
-        filename = f;
+        filename = f.idup;
+        char[] copy;
+
+        copy = new char[f.length + 1];
+        copy[0..f.length] = f[];
+        copy[f.length] = 0;
 
         ID3Tag *tag = ID3Tag_New();
-        ID3Tag_Link(tag, f.toStringz());
+        ID3Tag_Link(tag, copy.ptr);
 
         /*
         ID3TagIterator *it = ID3Tag_CreateIterator(tag);
@@ -134,6 +139,15 @@ struct Song {
     }
 };
 
+extern(C)
+int updateRowInGUI(Process *p)
+{
+    auto iter = new TreeIter(data.list, p.treeRef.getPath());
+
+    data.list.updateSong(iter, p.song);
+    return false;
+}
+
 struct Process {
     Song *song;
     TreeRowReference treeRef;
@@ -157,7 +171,7 @@ struct Process {
             song.key = s.bestKey();
             song.progress = 100;
 
-            new Idle(&updateSong);
+            updateSong();
         } catch (LibAvException e) {
             io.stderr.writefln("%s\n", e.msg);
             /* TODO err */
@@ -168,15 +182,12 @@ struct Process {
     void progressCb(int p)
     {
         song.progress = p;
-        new Idle(&updateSong);
+        updateSong();
     }
 
-    bool updateSong()
+    void updateSong()
     {
-        auto iter = new TreeIter(data.list, treeRef.getPath());
-
-        data.list.updateSong(iter, song);
-        return false;
+        g_idle_add(cast(GSourceFunc)&updateRowInGUI, cast(void *)&this);
     }
 }
 
@@ -199,8 +210,11 @@ class MainInterface
 
         Box box = new Box(Orientation.VERTICAL, 10);
         box.packStart(menuBar, false, false, 0);
+        auto scroll = new ScrolledWindow(null, null);
         box.packStart(button,  false, false, 0);
-        box.packStart(treeView, true, false, 0);
+        scroll.setPolicy(PolicyType.AUTOMATIC, PolicyType.AUTOMATIC);
+        box.packStart(scroll, true, true, 0);
+        scroll.add(treeView);
 
         data.main.add(box);
         data.main.showAll();
@@ -221,8 +235,6 @@ void main(string[] args)
     data.opt.wcurve = Beatr.weightCurve;
     data.opt.seconds = 150;
     data.useCodes = false;
-
-    data.taskPool = new TaskPool(1);
 
     beatrInit();
     scope(exit) beatrCleanup();
@@ -277,14 +289,14 @@ class FileMenuItem : MenuItem
         }
 
         if (d.isFile) {
-            Song *song = new Song(f);
+            Song *song = new Song(d.name);
             auto iter = data.list.addSong(song);
             auto treeRef = new TreeRowReference(data.list, iter.getTreePath());
             auto p = new Process(song, treeRef);
             data.rows ~= p;
             auto task = task(&p.run);
 
-            data.taskPool.put(task);
+            taskPool.put(task);
         } else if (d.isDir) {
             foreach (name; dirEntries(f, SpanMode.breadth)) {
                 addFile(name);
