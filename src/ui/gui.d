@@ -10,28 +10,30 @@ import core.stdc.string : strlen;
 import std.utf;
 import std.bitmanip;
 
-import gtk.MainWindow;
+import gdk.Event;
+import glib.Idle;
 import gtk.Box;
+import gtk.Button;
+import gtk.CellRendererProgress;
+import gtk.CellRendererText;
+import gtk.CheckButton;
+import gtk.FileChooserDialog;
+import gtk.ListStore;
 import gtk.Main;
+import gtk.MainWindow;
 import gtk.Menu;
 import gtk.MenuBar;
 import gtk.MenuItem;
-import gtk.Widget;
-import gtk.Window;
-import gdk.Event;
-import gtk.FileChooserDialog;
-import gtkc.gtktypes;
+import gtk.ScrolledWindow;
 import gtk.TreeIter;
-import gtk.ListStore;
+import gtk.TreeModelIF;
+import gtk.TreeRowReference;
 import gtk.TreeView;
 import gtk.TreeViewColumn;
-import gtk.CellRendererText;
-import gtk.CellRendererProgress;
-import glib.Idle;
-import gtk.TreeRowReference;
-import gtk.ScrolledWindow;
-import gtk.CheckButton;
+import gtk.Widget;
+import gtk.Window;
 import gtkc.glib;
+import gtkc.gtktypes;
 
 import util.weighting;
 import analysis.analyzer;
@@ -154,6 +156,10 @@ struct Process {
 
     void run()
     {
+        song.progress = 0;
+        song.key = null;
+        updateSong();
+
         if (a is null) {
             synchronized {
                 a = new Analyzer();
@@ -195,28 +201,35 @@ struct Process {
 
 class MainInterface
 {
+    SongTreeView treeView;
+
     public this()
     {
         data.main = new MainWindow("Beatr");
         data.main.setDefaultSize(800, 600);
 
+        Box vbox = new Box(Orientation.VERTICAL, 10);
+
         MenuBar menuBar = new MenuBar();
         menuBar.append(new FileMenuItem());
+        vbox.packStart(menuBar, false, false, 0);
+
+        Box hbox = new Box(Orientation.HORIZONTAL, 10);
+        auto camelotButton = new CheckButton("Use Camelot Codes", &toggleCamelot);
+        hbox.packStart(camelotButton, false, false, 0);
+        auto analyzeButton = new Button("Start analysis", &analyze);
+        hbox.packStart(analyzeButton, false, false, 0);
+        vbox.packStart(hbox, false, false, 0);
 
         data.list = new SongListStore();
-        auto treeView = new SongTreeView(data.list);
-
-        auto button = new CheckButton("Use Camelot Codes", &toggleCamelot);
-
-        Box box = new Box(Orientation.VERTICAL, 10);
-        box.packStart(menuBar, false, false, 0);
+        treeView = new SongTreeView(data.list);
+        treeView.getSelection().setMode(GtkSelectionMode.MULTIPLE);
         auto scroll = new ScrolledWindow(null, null);
-        box.packStart(button,  false, false, 0);
         scroll.setPolicy(PolicyType.AUTOMATIC, PolicyType.AUTOMATIC);
-        box.packStart(scroll, true, true, 0);
         scroll.add(treeView);
+        vbox.packStart(scroll, true, true, 0);
 
-        data.main.add(box);
+        data.main.add(vbox);
         data.main.showAll();
     }
 
@@ -225,6 +238,29 @@ class MainInterface
         data.useCodes = button.getActive();
         foreach (p; data.rows) {
             p.updateSong();
+        }
+    }
+
+    private void analyze(Button button)
+    {
+        auto selection = treeView.getSelection();
+
+        if (selection.countSelectedRows() == 0) {
+            foreach (p; data.rows) {
+                auto task = task(&p.run);
+
+                taskPool.put(task);
+            }
+        } else {
+            TreeModelIF model;
+            auto list = selection.getSelectedRows(model);
+
+            foreach (path; list) {
+                auto p = data.rows[path.getIndices()[0]];
+                auto task = task(&p.run);
+
+                taskPool.put(task);
+            }
         }
     }
 }
@@ -294,9 +330,6 @@ class FileMenuItem : MenuItem
             auto treeRef = new TreeRowReference(data.list, iter.getTreePath());
             auto p = new Process(song, treeRef);
             data.rows ~= p;
-            auto task = task(&p.run);
-
-            taskPool.put(task);
         } else if (d.isDir) {
             foreach (name; dirEntries(f, SpanMode.breadth)) {
                 addFile(name);
