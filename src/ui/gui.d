@@ -70,19 +70,14 @@ Analyzer a = null;
 string frameToString(ID3Frame *frame)
 {
     ID3Field *field = ID3Frame_GetField(frame, ID3_FieldID.ID3FN_TEXT);
-    wchar wbuf[];
+    ID3_TextEnc enc = ID3Field_GetEncoding(field);
+    char buf[];
 
-    if (field is null) {
-        return "";
-    }
-
-    wbuf.length = 1024;
-    wbuf.length = ID3Field_GetUNICODE(field, wbuf.ptr, 1024) / 2;
-    foreach(ref w; wbuf) {
-        ubyte a[2] = [ w & 0xFF, (w >> 8) & 0xFF ];
-        w = bigEndianToNative!(wchar)(a);
-    }
-    return wbuf.idup.toUTF8;
+    ID3Field_SetEncoding(field, ID3_TextEnc.ID3TE_ISO8859_1);
+    buf.length = 1024;
+    buf.length = ID3Field_GetASCII(field, buf.ptr, 1024);
+    ID3Field_SetEncoding(field, enc);
+    return buf.idup.toUTF8;
 }
 
 struct Song {
