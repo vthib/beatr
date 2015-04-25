@@ -65,74 +65,80 @@ struct Data {
 __gshared Data data;
 Analyzer a = null;
 
-/* {{{ Process */
+/* {{{ Tags */
 
-string frameToString(ID3Frame *frame)
-{
-    ID3Field *field = ID3Frame_GetField(frame, ID3_FieldID.ID3FN_TEXT);
-    ID3_TextEnc enc = ID3Field_GetEncoding(field);
-    char buf[];
+struct Tags {
+    string title = "";
+    string artist = "";
+    string comment = "";
+    string key = "";
+    char fbuf[];
+    ID3Tag *tag;
 
-    ID3Field_SetEncoding(field, ID3_TextEnc.ID3TE_ISO8859_1);
-    buf.length = 1024;
-    buf.length = ID3Field_GetASCII(field, buf.ptr, 1024);
-    ID3Field_SetEncoding(field, enc);
-    return buf.idup.toUTF8;
+    this(in string f)
+    {
+        fbuf = new char[f.length + 1];
+        fbuf[0..f.length] = f[];
+        fbuf[f.length] = 0;
+
+        tag = ID3Tag_New();
+        ID3Tag_Link(tag, fbuf.ptr);
+    }
+
+    ~this()
+    {
+        ID3Tag_Delete(tag);
+        delete fbuf;
+    }
+
+    void loadTags()
+    {
+        loadTag(ID3_FrameID.ID3FID_TITLE, this.title);
+        loadTag(ID3_FrameID.ID3FID_LEADARTIST, this.artist);
+        loadTag(ID3_FrameID.ID3FID_COMMENT, this.comment);
+        loadTag(ID3_FrameID.ID3FID_INITIALKEY, this.key);
+        writefln("found for %s: %s, %s, %s, %s", fbuf, title, artist,
+                 comment, key);
+    }
+
+  private:
+    void loadTag(ID3_FrameID type, out string f)
+    {
+        ID3Frame *frame = ID3Tag_FindFrameWithID(tag, type);
+        writefln("type %s has frame %s", type, frame);
+        if (frame !is null) {
+            f = frameToString(frame);
+        }
+    }
+
+    string frameToString(ID3Frame *frame)
+    {
+        ID3Field *field = ID3Frame_GetField(frame, ID3_FieldID.ID3FN_TEXT);
+        ID3_TextEnc enc = ID3Field_GetEncoding(field);
+        char buf[];
+
+        ID3Field_SetEncoding(field, ID3_TextEnc.ID3TE_ISO8859_1);
+        buf.length = 1024;
+        buf.length = ID3Field_GetASCII(field, buf.ptr, 1024);
+        ID3Field_SetEncoding(field, enc);
+        return buf.idup.toUTF8;
+    }
 }
+
+/* }}} */
+/* {{{ Song */
 
 struct Song {
     string filename;
-    string artist = "";
-    string title = "";
-    Note key;
-    int progress;
+    Tags   tags;
+    Note   key;
+    int    progress;
 
     this(in string f)
     {
         filename = f.idup;
-        char[] copy;
-
-        copy = new char[f.length + 1];
-        copy[0..f.length] = f[];
-        copy[f.length] = 0;
-
-        ID3Tag *tag = ID3Tag_New();
-        ID3Tag_Link(tag, copy.ptr);
-
-        /*
-        ID3TagIterator *it = ID3Tag_CreateIterator(tag);
-        ID3Frame *frame = null;
-        while ((frame = ID3TagIterator_GetNext(it)) !is null) {
-            writefln("frame id: %s", ID3Frame_GetID(frame));
-            ID3Field *field = ID3Frame_GetField(frame, ID3_FieldID.ID3FN_TEXT);
-
-            if (field !is null) {
-                wchar wbuf[];
-
-                wbuf.length = 1024;
-                wbuf.length = ID3Field_GetUNICODE(field, wbuf.ptr, 1024);
-                wbuf.length /= 2;
-                foreach(ref w; wbuf) {
-                    ubyte a[2] = [ w & 0xFF, (w >> 8) & 0xFF ];
-                    w = bigEndianToNative!(wchar)(a);
-                }
-                title = wbuf.idup.toUTF8;
-            }
-        }
-        ID3TagIterator_Delete(it);
-        */
-
-        ID3Frame *frame = ID3Tag_FindFrameWithID(tag, ID3_FrameID.ID3FID_TITLE);
-        if (frame !is null) {
-            title = frameToString(frame);
-        }
-
-        frame = ID3Tag_FindFrameWithID(tag, ID3_FrameID.ID3FID_LEADARTIST);
-        if (frame !is null) {
-            artist = frameToString(frame);
-        }
-
-        ID3Tag_Delete(tag);
+        tags = Tags(f);
+        tags.loadTags();
     }
 };
 
@@ -201,7 +207,7 @@ class MainInterface
     public this()
     {
         data.main = new MainWindow("Beatr");
-        data.main.setDefaultSize(800, 600);
+        data.main.setDefaultSize(1024, 600);
 
         Box vbox = new Box(Orientation.VERTICAL, 10);
 
@@ -212,8 +218,6 @@ class MainInterface
         Box hbox = new Box(Orientation.HORIZONTAL, 10);
         auto camelotButton = new CheckButton("Use Camelot Codes", &toggleCamelot);
         hbox.packStart(camelotButton, false, false, 0);
-        auto analyzeButton = new Button("Start analysis", &analyze);
-        hbox.packStart(analyzeButton, false, false, 0);
         vbox.packStart(hbox, false, false, 0);
 
         data.list = new SongListStore();
@@ -223,6 +227,11 @@ class MainInterface
         scroll.setPolicy(PolicyType.AUTOMATIC, PolicyType.AUTOMATIC);
         scroll.add(treeView);
         vbox.packStart(scroll, true, true, 0);
+
+        hbox = new Box(Orientation.HORIZONTAL, 10);
+        auto analyzeButton = new Button("Start analysis", &analyze);
+        hbox.packEnd(analyzeButton, false, false, 10);
+        vbox.packStart(hbox, false, false, 10);
 
         data.main.add(vbox);
         data.main.showAll();
@@ -325,6 +334,7 @@ class FileMenuItem : MenuItem
             auto treeRef = new TreeRowReference(data.list, iter.getTreePath());
             auto p = new Process(song, treeRef);
             data.rows ~= p;
+            p.updateSong();
         } else if (d.isDir) {
             foreach (name; dirEntries(f, SpanMode.breadth)) {
                 addFile(name);
@@ -376,57 +386,25 @@ class SelectFile : FileChooserDialog
 /* }}} */
 /* }}} */
 /* {{{ Tree */
-/* {{{ Tree View */
 
-class SongTreeView : TreeView
-{
-    this(ListStore store)
-    {
-        auto column = new TreeViewColumn("Filename", new CellRendererText(),
-                                         "text", 0);
-        column.setResizable(true);
-        appendColumn(column);
+enum {
+    FILENAME = 0,
+    ARTIST,
+    TITLE,
+    COMMENT,
+    TAGKEY,
+    FOUNDKEY,
+    PROGRESS
+};
 
-        column = new TreeViewColumn("Artist", new CellRendererText(),
-                                    "text", 1);
-        column.setResizable(true);
-        appendColumn(column);
-
-        column = new TreeViewColumn("Title", new CellRendererText(),
-                                    "text", 2);
-        column.setResizable(true);
-        appendColumn(column);
-
-        column = new TreeViewColumn("Key", new CellRendererText(),
-                                    "text", 3);
-        column.setResizable(true);
-        appendColumn(column);
-
-        column = new TreeViewColumn("Progress", new CellRendererProgress(),
-                                    "value", 4);
-        column.setResizable(true);
-        appendColumn(column);
-
-        setModel(store);
-    }
-}
-
-/* }}} */
 /* {{{ List Store */
 
 class SongListStore : ListStore
 {
-    enum {
-        FILENAME = 0,
-        ARTIST,
-        TITLE,
-        KEY,
-        PROGRESS
-    };
-
     this()
     {
-        super([GType.STRING, GType.STRING, GType.STRING, GType.STRING, GType.INT]);
+        super([GType.STRING, GType.STRING, GType.STRING, GType.STRING,
+               GType.STRING, GType.STRING, GType.INT]);
     }
 
     public TreeIter addSong(Song *s)
@@ -441,14 +419,69 @@ class SongListStore : ListStore
     public void updateSong(TreeIter iter, Song *s)
     {
         setValue(iter, FILENAME, std.path.baseName(s.filename));
-        setValue(iter, ARTIST, s.artist);
-        setValue(iter, TITLE, s.title);
+        setValue(iter, ARTIST,  s.tags.artist);
+        setValue(iter, TITLE,   s.tags.title);
+        setValue(iter, COMMENT, s.tags.comment);
+        setValue(iter, TAGKEY,  s.tags.key);
         if (s.key !is null) {
             string key = data.useCodes ? s.key.toCode : s.key.toString;
 
-            setValue(iter, KEY, key);
+            setValue(iter, FOUNDKEY, key);
         }
         setValue(iter, PROGRESS, s.progress);
+    }
+}
+
+/* }}} */
+/* {{{ Tree View */
+
+class SongTreeView : TreeView
+{
+    this(ListStore store)
+    {
+        auto column = new TreeViewColumn("Filename", new CellRendererText(),
+                                         "text", FILENAME);
+        column.setResizable(true);
+        column.setExpand(false);
+        appendColumn(column);
+
+        column = new TreeViewColumn("Artist", new CellRendererText(),
+                                    "text", ARTIST);
+        column.setResizable(true);
+        column.setExpand(false);
+        appendColumn(column);
+
+        column = new TreeViewColumn("Title", new CellRendererText(),
+                                    "text", TITLE);
+        column.setResizable(true);
+        column.setExpand(false);
+        appendColumn(column);
+
+        column = new TreeViewColumn("Comment", new CellRendererText(),
+                                    "text", COMMENT);
+        column.setResizable(true);
+        column.setExpand(false);
+        appendColumn(column);
+
+        column = new TreeViewColumn("Stored Key", new CellRendererText(),
+                                    "text", TAGKEY);
+        column.setResizable(true);
+        column.setExpand(false);
+        appendColumn(column);
+
+        column = new TreeViewColumn("Analyzed Key", new CellRendererText(),
+                                    "text", FOUNDKEY);
+        column.setResizable(true);
+        column.setExpand(false);
+        appendColumn(column);
+
+        column = new TreeViewColumn("Progress", new CellRendererProgress(),
+                                    "value", PROGRESS);
+        column.setResizable(true);
+        column.setExpand(false);
+        appendColumn(column);
+
+        setModel(store);
     }
 }
 
