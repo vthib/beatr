@@ -110,6 +110,11 @@ struct Tags {
   private:
     void writeTag(ID3_FrameID type, in string f)
     {
+        char buf[];
+        buf.length = f.length + 1;
+        buf[0..f.length] = f[];
+        buf[f.length] = 0;
+
         ID3Frame *frame = ID3Tag_FindFrameWithID(tag, type);
         if (frame !is null) {
             ID3Frame_Clear(frame);
@@ -119,7 +124,7 @@ struct Tags {
         ID3Tag_AttachFrame(tag, frame);
 
         ID3Field *field = ID3Frame_GetField(frame, ID3_FieldID.ID3FN_TEXT);
-        ID3Field_SetASCII(field, f.toStringz);
+        ID3Field_SetASCII(field, buf.ptr);
 
         ID3Tag_Update(tag);
     }
@@ -135,13 +140,13 @@ struct Tags {
     string frameToString(ID3Frame *frame)
     {
         ID3Field *field = ID3Frame_GetField(frame, ID3_FieldID.ID3FN_TEXT);
-        ID3_TextEnc enc = ID3Field_GetEncoding(field);
+        //ID3_TextEnc enc = ID3Field_GetEncoding(field);
         char buf[];
 
-        ID3Field_SetEncoding(field, ID3_TextEnc.ID3TE_ISO8859_1);
+        //ID3Field_SetEncoding(field, ID3_TextEnc.ID3TE_ISO8859_1);
         buf.length = 1024;
         buf.length = ID3Field_GetASCII(field, buf.ptr, 1024);
-        ID3Field_SetEncoding(field, enc);
+        //ID3Field_SetEncoding(field, enc);
         return buf.idup.toUTF8;
     }
 }

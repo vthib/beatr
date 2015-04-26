@@ -4,6 +4,7 @@ import std.file : mkdir, FileException;
 import core.stdc.errno : EEXIST;
 import std.string: toStringz;
 import std.path : buildPath;
+import std.windows.syserror;
 
 import fftw.fftw3;
 
@@ -22,6 +23,13 @@ void fftInit() nothrow
 		if (auto f = cast(FileException)e) {
 			if (f.errno == EEXIST)
 				goto end;
+		}
+		if (auto f = cast(WindowsException)e) {
+			try {
+				if (f.code == 183) /* ERROR_ALREADY_EXISTS */
+					goto end;
+			} catch (Exception e) {
+			}
 		}
 		Beatr.writefln(Lvl.warning, "error creating config directory "
 					   "'%s': %s", Beatr.configDir, e.msg);

@@ -3,11 +3,11 @@ include_directories(../beatr)
 include_directories(../3rdptylib)
 set(INTERNAL_OBJECTS
     $<TARGET_OBJECTS:beatr>
-	$<TARGET_OBJECTS:dfftw3>
-	$<TARGET_OBJECTS:davcodec>
-	$<TARGET_OBJECTS:davutil>
-	$<TARGET_OBJECTS:davformat>
-	$<TARGET_OBJECTS:davresample>
+    $<TARGET_OBJECTS:dfftw3>
+    $<TARGET_OBJECTS:davcodec>
+    $<TARGET_OBJECTS:davutil>
+    $<TARGET_OBJECTS:davformat>
+    $<TARGET_OBJECTS:davresample>
 )
 
 set(STATIC_LIB "TRUE" CACHE BOOLEAN "Use static libraries") 
@@ -18,9 +18,10 @@ if (STATIC_LIB)
     find_library(AVFORMAT_LIB avformat PATHS static NO_DEFAULT_PATH)
     find_library(AVCODEC_LIB avcodec PATHS static NO_DEFAULT_PATH)
     find_library(AVUTIL_LIB avutil PATHS static NO_DEFAULT_PATH)
-    find_library(BZ2_LIB bz2)
-    set (LIBRARIES ${LIBRARIES} ${BZ2_LIB})
-
+    if (!WIN32)
+        find_library(BZ2_LIB bz2)
+        set (LIBRARIES ${LIBRARIES} ${BZ2_LIB})
+    endif()
     find_library(GTKD_LIB gtkd-3 PATHS static NO_DEFAULT_PATH)
 else()
     find_library(FFTW_LIB fftw3 PATHS static)

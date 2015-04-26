@@ -24,7 +24,11 @@ enum AVERROR_BUFFER_TOO_SMALL   = FFERRTAG( 'B','U','F','S');
 enum AVERROR_DECODER_NOT_FOUND  = FFERRTAG(0xF8,'D','E','C');
 enum AVERROR_DEMUXER_NOT_FOUND  = FFERRTAG(0xF8,'D','E','M');
 enum AVERROR_ENCODER_NOT_FOUND  = FFERRTAG(0xF8,'E','N','C');
-enum AVERROR_EOF                = FFERRTAG( 'E','O','F',' ');
+version(Windows) {
+	enum AVERROR_EOF                = (-0x5fb9b0bb);
+} else {
+	enum AVERROR_ENCODER_NOT_FOUND = FFERRTAG('E', 'O', 'F', ' ');
+}
 enum AVERROR_EXIT               = FFERRTAG( 'E','X','I','T');
 enum AVERROR_EXTERNAL           = FFERRTAG( 'E','X','T',' ');
 enum AVERROR_FILTER_NOT_FOUND   = FFERRTAG(0xF8,'F','I','L');
