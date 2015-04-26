@@ -97,15 +97,36 @@ struct Tags {
         loadTag(ID3_FrameID.ID3FID_LEADARTIST, this.artist);
         loadTag(ID3_FrameID.ID3FID_COMMENT, this.comment);
         loadTag(ID3_FrameID.ID3FID_INITIALKEY, this.key);
-        writefln("found for %s: %s, %s, %s, %s", fbuf, title, artist,
-                 comment, key);
+    }
+
+    void writeKey(string key, bool inComment)
+    {
+        writeTag(ID3_FrameID.ID3FID_INITIALKEY, key);
+        if (inComment) {
+            writeTag(ID3_FrameID.ID3FID_COMMENT, key);
+        }
     }
 
   private:
+    void writeTag(ID3_FrameID type, in string f)
+    {
+        ID3Frame *frame = ID3Tag_FindFrameWithID(tag, type);
+        if (frame !is null) {
+            ID3Frame_Clear(frame);
+        }
+
+        frame = ID3Frame_NewID(type);
+        ID3Tag_AttachFrame(tag, frame);
+
+        ID3Field *field = ID3Frame_GetField(frame, ID3_FieldID.ID3FN_TEXT);
+        ID3Field_SetASCII(field, f.toStringz);
+
+        ID3Tag_Update(tag);
+    }
+
     void loadTag(ID3_FrameID type, out string f)
     {
         ID3Frame *frame = ID3Tag_FindFrameWithID(tag, type);
-        writefln("type %s has frame %s", type, frame);
         if (frame !is null) {
             f = frameToString(frame);
         }
@@ -196,6 +217,17 @@ struct Process {
     {
         g_idle_add(cast(GSourceFunc)&updateRowInGUI, cast(void *)&this);
     }
+
+    void saveResults()
+    {
+        if (song.key !is null) {
+            string key = data.useCodes ? song.key.toCode : song.key.toString;
+
+            song.tags.writeKey(key, true);
+            song.tags.loadTags();
+            updateSong();
+        }
+    }
 }
 
 /* }}} */
@@ -231,6 +263,8 @@ class MainInterface
         hbox = new Box(Orientation.HORIZONTAL, 10);
         auto analyzeButton = new Button("Start analysis", &analyze);
         hbox.packEnd(analyzeButton, false, false, 10);
+        auto saveButton = new Button("Save tags", &saveTags);
+        hbox.packEnd(saveButton, false, false, 10);
         vbox.packStart(hbox, false, false, 10);
 
         data.main.add(vbox);
@@ -264,6 +298,25 @@ class MainInterface
                 auto task = task(&p.run);
 
                 taskPool.put(task);
+            }
+        }
+    }
+
+    private void saveTags(Button button)
+    {
+        auto selection = treeView.getSelection();
+
+        if (selection.countSelectedRows() == 0) {
+            foreach (p; data.rows) {
+                p.saveResults();
+            }
+        } else {
+            TreeModelIF model;
+            auto list = selection.getSelectedRows(model);
+
+            foreach (path; list) {
+                auto p = data.rows[path.getIndices()[0]];
+                p.saveResults();
             }
         }
     }
