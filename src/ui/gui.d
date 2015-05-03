@@ -11,14 +11,18 @@ import std.utf;
 import std.bitmanip;
 import std.algorithm;
 
+import gdk.DragContext;
 import gdk.Event;
+import glib.GException;
 import glib.Idle;
 import glib.Str;
+import glib.URI;
 import gtk.Box;
 import gtk.Button;
 import gtk.CellRendererProgress;
 import gtk.CellRendererText;
 import gtk.CheckButton;
+import gtk.DragAndDrop;
 import gtk.FileChooserDialog;
 import gtk.FileFilter;
 import gtk.ListStore;
@@ -28,6 +32,7 @@ import gtk.Menu;
 import gtk.MenuBar;
 import gtk.MenuItem;
 import gtk.ScrolledWindow;
+import gtk.SelectionData;
 import gtk.TreeIter;
 import gtk.TreeModelIF;
 import gtk.TreeRowReference;
@@ -554,6 +559,25 @@ class SongTreeView : TreeView
         appendColumn(column);
 
         setModel(store);
+
+        dragDestSet(GtkDestDefaults.ALL, [], GdkDragAction.PRIVATE);
+        dragDestAddUriTargets();
+        addOnDragDataReceived(&receivedDnD);
+    }
+
+    void receivedDnD(DragContext ctx, int x, int y, SelectionData data,
+                     uint info, uint time, Widget widget)
+    {
+        foreach (uri; data.getUris()) {
+            try {
+                string hostname;
+
+                addFile(URI.filenameFromUri(uri, hostname));
+            } catch (GException e) {
+                writefln("cannot add URI `%s`: %s", uri, e.msg);
+            }
+        }
+        DragAndDrop.dragFinish(ctx, true, false, time);
     }
 }
 
