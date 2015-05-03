@@ -86,7 +86,7 @@ struct Tags {
         fbuf[f.length] = 0;
 
         tag = ID3Tag_New();
-        ID3Tag_Link(tag, fbuf.ptr);
+        auto n = ID3Tag_Link(tag, fbuf.ptr);
     }
 
     ~this()
