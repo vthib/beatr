@@ -9,15 +9,18 @@ import std.string;
 import core.stdc.string : strlen;
 import std.utf;
 import std.bitmanip;
+import std.algorithm;
 
 import gdk.Event;
 import glib.Idle;
+import glib.Str;
 import gtk.Box;
 import gtk.Button;
 import gtk.CellRendererProgress;
 import gtk.CellRendererText;
 import gtk.CheckButton;
 import gtk.FileChooserDialog;
+import gtk.FileFilter;
 import gtk.ListStore;
 import gtk.Main;
 import gtk.MainWindow;
@@ -34,6 +37,7 @@ import gtk.Widget;
 import gtk.Window;
 import gtkc.glib;
 import gtkc.gtktypes;
+import gtkc.glibtypes;
 
 import util.weighting;
 import analysis.analyzer;
@@ -235,6 +239,33 @@ struct Process {
     }
 }
 
+void addFile(string f)
+{
+    DirEntry d;
+
+    try {
+        d = DirEntry(f);
+    } catch (FileException e) {
+        io.stderr.writefln("error: %s", e.msg);
+        return;
+    }
+
+    if (d.isFile && f.endsWith(".mp3")) {
+        Song *song = new Song(d.name);
+        auto iter = data.list.addSong(song);
+        auto treeRef = new TreeRowReference(data.list, iter.getTreePath());
+        auto p = new Process(song, treeRef);
+        data.rows ~= p;
+        p.updateSong();
+    } else if (d.isDir) {
+        foreach (name; dirEntries(f, SpanMode.shallow)) {
+            addFile(name);
+        }
+    } else {
+        io.stderr.writefln("'%s' is neither a mp3 file nor a directory", f);
+    }
+}
+
 /* }}} */
 
 class MainInterface
@@ -375,57 +406,32 @@ class FileMenuItem : MenuItem
         return true;
     }
 
-    static void addFile(string f)
+    bool addSelection(SelectFile s)
     {
-        DirEntry d;
+        auto res = s.run();
 
-        try {
-            d = DirEntry(f);
-        } catch (FileException e) {
-            io.stderr.writefln("error: %s", e.msg);
-            return;
-        }
+        if (res == ResponseType.OK) {
+            auto list = s.getFilenames();
 
-        if (d.isFile) {
-            Song *song = new Song(d.name);
-            auto iter = data.list.addSong(song);
-            auto treeRef = new TreeRowReference(data.list, iter.getTreePath());
-            auto p = new Process(song, treeRef);
-            data.rows ~= p;
-            p.updateSong();
-        } else if (d.isDir) {
-            foreach (name; dirEntries(f, SpanMode.breadth)) {
-                addFile(name);
+            while (list !is null) {
+                string str = Str.toString(cast(char *)list.data);
+                addFile(str);
+                list = list.next();
             }
-        } else {
-            io.stderr.writefln("'%s' is neither a file nor a directory", f);
         }
+        s.destroy();
+
+        return true;
     }
 
     bool selectFile(Event event, Widget widget)
     {
-        auto s = new SelectFile(true);
-        auto res = s.run();
-
-        if (res == ResponseType.OK) {
-            addFile(s.getFilename());
-        }
-        s.destroy();
-
-        return true;
+        return addSelection(new SelectFile(true));
     }
 
     bool selectDir(Event event, Widget widget)
     {
-        auto s = new SelectFile(false);
-        auto res = s.run();
-
-        if (res == ResponseType.OK) {
-            addFile(s.getFilename());
-        }
-        s.destroy();
-
-        return true;
+        return addSelection(new SelectFile(false));
     }
 }
 
@@ -438,6 +444,14 @@ class SelectFile : FileChooserDialog
         } else {
             super("Choose a folder", data.main, GtkFileChooserAction.SELECT_FOLDER);
         }
+
+        auto filter = new FileFilter();
+        filter.addPattern("*.mp3");
+        filter.setName("mp3 files");
+        addFilter(filter);
+
+        setLocalOnly(true);
+        setSelectMultiple(true);
     }
 }
 
