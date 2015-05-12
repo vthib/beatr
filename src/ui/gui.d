@@ -440,6 +440,26 @@ class FileMenuItem : MenuItem
     }
 }
 
+extern(C) bool filter_mp3(const GtkFileFilterInfo *info, void *data)
+{
+    string f = Str.toString(info.filename);
+    DirEntry d;
+
+    try {
+        d = DirEntry(f);
+    } catch (FileException e) {
+        return false;
+    }
+
+    if (d.isFile && f.endsWith(".mp3")) {
+        return true;
+    }
+    if (d.isDir) {
+        return true;
+    }
+    return false;
+}
+
 class SelectFile : FileChooserDialog
 {
     this(in bool only_file)
@@ -451,7 +471,7 @@ class SelectFile : FileChooserDialog
         }
 
         auto filter = new FileFilter();
-        filter.addPattern("*.mp3");
+        filter.addCustom(GtkFileFilterFlags.FILENAME, cast(GtkFileFilterFunc)&filter_mp3, null, null);
         filter.setName("mp3 files");
         addFilter(filter);
 
