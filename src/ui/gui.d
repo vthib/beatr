@@ -13,6 +13,7 @@ import std.algorithm;
 
 import gdk.DragContext;
 import gdk.Event;
+import glib.CharacterSet;
 import glib.GException;
 import glib.Idle;
 import glib.Str;
@@ -515,7 +516,8 @@ class SongListStore : ListStore
 
     public void updateSong(TreeIter iter, Song *s)
     {
-        setValue(iter, FILENAME, std.path.baseName(s.filename));
+        string base = std.path.baseName(s.filename);
+        setValue(iter, FILENAME, CharacterSet.filenameDisplayName(base));
         setValue(iter, ARTIST,  s.tags.artist);
         setValue(iter, TITLE,   s.tags.title);
         setValue(iter, COMMENT, s.tags.comment);
@@ -591,8 +593,8 @@ class SongTreeView : TreeView
         foreach (uri; data.getUris()) {
             try {
                 string hostname;
-
-                addFile(URI.filenameFromUri(uri, hostname));
+                string filename = URI.filenameFromUri(uri, hostname);
+                addFile(CharacterSet.filenameToUtf8(filename, filename.length, null, null));
             } catch (GException e) {
                 writefln("cannot add URI `%s`: %s", uri, e.msg);
             }
