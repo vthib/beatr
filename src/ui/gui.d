@@ -87,9 +87,11 @@ struct Tags {
 
     this(in string f)
     {
-        fbuf = new char[f.length + 1];
-        fbuf[0..f.length] = f[];
-        fbuf[f.length] = 0;
+        size_t bytes_read;
+        string f2 = CharacterSet.filenameFromUtf8(f, f.length, bytes_read);
+        fbuf = new char[f2.length + 1];
+        fbuf[0..f2.length] = f2[];
+        fbuf[f2.length] = 0;
 
         tag = ID3Tag_New();
         auto n = ID3Tag_Link(tag, fbuf.ptr);
