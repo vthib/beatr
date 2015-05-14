@@ -23,16 +23,20 @@ import gtk.Box;
 import gtk.Button;
 import gtk.CellRendererProgress;
 import gtk.CellRendererText;
+import gtk.Container;
 import gtk.CheckButton;
+import gtk.Dialog;
 import gtk.DragAndDrop;
 import gtk.FileChooserDialog;
 import gtk.FileFilter;
+import gtk.Label;
 import gtk.ListStore;
 import gtk.Main;
 import gtk.MainWindow;
 import gtk.Menu;
 import gtk.MenuBar;
 import gtk.MenuItem;
+import gtk.ProgressBar;
 import gtk.ScrolledWindow;
 import gtk.SelectionData;
 import gtk.TreeIter;
@@ -71,6 +75,8 @@ struct Data {
     Process* rows[];
 
     bool useCodes;
+
+    AddingFiles addingDialog;
 };
 
 __gshared Data data;
@@ -262,33 +268,6 @@ struct Process {
     }
 }
 
-void addFile(string f)
-{
-    DirEntry d;
-
-    try {
-        d = DirEntry(f);
-    } catch (FileException e) {
-        io.stderr.writefln("error: %s", e.msg);
-        return;
-    }
-
-    if (d.isFile && f.endsWith(".mp3")) {
-        Song *song = new Song(d.name);
-        auto iter = data.list.addSong(song);
-        auto treeRef = new TreeRowReference(data.list, iter.getTreePath());
-        auto p = new Process(song, treeRef);
-        data.rows ~= p;
-        p.updateSong();
-    } else if (d.isDir) {
-        foreach (name; dirEntries(f, SpanMode.shallow)) {
-            addFile(name);
-        }
-    } else {
-        io.stderr.writefln("'%s' is neither a mp3 file nor a directory", f);
-    }
-}
-
 /* }}} */
 
 class MainInterface
@@ -432,18 +411,19 @@ class FileMenuItem : MenuItem
     bool addSelection(SelectFile s)
     {
         auto res = s.run();
+        string[] files;
 
         if (res == ResponseType.OK) {
             auto list = s.getFilenames();
-
             while (list !is null) {
-                string str = Str.toString(cast(char *)list.data);
-                addFile(str);
+                string filename = Str.toString(cast(char *)list.data);
+                files ~= CharacterSet.filenameToUtf8(filename, filename.length, null, null);
                 list = list.next();
             }
         }
         s.destroy();
 
+        data.addingDialog = new AddingFiles(files);
         return true;
     }
 
@@ -495,6 +475,130 @@ class SelectFile : FileChooserDialog
 
         setLocalOnly(true);
         setSelectMultiple(true);
+    }
+}
+
+struct PushInfo {
+    uint i;
+};
+
+extern(C)
+int pushFile(void *user_data)
+{
+    immutable uint i = cast(uint)user_data;
+    AddingFiles af = data.addingDialog;
+    string f = af.audioFiles[i];
+
+    string base = std.path.baseName(f);
+
+    af.progressBar.setText(format("%s / %s", i, af.audioFiles.length));
+    af.progressBar.setFraction(cast(double)(i+1) / af.audioFiles.length);
+    af.label.setLabel(format("Adding %s", CharacterSet.filenameDisplayName(base)));
+
+    Song *song = new Song(f);
+    auto iter = data.list.addSong(song);
+    auto treeRef = new TreeRowReference(data.list, iter.getTreePath());
+    auto p = new Process(song, treeRef);
+    data.rows ~= p;
+    p.updateSong();
+
+    if (i == af.audioFiles.length - 1) {
+        af.destroy();
+    }
+
+    /* XXX: ugly hack.
+     * Normally, as this idle function modify GUI elements, the main loop
+     * should update the GUI before calling any further idle functions.
+     * It does not work however, so this loop makes sure the GUI is updated
+     * before running another idle function.
+     */
+    while (Main.eventsPending()) {
+        Main.iteration();
+    }
+
+    return false;
+}
+
+class AddingFiles : Dialog
+{
+    ProgressBar progressBar;
+    Label label;
+    const(string[]) files;
+    string[] audioFiles;
+
+    this(in string[] files)
+    {
+        super();
+        setTitle("Loading files...");
+        setTransientFor(data.main);
+        setModal(true);
+        setDestroyWithParent(true);
+
+        auto cnt = getContentArea();
+
+        progressBar = new ProgressBar();
+        cnt.add(progressBar);
+        label = new Label("Getting list of files...");
+        cnt.add(label);
+
+        showAll();
+
+        this.files = files;
+        audioFiles = new string[0];
+
+        auto task = task(&addFiles);
+        taskPool.put(task);
+    }
+
+
+  private:
+    void addFiles()
+    {
+        getAllAudioFiles(files);
+
+        if (audioFiles.length == 0) {
+            destroy();
+            return;
+        }
+
+        foreach (i, f; audioFiles) {
+            g_idle_add(cast(GSourceFunc)&pushFile, cast(void *)i);
+        }
+    }
+
+    void destroy()
+    {
+        data.addingDialog = null;
+        super.destroy();
+    }
+
+    void getAllAudioFiles(in string f)
+    {
+        DirEntry d;
+
+        try {
+            d = DirEntry(f);
+        } catch (FileException e) {
+            io.stderr.writefln("error: %s", e.msg);
+            return;
+        }
+
+        if (d.isFile && f.endsWith(".mp3")) {
+            audioFiles ~= f;
+        } else if (d.isDir) {
+            foreach (name; dirEntries(f, SpanMode.shallow)) {
+                getAllAudioFiles(name);
+            }
+        } else {
+            io.stderr.writefln("'%s' is neither a mp3 file nor a directory", f);
+        }
+    }
+
+    void getAllAudioFiles(in string[] files)
+    {
+        foreach (f; files) {
+            getAllAudioFiles(f);
+        }
     }
 }
 
@@ -604,18 +708,39 @@ class SongTreeView : TreeView
         addOnDragDataReceived(&receivedDnD);
     }
 
-    void receivedDnD(DragContext ctx, int x, int y, SelectionData data,
+    void receivedDnD(DragContext ctx, int x, int y, SelectionData selData,
                      uint info, uint time, Widget widget)
     {
-        foreach (uri; data.getUris()) {
+        string[] files;
+
+        foreach (uri; selData.getUris()) {
+            string hostname;
+            string filename = null;
+
             try {
-                string hostname;
-                string filename = URI.filenameFromUri(uri, hostname);
-                addFile(CharacterSet.filenameToUtf8(filename, filename.length, null, null));
+                filename = URI.filenameFromUri(uri, hostname);
+                files ~= CharacterSet.filenameToUtf8(filename, filename.length, null, null);
             } catch (GException e) {
-                writefln("cannot add URI `%s`: %s", uri, e.msg);
+                /* if a conversion failed, we can still try to directly unescape the URI.
+                 * The file may not have the right encoding. */
+                try {
+                    filename = URI.uriUnescapeString(uri, null);
+                    if (filename.startsWith("file:///")) {
+                        filename = filename[8..$];
+                    }
+                    version (Windows) {
+                        filename = filename.replace("/", "\\");
+                    }
+                    files ~= filename;
+                } catch (GException e) {
+                    /* TODO: popup error */
+                    io.stderr.writefln("cannot add URI `%s`: %s", uri, e.msg);
+                }
             }
         }
+        /* TODO: verify the file exists */
+
+        data.addingDialog = new AddingFiles(files);
         DragAndDrop.dragFinish(ctx, true, false, time);
     }
 }
