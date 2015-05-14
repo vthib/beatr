@@ -10,6 +10,7 @@ import core.stdc.string : strlen;
 import std.utf;
 import std.bitmanip;
 import std.algorithm;
+import core.stdc.stdio;
 
 import gdk.DragContext;
 import gdk.Event;
@@ -88,7 +89,20 @@ struct Tags {
     this(in string f)
     {
         size_t bytes_read;
-        string f2 = CharacterSet.filenameFromUtf8(f, f.length, bytes_read);
+        string f2 = f;
+        try {
+            f2 = CharacterSet.filenameFromUtf8(f, f.length, bytes_read);
+        } catch (GException e) {
+            /* invalid utf-8, lets try to open the file directly. */
+        }
+
+        FILE *file = fopen(f2.toStringz, "r".toStringz);
+        if (!file) {
+            io.stderr.writefln("could not open file `%s` to read tags", f2);
+        } else {
+            fclose(file);
+        }
+
         fbuf = new char[f2.length + 1];
         fbuf[0..f2.length] = f2[];
         fbuf[f2.length] = 0;
@@ -136,6 +150,7 @@ struct Tags {
         ID3Tag_AttachFrame(tag, frame);
 
         ID3Field *field = ID3Frame_GetField(frame, ID3_FieldID.ID3FN_TEXT);
+        ID3Field_SetEncoding(field, ID3_TextEnc.ID3TE_ISO8859_1);
         ID3Field_SetASCII(field, buf.ptr);
 
         ID3Tag_Update(tag);
